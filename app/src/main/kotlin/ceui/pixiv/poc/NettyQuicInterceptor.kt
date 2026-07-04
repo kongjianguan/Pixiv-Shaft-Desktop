@@ -68,70 +68,94 @@ class NettyQuicInterceptor : Interceptor {
             .initialMaxStreamDataBidirectionalLocal(1_000_000)
             .build()
 
-        val datagram: Channel = Bootstrap()
-            .group(group)
-            .channel(NioDatagramChannel::class.java)
-            .handler(codec)
-            .bind(0).sync().channel()
+        var datagram: Channel? = null
+        var quicChannel: QuicChannel? = null
+        try {
+            datagram = Bootstrap()
+                .group(group)
+                .channel(NioDatagramChannel::class.java)
+                .handler(codec)
+                .bind(0).sync().channel()
 
-        val quicChannel = QuicChannel.newBootstrap(datagram)
-            .handler(Http3ClientConnectionHandler())
-            .remoteAddress(remote)
-            .connect()
-            .get()
+            quicChannel = QuicChannel.newBootstrap(datagram)
+                .handler(Http3ClientConnectionHandler())
+                .remoteAddress(remote)
+                .connect()
+                .get()
 
-        val done = CompletableFuture<Pair<Int, ByteArray>>()
-        val bodyBuf = ByteArrayOutputStream()
-        val statusHolder = intArrayOf(0)
+            val done = CompletableFuture<Pair<Int, ByteArray>>()
+            val bodyBuf = ByteArrayOutputStream()
+            val statusHolder = intArrayOf(0)
 
-        val streamChannel: QuicStreamChannel = Http3.newRequestStream(
-            quicChannel,
-            object : Http3RequestStreamInboundHandler() {
-                override fun channelRead(ctx: ChannelHandlerContext, frame: Http3HeadersFrame) {
-                    statusHolder[0] = frame.headers().status()?.toString()?.toIntOrNull() ?: 0
-                    ReferenceCountUtil.release(frame)
+            val streamChannel: QuicStreamChannel = Http3.newRequestStream(
+                quicChannel,
+                object : Http3RequestStreamInboundHandler() {
+                    override fun channelRead(ctx: ChannelHandlerContext, frame: Http3HeadersFrame) {
+                        statusHolder[0] = frame.headers().status()?.toString()?.toIntOrNull() ?: 0
+                        ReferenceCountUtil.release(frame)
+                    }
+                    override fun channelRead(ctx: ChannelHandlerContext, frame: Http3DataFrame) {
+                        val b = frame.content()
+                        val bytes = ByteArray(b.readableBytes())
+                        b.readBytes(bytes)
+                        bodyBuf.write(bytes)
+                        ReferenceCountUtil.release(frame)
+                    }
+                    override fun channelInputClosed(ctx: ChannelHandlerContext) {
+                        done.complete(statusHolder[0] to bodyBuf.toByteArray())
+                        ctx.close()
+                    }
                 }
-                override fun channelRead(ctx: ChannelHandlerContext, frame: Http3DataFrame) {
-                    bodyBuf.write(frame.content().toString(StandardCharsets.UTF_8).toByteArray())
-                    ReferenceCountUtil.release(frame)
-                }
-                override fun channelInputClosed(ctx: ChannelHandlerContext) {
-                    done.complete(statusHolder[0] to bodyBuf.toByteArray())
-                    ctx.close()
-                }
+            ).sync().getNow()
+
+            val path = request.url.encodedPath +
+                (request.url.encodedQuery?.let { "?$it" } ?: "")
+            val nonce = RequestNonce.build()
+            val headersFrame = DefaultHttp3HeadersFrame()
+            val h = headersFrame.headers()
+                .method(request.method)
+                .path(path)
+                .authority(host)
+                .scheme("https")
+            // 转发原请求头（Authorization 等），跳过 hop-by-hop 与已设/覆盖项
+            val skip = setOf(
+                "host", "connection", "proxy-connection", "transfer-encoding",
+                "keep-alive", "te", "trailer", "content-length",
+                "method", "path", "authority", "scheme", "status",
+                "user-agent", "app-os", "app-os-version", "app-version",
+                "x-client-time", "x-client-hash"
+            )
+            for (i in 0 until request.headers.size) {
+                val name = request.headers.name(i).lowercase()
+                if (name !in skip) h.add(name, request.headers.value(i))
             }
-        ).sync().getNow()
+            h.add("user-agent", PixivHosts.IOS_UA)
+                .add("app-os", PixivHosts.APP_OS)
+                .add("app-os-version", PixivHosts.APP_OS_VERSION)
+                .add("app-version", PixivHosts.APP_VERSION)
+                .add("x-client-time", nonce.xClientTime)
+                .add("x-client-hash", nonce.xClientHash)
 
-        val path = request.url.encodedPath +
-            (request.url.encodedQuery?.let { "?$it" } ?: "")
-        val nonce = RequestNonce.build()
-        val headersFrame = DefaultHttp3HeadersFrame()
-        headersFrame.headers()
-            .method(request.method)
-            .path(path)
-            .authority(host)
-            .scheme("https")
-            .add("user-agent", PixivHosts.IOS_UA)
-            .add("app-os", PixivHosts.APP_OS)
-            .add("app-os-version", PixivHosts.APP_OS_VERSION)
-            .add("app-version", PixivHosts.APP_VERSION)
-            .add("x-client-time", nonce.xClientTime)
-            .add("x-client-hash", nonce.xClientHash)
+            streamChannel.writeAndFlush(headersFrame)
+                .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync()
 
-        streamChannel.writeAndFlush(headersFrame)
-            .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync()
-        streamChannel.closeFuture().sync()
+            val (status, body) = done.get(30, TimeUnit.SECONDS)
+            if (status <= 0) throw java.io.IOException("QUIC response missing status for $host")
 
-        val (status, body) = done.get(30, TimeUnit.SECONDS)
-        quicChannel.close().sync()
-        datagram.close().sync()
-
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_2)
-            .code(status)
-            .message("OK")
-            .body(body.toResponseBody("application/json".toMediaTypeOrNull()))
-            .build()
+            return Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_2)
+                .code(status)
+                .message("OK")
+                .body(body.toResponseBody("application/json".toMediaTypeOrNull()))
+                .build()
+        } catch (e: java.io.IOException) {
+            throw e
+        } catch (e: Exception) {
+            throw java.io.IOException("QUIC failure for $host: ${e.message}", e)
+        } finally {
+            try { quicChannel?.close()?.sync() } catch (_: Exception) {}
+            try { datagram?.close()?.sync() } catch (_: Exception) {}
+        }
     }
 }
