@@ -1,5 +1,7 @@
 package ceui.pixiv.poc
 
+import ceui.pixiv.net.NettyQuicInterceptor
+import ceui.pixiv.net.PixivHosts
 import com.google.gson.JsonParser
 import okhttp3.OkHttpClient
 import okhttp3.Request

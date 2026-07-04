@@ -1,4 +1,4 @@
-package ceui.pixiv.poc
+package ceui.pixiv.net
 
 object PixivHosts {
     const val APP_API_HOST = "app-api.pixiv.net"

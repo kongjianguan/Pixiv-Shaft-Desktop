@@ -8,4 +8,4 @@ pluginManagement {
 }
 
 rootProject.name = "Pixiv-Shaft-Desktop"
-include(":app")
+include(":models", ":net", ":store", ":app")

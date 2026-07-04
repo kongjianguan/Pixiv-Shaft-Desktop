@@ -1,4 +1,4 @@
-package ceui.pixiv.poc
+package ceui.pixiv.net
 
 import java.security.MessageDigest
 import java.text.SimpleDateFormat

@@ -1,4 +1,4 @@
-package ceui.pixiv.poc
+package ceui.pixiv.net
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

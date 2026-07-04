@@ -1,4 +1,4 @@
-package ceui.pixiv.poc
+package ceui.pixiv.net
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.Channel
