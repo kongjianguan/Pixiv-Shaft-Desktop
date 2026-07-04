@@ -1,0 +1,367 @@
+package ceui.pixiv.net.api
+
+import ceui.lisa.model.ListTrendingtag
+import ceui.lisa.models.NullResponse
+import ceui.lisa.utils.Params
+import ceui.loxia.*
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
+import retrofit2.http.Url
+
+interface API {
+
+    @FormUrlEncoded
+    @POST("/v1/illust/report")
+    suspend fun postFlagIllust(
+        @Field("illust_id") illust_id: Long,
+        @Field("type_of_problem") type_of_problem: String?,
+        @Field("message") message: String?
+    ): NullResponse
+
+    @FormUrlEncoded
+    @POST("/v1/user/follow/add")
+    suspend fun postFollow(
+        @Field("user_id") user_id: Long,
+        @Field("restrict") followType: String
+    )
+
+    @FormUrlEncoded
+    @POST("/v1/user/follow/delete")
+    suspend fun postUnFollow(
+        @Field("user_id") user_id: Long
+    )
+
+    @FormUrlEncoded
+    @POST("/v2/illust/bookmark/add")
+    suspend fun postBookmark(
+        @Field("illust_id") illust_id: Long,
+        @Field("restrict") restrict: String = Params.TYPE_PUBLIC
+    )
+
+    @FormUrlEncoded
+    @POST("/v2/novel/bookmark/add")
+    suspend fun addNovelBookmark(
+        @Field("novel_id") novel_id: Long,
+        @Field("restrict") followType: String
+    )
+
+    @FormUrlEncoded
+    @POST("/v1/novel/bookmark/delete")
+    suspend fun removeNovelBookmark(
+        @Field("novel_id") novel_id: Long
+    )
+
+    @FormUrlEncoded
+    @POST("/v1/illust/bookmark/delete")
+    suspend fun removeBookmark(
+        @Field("illust_id") illust_id: Long
+    )
+
+    @GET("/v1/user/me/state")
+    suspend fun getSelfProfile(): SelfProfile
+
+    @GET("/v2/novel/series")
+    suspend fun getNovelSeries(
+        @Query("series_id") series_id: Long,
+        @Query("last_order") last_order: Int? = null,
+    ): NovelSeriesResp
+
+    @GET("/v1/illust/series")
+    suspend fun getIllustSeries(
+        @Query("illust_series_id") series_id: Long,
+        @Query("last_order") last_order: Int? = null,
+    ): IllustSeriesResp
+
+    @GET("/v1/illust/detail")
+    suspend fun getIllust(
+        @Query("illust_id") illust_id: Long
+    ): SingleIllustResponse
+
+    @GET("/v2/novel/detail")
+    suspend fun getNovel(
+        @Query("novel_id") novel_id: Long
+    ): SingleNovelResponse
+
+    @GET("/v2/illust/related")
+    suspend fun getRelatedIllusts(
+        @Query("illust_id") illust_id: Long,
+    ): IllustResponse
+
+    @GET("/v1/walkthrough/illusts")
+    suspend fun getWalkthroughWorks(): IllustResponse
+
+    @GET("/v1/{type}/recommended?include_ranking_illusts=false&include_privacy_policy=true&filter=for_ios")
+    suspend fun getHomeData(
+        @Path("type") type: String,
+    ): HomeIllustResponse
+
+    @GET("/v1/novel/recommended")
+    suspend fun getRecmdNovels(
+        @Query("include_ranking_illusts") include_ranking_illusts: Boolean = false,
+    ): NovelResponse
+
+    @GET("/webview/v2/novel")
+    suspend fun getNovelText(@Query("id") id: Long): ResponseBody
+
+    @GET("/v1/user/illusts?filter=for_ios")
+    suspend fun getUserCreatedIllusts(
+        @Query("user_id") user_id: Long,
+        @Query("type") type: String,
+    ): IllustResponse
+
+    @GET("/v1/user/bookmarks/illust?filter=for_ios")
+    suspend fun getUserBookmarkedIllusts(
+        @Query("user_id") user_id: Long,
+        @Query("restrict") restrict: String,
+    ): IllustResponse
+
+
+    @GET("/v1/user/bookmarks/novel?filter=for_ios")
+    suspend fun getUserBookmarkedNovels(
+        @Query("user_id") user_id: Long,
+        @Query("restrict") restrict: String,
+    ): NovelResponse
+
+    @GET("/v1/user/novels")
+    suspend fun getUserCreatedNovels(
+        @Query("user_id") user_id: Long,
+    ): NovelResponse
+
+    @GET("/v1/novel/follow")
+    suspend fun getFollowingCreatedNovels(
+        @Query("restrict") restrict: String,
+    ): NovelResponse
+
+
+    @GET("/v2/user/detail?filter=for_ios")
+    suspend fun getUserProfile(
+        @Query("user_id") user_id: Long,
+    ): UserResponse
+
+    @GET("/v1/user/following")
+    suspend fun getFollowingUsers(
+        @Query("user_id") user_id: Long,
+        @Query("restrict") restrict: String,
+    ): UserPreviewResponse
+
+    @GET("/v1/user/follower?filter=for_ios")
+    suspend fun getUserFans(
+        @Query("user_id") user_id: Long,
+    ): UserPreviewResponse
+
+    @GET("/v1/user/mypixiv")
+    suspend fun getUserPixivFriends(
+        @Query("user_id") user_id: Long,
+    ): UserPreviewResponse
+
+    @GET("/v2/{type}/follow")
+    suspend fun followUserPosts(
+        @Path("type") type: String,
+        @Query("restrict") restrict: String,
+    ): IllustResponse
+
+    @GET("/v1/user/recommended?filter=for_ios")
+    suspend fun recommendedUsers(): UserPreviewResponse
+
+    // /v1/illust/ranking?mode=day_manga&filter=for_ios
+    @GET("/v1/illust/ranking?filter=for_ios")
+    suspend fun getRankingIllusts(
+        @Query("mode") mode: String,
+    ): IllustResponse
+
+    // 对齐 pixiv iOS app 8.6.5 实际调用——
+    //   - 不再带 ?filter=for_ios（app-os: ios header 已经表态；image_urls 实测一致）
+    //   - 不传 include_potential_violation_works（iOS 默认 false 会让 pixiv 隐藏被自动标记为
+    //     「疑似违规」的作品，部分关键字会因此搜不到任何结果——#906；不传 = 服务端默认包含）
+    @GET("/v1/search/popular-preview/illust")
+    suspend fun popularPreview(
+        @Query("word") word: String,
+        @Query("sort") sort: String,
+        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
+        @Query("search_target") search_target: String?,
+        @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
+        @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
+        @Query("search_ai_type") search_ai_type: Int = 0,
+        @Query("bookmark_num_min") bookmark_num_min: Int? = null,
+        @Query("tool") tool: String? = null,
+        @Query("lang") lang: String? = null,
+        @Query("start_date") start_date: String? = null,
+        @Query("end_date") end_date: String? = null,
+        @Query("ratio_pattern") ratio_pattern: String? = null,
+        @Query("content_type") content_type: String? = null,
+        @Query("width_min") width_min: Int? = null,
+        @Query("width_max") width_max: Int? = null,
+        @Query("height_min") height_min: Int? = null,
+        @Query("height_max") height_max: Int? = null,
+    ): IllustResponse
+
+    @GET("/v1/search/popular-preview/novel")
+    suspend fun popularPreviewNovel(
+        @Query("word") word: String,
+        @Query("sort") sort: String,
+        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
+        @Query("search_target") search_target: String?,
+        @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
+        @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
+        @Query("search_ai_type") search_ai_type: Int = 0,
+        @Query("bookmark_num_min") bookmark_num_min: Int? = null,
+        @Query("genre") genre: Int? = null,
+        @Query("lang") lang: String? = null,
+        @Query("start_date") start_date: String? = null,
+        @Query("end_date") end_date: String? = null,
+        @Query("is_original_only") is_original_only: Boolean? = null,
+        @Query("is_replaceable_only") is_replaceable_only: Boolean? = null,
+        // 正文长度 3 单位（iOS pixiv 8.6.6 抓包确认）
+        @Query("text_length_min") text_length_min: Int? = null,
+        @Query("text_length_max") text_length_max: Int? = null,
+        @Query("word_count_min") word_count_min: Int? = null,
+        @Query("word_count_max") word_count_max: Int? = null,
+        @Query("reading_time_min") reading_time_min: Int? = null,
+        @Query("reading_time_max") reading_time_max: Int? = null,
+    ): NovelResponse
+
+    @GET("/v1/spotlight/articles?filter=for_ios")
+    suspend fun pixivsionArticles(
+        @Query("category") category: String,
+    ): ArticlesResponse
+
+    @GET("/v1/search/illust")
+    suspend fun searchIllustManga(
+        @Query("word") word: String,
+        @Query("sort") sort: String,
+        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
+        @Query("search_target") search_target: String?,
+        @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
+        @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
+        @Query("search_ai_type") search_ai_type: Int = 0,
+        @Query("bookmark_num_min") bookmark_num_min: Int? = null,
+        @Query("tool") tool: String? = null,
+        @Query("lang") lang: String? = null,
+        @Query("start_date") start_date: String? = null,
+        @Query("end_date") end_date: String? = null,
+        @Query("ratio_pattern") ratio_pattern: String? = null,
+        @Query("content_type") content_type: String? = null,
+        @Query("width_min") width_min: Int? = null,
+        @Query("width_max") width_max: Int? = null,
+        @Query("height_min") height_min: Int? = null,
+        @Query("height_max") height_max: Int? = null,
+    ): IllustResponse
+
+    @GET("/v1/search/novel")
+    suspend fun searchNovel(
+        @Query("word") word: String,
+        @Query("sort") sort: String,
+        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
+        @Query("search_target") search_target: String?,
+        @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
+        @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
+        @Query("search_ai_type") search_ai_type: Int = 0,
+        @Query("bookmark_num_min") bookmark_num_min: Int? = null,
+        @Query("genre") genre: Int? = null,
+        @Query("lang") lang: String? = null,
+        @Query("start_date") start_date: String? = null,
+        @Query("end_date") end_date: String? = null,
+        @Query("is_original_only") is_original_only: Boolean? = null,
+        @Query("is_replaceable_only") is_replaceable_only: Boolean? = null,
+        // 正文长度 3 单位（iOS pixiv 8.6.6 抓包确认）
+        @Query("text_length_min") text_length_min: Int? = null,
+        @Query("text_length_max") text_length_max: Int? = null,
+        @Query("word_count_min") word_count_min: Int? = null,
+        @Query("word_count_max") word_count_max: Int? = null,
+        @Query("reading_time_min") reading_time_min: Int? = null,
+        @Query("reading_time_max") reading_time_max: Int? = null,
+    ): NovelResponse
+
+    @GET("/v1/search/options")
+    suspend fun searchOptions(
+        @Query("word") word: String,
+        @Query("search_target") search_target: String = "partial_match_for_tags",
+        @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean = true,
+        @Query("include_translated_tag_results") include_translated_tag_results: Boolean = true,
+        @Query("search_ai_type") search_ai_type: Int = 0,
+    ): ceui.pixiv.ui.search.v3.SearchOptionsResponse
+
+
+    @GET("/v1/search/user?filter=for_ios")
+    suspend fun searchUser(
+        @Query("word") word: String,
+    ): UserPreviewResponse
+
+
+    // :path	/v1/trending-tags/?filter=for_ios
+    @GET("/v1/trending-tags/{type}?filter=for_ios")
+    suspend fun trendingTags(
+        @Path("type") type: String,
+    ): TrendingTagsResponse
+
+
+    @GET("/v3/illust/comments")
+    suspend fun getIllustComments(
+        @Query("illust_id") illust_id: Long,
+    ): CommentResponse
+
+    @GET("/v3/novel/comments")
+    suspend fun getNovelComments(
+        @Query("novel_id") novel_id: Long,
+    ): CommentResponse
+
+    @GET("/v2/{type}/comment/replies")
+    suspend fun getIllustReplyComments(
+        @Path("type") type: String,
+        @Query("comment_id") comment_id: Long,
+    ): CommentResponse
+
+    @FormUrlEncoded
+    @POST("/v1/illust/comment/add")
+    suspend fun postIllustComment(
+        @Field("illust_id") illust_id: Long,
+        @Field("comment") comment: String,
+        @Field("parent_comment_id") parent_comment_id: Long? = null,
+    ): PostCommentResponse
+
+    @FormUrlEncoded
+    @POST("/v1/novel/comment/add")
+    suspend fun postNovelComment(
+        @Field("novel_id") novel_id: Long,
+        @Field("comment") comment: String,
+        @Field("parent_comment_id") parent_comment_id: Long? = null,
+    ): PostCommentResponse
+
+    @FormUrlEncoded
+    @POST("/v1/{type}/comment/delete")
+    suspend fun deleteComment(
+        @Path("type") type: String,
+        @Field("comment_id") comment_id: Long,
+    )
+
+    @GET
+    suspend fun generalGet(@Url url: String): ResponseBody
+
+    @GET("/v2/search/autocomplete?merge_plain_keyword_results=true")
+    suspend fun searchAutocomplete(@Query("word") word: String): ListTrendingtag
+
+    @GET("/idp-urls")
+    suspend fun getIdpUrls(): IdpUrlsResponse
+
+    @GET("/v1/notification/list")
+    suspend fun getNotificationList(): NotificationListResponse
+
+    @GET("/v1/notification/view-more")
+    suspend fun getNotificationViewMore(
+        @Query("notification_id") notification_id: Long,
+    ): NotificationListResponse
+
+    @GET("/v1/info/latest")
+    suspend fun getInfoLatest(): InfoLatestResponse
+
+    @GET("/v1/info/list")
+    suspend fun getInfoList(
+        @Query("cid") cid: Int,
+    ): InfoListResponse
+}
