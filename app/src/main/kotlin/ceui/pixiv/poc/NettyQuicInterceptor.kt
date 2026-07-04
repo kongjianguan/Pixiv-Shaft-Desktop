@@ -62,7 +62,9 @@ class NettyQuicInterceptor : Interceptor {
             .build()
 
         val codec = Http3.newQuicClientCodecBuilder()
-            .sslContext(sslContext)
+            // 关键：必须用 sslEngineProvider 调带 peerHost 的 newEngine 重载来设 SNI。
+            // 默认 .sslContext(ctx) 内部调 newEngine(alloc)（peerHost=null → 不发 SNI → CF 丢弃握手）。
+            .sslEngineProvider { q -> sslContext.newEngine(q.alloc(), host, port) }
             .maxIdleTimeout(30, TimeUnit.SECONDS)
             .initialMaxData(10_000_000)
             .initialMaxStreamDataBidirectionalLocal(1_000_000)
