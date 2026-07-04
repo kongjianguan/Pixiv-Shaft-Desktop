@@ -1,11 +1,13 @@
 package ceui.pixiv.net
 
 import io.netty.bootstrap.Bootstrap
+import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.MultiThreadIoEventLoopGroup
 import io.netty.channel.nio.NioIoHandler
 import io.netty.channel.socket.nio.NioDatagramChannel
+import io.netty.handler.codec.http3.DefaultHttp3DataFrame
 import io.netty.handler.codec.http3.DefaultHttp3HeadersFrame
 import io.netty.handler.codec.http3.Http3
 import io.netty.handler.codec.http3.Http3ClientConnectionHandler
@@ -23,6 +25,7 @@ import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import java.io.ByteArrayOutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -33,6 +36,10 @@ import java.util.concurrent.TimeUnit
 class NettyQuicInterceptor : Interceptor {
 
     private val group = MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory())
+
+    fun close() {
+        group.shutdownGracefully().sync()
+    }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
@@ -104,8 +111,13 @@ class NettyQuicInterceptor : Interceptor {
                         ReferenceCountUtil.release(frame)
                     }
                     override fun channelInputClosed(ctx: ChannelHandlerContext) {
-                        done.complete(statusHolder[0] to bodyBuf.toByteArray())
+                        if (!done.isDone) {
+                            done.complete(statusHolder[0] to bodyBuf.toByteArray())
+                        }
                         ctx.close()
+                    }
+                    override fun exceptionCaught(ctx: ChannelHandlerContext, t: Throwable) {
+                        done.completeExceptionally(t)
                     }
                 }
             ).sync().getNow()
@@ -138,8 +150,21 @@ class NettyQuicInterceptor : Interceptor {
                 .add("x-client-time", nonce.xClientTime)
                 .add("x-client-hash", nonce.xClientHash)
 
-            streamChannel.writeAndFlush(headersFrame)
-                .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync()
+            // POST body: write data frame after headers, before SHUTDOWN_OUTPUT
+            val bodyBytes = request.body?.let { rb ->
+                val sink = Buffer()
+                rb.writeTo(sink)
+                sink.readByteArray()
+            }
+            if (bodyBytes != null && bodyBytes.isNotEmpty()) {
+                streamChannel.writeAndFlush(headersFrame).sync()
+                val dataFrame = DefaultHttp3DataFrame(Unpooled.wrappedBuffer(bodyBytes))
+                streamChannel.writeAndFlush(dataFrame)
+                    .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync()
+            } else {
+                streamChannel.writeAndFlush(headersFrame)
+                    .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT).sync()
+            }
 
             val (status, body) = done.get(30, TimeUnit.SECONDS)
             if (status <= 0) throw java.io.IOException("QUIC response missing status for $host")
@@ -154,6 +179,7 @@ class NettyQuicInterceptor : Interceptor {
         } catch (e: java.io.IOException) {
             throw e
         } catch (e: Exception) {
+            if (e is InterruptedException) Thread.currentThread().interrupt()
             throw java.io.IOException("QUIC failure for $host: ${e.message}", e)
         } finally {
             try { quicChannel?.close()?.sync() } catch (_: Exception) {}
