@@ -15,3 +15,10 @@ SELECT * FROM search_table ORDER BY pinned DESC, searchTime DESC LIMIT ?;
 
 deleteSearch:
 DELETE FROM search_table WHERE id = ?;
+
+insertKeywordOnly:
+INSERT INTO search_table(keyword, searchTime, searchType, pinned)
+VALUES (?, ?, ?, 0);
+
+clearAllSearches:
+DELETE FROM search_table;
