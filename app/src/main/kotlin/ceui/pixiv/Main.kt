@@ -7,7 +7,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import cafe.adriel.voyager.navigator.Navigator
 import ceui.pixiv.di.AppContainer
-import ceui.pixiv.ui.screen.recommend.RecommendScreen
+import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
 fun main() = application {
@@ -18,7 +18,7 @@ fun main() = application {
     ) {
         ShaftTheme {
             Surface(modifier = Modifier.fillMaxSize()) {
-                Navigator(RecommendScreen())
+                Navigator(MainScreen())
             }
         }
     }

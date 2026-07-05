@@ -37,6 +37,8 @@ dependencies {
     implementation("cafe.adriel.voyager:voyager-navigator:1.0.1")
     implementation("cafe.adriel.voyager:voyager-screenmodel:1.0.1")
     implementation("cafe.adriel.voyager:voyager-tab-navigator:1.0.1")
+    // Provides Dispatchers.Main on desktop (AWT EDT) — required by Voyager ScreenModel
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
     runtimeOnly("io.netty:netty-codec-native-quic:4.2.2.Final:osx-aarch_64")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
