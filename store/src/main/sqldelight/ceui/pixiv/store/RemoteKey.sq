@@ -1,4 +1,4 @@
-CREATE TABLE remote_keys (
+CREATE TABLE IF NOT EXISTS remote_keys (
     recordType INTEGER NOT NULL PRIMARY KEY,
     nextPageUrl TEXT,
     lastUpdatedTime INTEGER NOT NULL

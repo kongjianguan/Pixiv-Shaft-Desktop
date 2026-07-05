@@ -1,4 +1,4 @@
-CREATE TABLE illust_table (
+CREATE TABLE IF NOT EXISTS illust_table (
     illustID INTEGER NOT NULL PRIMARY KEY,
     illustJson TEXT NOT NULL,
     time INTEGER NOT NULL,

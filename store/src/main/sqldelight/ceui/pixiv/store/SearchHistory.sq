@@ -1,4 +1,4 @@
-CREATE TABLE search_table (
+CREATE TABLE IF NOT EXISTS search_table (
     id INTEGER NOT NULL PRIMARY KEY,
     keyword TEXT NOT NULL,
     searchTime INTEGER NOT NULL,
