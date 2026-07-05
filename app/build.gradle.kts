@@ -23,6 +23,7 @@ repositories {
 dependencies {
     implementation(project(":models"))
     implementation(project(":net"))
+    implementation(project(":store"))
     // Compose Desktop 运行时（Compose 编译器插件要求 classpath 上有 Compose Runtime；
     // brief Step 6 应用了 compose 插件但未显式加运行时，此处补齐「空 Compose 窗口可编译」）。
     implementation(compose.desktop.currentOs)

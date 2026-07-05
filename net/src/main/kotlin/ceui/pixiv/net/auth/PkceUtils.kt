@@ -16,10 +16,10 @@ object PkceUtils {
         return PkcePair(verifier, challenge)
     }
 
-    fun buildAuthUrl(challenge: String): String {
+    fun buildAuthUrl(challenge: String, redirectUri: String = PixivOAuthConfig.REDIRECT_URI): String {
         val params = mapOf(
             "client_id" to PixivOAuthConfig.CLIENT_ID,
-            "redirect_uri" to PixivOAuthConfig.REDIRECT_URI,
+            "redirect_uri" to redirectUri,
             "response_type" to "code",
             "code_challenge" to challenge,
             "code_challenge_method" to "S256",
