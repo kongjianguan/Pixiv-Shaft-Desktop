@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class SearchScreenModel : ScreenModel {
+class SearchScreenModel(
+    initialQuery: String? = null
+) : ScreenModel {
 
     private val client = AppContainer.client
     private val db = AppContainer.database
@@ -31,6 +33,10 @@ class SearchScreenModel : ScreenModel {
 
     init {
         loadHistory()
+        if (initialQuery != null && initialQuery.isNotBlank()) {
+            _query.value = initialQuery
+            search(initialQuery)
+        }
     }
 
     fun updateQuery(q: String) {

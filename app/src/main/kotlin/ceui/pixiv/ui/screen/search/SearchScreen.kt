@@ -27,6 +27,9 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -37,11 +40,13 @@ import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
 import ceui.pixiv.ui.state.UiState
 
-class SearchScreen : Screen {
+class SearchScreen(
+    private val initialQuery: String? = null
+) : Screen {
 
     @Composable
     override fun Content() {
-        val screenModel = rememberScreenModel { SearchScreenModel() }
+        val screenModel = rememberScreenModel { SearchScreenModel(initialQuery) }
         val query by screenModel.query.collectAsState()
         val resultsState by screenModel.resultsState.collectAsState()
         val history by screenModel.history.collectAsState()
@@ -64,7 +69,9 @@ class SearchScreen : Screen {
                         }
                     }
                 },
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { screenModel.search(query) })
             )
 
             // Search history (when no results yet)
