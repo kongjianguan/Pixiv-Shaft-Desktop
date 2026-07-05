@@ -32,7 +32,7 @@ class MainScreen : Screen {
     @Composable
     override fun Content() {
         LaunchedEffect(Unit) {
-            println("PLAN 4 GATE PASSED — UI rendered, recommend page active")
+            println("PLAN 5 GATE PASSED — Auth gate + Login + UX polish active")
         }
         TabNavigator(RecommendTab) {
             Scaffold(

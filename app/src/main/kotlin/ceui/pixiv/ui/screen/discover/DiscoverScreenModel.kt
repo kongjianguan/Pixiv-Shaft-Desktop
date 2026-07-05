@@ -24,7 +24,6 @@ class DiscoverScreenModel : ScreenModel {
     private val _rankingState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val rankingState: StateFlow<UiState<List<Illust>>> = _rankingState.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
     private var _currentMode = "day"
     private val _currentModeFlow = MutableStateFlow("day")
     val currentMode: StateFlow<String> = _currentModeFlow.asStateFlow()
@@ -51,9 +50,7 @@ class DiscoverScreenModel : ScreenModel {
     fun loadRanking(mode: String) {
         _currentMode = mode
         _currentModeFlow.value = mode
-        if (_isLoading.value) return
         screenModelScope.launch {
-            _isLoading.value = true
             _rankingState.value = UiState.Loading
             try {
                 val resp = client.appApi.getRankingIllusts(mode)
@@ -66,8 +63,6 @@ class DiscoverScreenModel : ScreenModel {
                 if (_currentMode == mode) {
                     _rankingState.value = UiState.Error(e.message ?: "Failed to load ranking")
                 }
-            } finally {
-                _isLoading.value = false
             }
         }
     }

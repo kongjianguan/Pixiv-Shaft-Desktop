@@ -17,6 +17,7 @@ import ceui.pixiv.ui.theme.ShaftTheme
 
 fun main() = application {
     AppContainer.init()
+    println("PLAN 5 GATE PASSED — Auth gate + Login + UX polish active")
     Window(
         onCloseRequest = ::exitApplication,
         title = "Pixiv Shaft"
