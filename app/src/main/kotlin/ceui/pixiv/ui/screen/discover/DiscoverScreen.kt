@@ -40,6 +40,7 @@ class DiscoverScreen : Screen {
         val screenModel = rememberScreenModel { DiscoverScreenModel() }
         val tagsState by screenModel.tagsState.collectAsState()
         val rankingState by screenModel.rankingState.collectAsState()
+        val currentMode by screenModel.currentMode.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -76,7 +77,7 @@ class DiscoverScreen : Screen {
                 ) {
                     listOf("day" to "Daily", "week" to "Weekly", "month" to "Monthly").forEach { (mode, label) ->
                         FilterChip(
-                            selected = false,
+                            selected = (currentMode == mode),
                             onClick = { screenModel.loadRanking(mode) },
                             label = { Text(label) }
                         )

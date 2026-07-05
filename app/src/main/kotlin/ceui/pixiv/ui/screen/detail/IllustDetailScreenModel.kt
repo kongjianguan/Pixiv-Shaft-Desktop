@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class IllustDetailScreenModel(
     private val illustId: Long
@@ -37,6 +38,8 @@ class IllustDetailScreenModel(
                 val resp = client.appApi.getIllust(illustId)
                 _illustState.value = resp.illust?.let { UiState.Success(it) }
                     ?: UiState.Error("Illust not found")
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _illustState.value = UiState.Error(e.message ?: "Failed to load illust")
             }
@@ -50,6 +53,8 @@ class IllustDetailScreenModel(
                 val resp = client.appApi.getRelatedIllusts(illustId)
                 relatedPager.refresh(resp)
                 _relatedState.value = UiState.Success(relatedPager.items.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _relatedState.value = UiState.Error(e.message ?: "Failed to load related")
             }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class RecommendScreenModel : ScreenModel {
 
@@ -33,6 +34,8 @@ class RecommendScreenModel : ScreenModel {
                 val resp = client.appApi.getWalkthroughWorks()
                 pager.refresh(resp)
                 _state.value = UiState.Success(pager.items.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Failed to load recommendations")
             }
@@ -47,6 +50,8 @@ class RecommendScreenModel : ScreenModel {
             try {
                 pager.loadMore()
                 _state.value = UiState.Success(pager.items.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // Keep existing items, show non-blocking error
                 _state.value = UiState.Success(pager.items.value)

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class SearchScreenModel(
     initialQuery: String? = null
@@ -62,6 +63,8 @@ class SearchScreenModel(
                 )
                 pager.refresh(resp)
                 _resultsState.value = UiState.Success(pager.items.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _resultsState.value = UiState.Error(e.message ?: "Search failed")
             }
@@ -76,6 +79,8 @@ class SearchScreenModel(
             try {
                 pager.loadMore()
                 _resultsState.value = UiState.Success(pager.items.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 // Keep existing results
             } finally {
