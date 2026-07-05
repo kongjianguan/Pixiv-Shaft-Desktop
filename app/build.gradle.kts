@@ -31,6 +31,9 @@ dependencies {
     // Task 12 改写 PocMain 为 Compose AppMain 后可移除。
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
+    // Coil 3 图片加载（Compose Desktop）
+    implementation("io.coil-kt.coil3:coil-compose:3.1.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
     runtimeOnly("io.netty:netty-codec-native-quic:4.2.2.Final:osx-aarch_64")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
