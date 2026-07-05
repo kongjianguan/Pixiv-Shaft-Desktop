@@ -1,0 +1,11 @@
+CREATE TABLE remote_keys (
+    recordType INTEGER NOT NULL PRIMARY KEY,
+    nextPageUrl TEXT,
+    lastUpdatedTime INTEGER NOT NULL
+);
+
+upsertRemoteKey:
+INSERT OR REPLACE INTO remote_keys(recordType, nextPageUrl, lastUpdatedTime) VALUES (?, ?, ?);
+
+selectRemoteKey:
+SELECT * FROM remote_keys WHERE recordType = ?;

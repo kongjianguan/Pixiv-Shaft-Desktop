@@ -1,0 +1,15 @@
+CREATE TABLE illust_table (
+    illustID INTEGER NOT NULL PRIMARY KEY,
+    illustJson TEXT NOT NULL,
+    time INTEGER NOT NULL,
+    type INTEGER NOT NULL
+);
+
+insertIllust:
+INSERT OR REPLACE INTO illust_table(illustID, illustJson, time, type) VALUES (?, ?, ?, ?);
+
+selectRecentIllusts:
+SELECT * FROM illust_table ORDER BY time DESC LIMIT ?;
+
+deleteIllust:
+DELETE FROM illust_table WHERE illustID = ?;

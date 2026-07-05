@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":models"))
     implementation(project(":net"))
     implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+    testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
     implementation("com.google.code.gson:gson:2.11.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }

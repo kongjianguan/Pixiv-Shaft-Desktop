@@ -1,0 +1,17 @@
+CREATE TABLE search_table (
+    id INTEGER NOT NULL PRIMARY KEY,
+    keyword TEXT NOT NULL,
+    searchTime INTEGER NOT NULL,
+    searchType INTEGER NOT NULL,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    previewIllustsJson TEXT
+);
+
+insertSearch:
+INSERT OR REPLACE INTO search_table(id, keyword, searchTime, searchType, pinned, previewIllustsJson) VALUES (?, ?, ?, ?, ?, ?);
+
+selectRecentSearches:
+SELECT * FROM search_table ORDER BY pinned DESC, searchTime DESC LIMIT ?;
+
+deleteSearch:
+DELETE FROM search_table WHERE id = ?;
