@@ -7,14 +7,19 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.navigator.Navigator
+import ceui.pixiv.di.AppContainer
+import ceui.pixiv.ui.theme.ShaftTheme
 
 fun main() = application {
+    AppContainer.init()
     Window(
         onCloseRequest = ::exitApplication,
         title = "Pixiv Shaft"
     ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Navigator(PlaceholderScreen)
+        ShaftTheme {
+            Surface(modifier = Modifier.fillMaxSize()) {
+                Navigator(PlaceholderScreen)
+            }
         }
     }
 }
