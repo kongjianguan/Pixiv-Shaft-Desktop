@@ -1,3 +1,4 @@
+@file:OptIn(coil3.annotation.DelicateCoilApi::class)
 package ceui.pixiv.di
 
 import ceui.pixiv.image.ImageLoaderFactory
@@ -11,6 +12,7 @@ import ceui.pixiv.store.KeychainTokenStore
 import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.store.createDatabase
 import coil3.ImageLoader
+import coil3.SingletonImageLoader
 
 object AppContainer {
     lateinit var client: Client
@@ -30,6 +32,7 @@ object AppContainer {
         val refresher = RealTokenRefresher(tokenStore, TokenExchange())
         client = Client(settingsStore, tokenStore, refresher, DefaultLanguageProvider(), StdoutLogger)
         imageLoader = ImageLoaderFactory.create(settingsStore)
+        SingletonImageLoader.setUnsafe(imageLoader)
         database = createDatabase()
     }
 }
