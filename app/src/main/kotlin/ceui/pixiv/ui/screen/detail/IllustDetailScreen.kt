@@ -1,6 +1,7 @@
 package ceui.pixiv.ui.screen.detail
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,12 +14,21 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import cafe.adriel.voyager.core.model.rememberScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -32,23 +42,43 @@ import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.screen.search.SearchScreen
 import ceui.pixiv.ui.state.UiState
 
 class IllustDetailScreen(private val illustId: Long) : Screen {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { IllustDetailScreenModel(illustId) }
         val illustState by screenModel.illustState.collectAsState()
         val relatedState by screenModel.relatedState.collectAsState()
+        val navigator = LocalNavigator.currentOrThrow
 
-        when (val s = illustState) {
-            is UiState.Loading -> LoadingView()
-            is UiState.Error -> ErrorView(s.message, {})
-            is UiState.Success -> IllustDetailContent(
-                illust = s.data,
-                relatedState = relatedState
-            )
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Illust #$illustId") },
+                    navigationIcon = {
+                        IconButton(onClick = { navigator.pop() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+                when (val s = illustState) {
+                    is UiState.Loading -> LoadingView()
+                    is UiState.Error -> ErrorView(s.message, {})
+                    is UiState.Success -> IllustDetailContent(
+                        illust = s.data,
+                        relatedState = relatedState,
+                        onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                        onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) }
+                    )
+                }
+            }
         }
     }
 }
@@ -56,7 +86,9 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
 @Composable
 private fun IllustDetailContent(
     illust: Illust,
-    relatedState: UiState<List<Illust>>
+    relatedState: UiState<List<Illust>>,
+    onIllustClick: (Long) -> Unit,
+    onTagClick: (String) -> Unit
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
@@ -125,7 +157,7 @@ private fun IllustDetailContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(tags) { tag ->
-                        TagChip(tag = tag, onClick = {})
+                        TagChip(tag = tag, onClick = onTagClick)
                     }
                 }
             }
@@ -158,7 +190,7 @@ private fun IllustDetailContent(
                     items(related, key = { it.id }) { relatedIllust ->
                         IllustCard(
                             illust = relatedIllust,
-                            onClick = {},
+                            onClick = onIllustClick,
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     }
