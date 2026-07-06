@@ -1,0 +1,295 @@
+package ceui.pixiv.ui.novel
+
+/**
+ * Tokenizes [WebNovel.text] into a stream of [ContentToken] entries.
+ *
+ * Pixiv's novel markup is line-oriented — every special tag ([newpage], [chapter:],
+ * [pixivimage:], [uploadedimage:]) occupies its own line. Mixed-content lines
+ * therefore aren't a real-world concern; if one appears we still match the
+ * *first* tag we find on the line to stay compatible with the legacy parser.
+ */
+object ContentParser {
+
+    private val uploadedImageRegex = Regex("""\[uploadedimage:(\d+)]""")
+    private val pixivImageRegex = Regex("""\[pixivimage:(\d+)(?:-(\d+))?]""")
+    private val chapterRegex = Regex("""\[chapter:(.+?)]""")
+    private val jumpRegex = Regex("""\[jump:(\d+)]""")
+    private const val NEWPAGE_TAG = "[newpage]"
+
+    // 用户反馈：部分 Pixiv 作品的章节标题里数字两侧出现多余的引号（直引号 /
+    // 弯引号都见过），导出 TXT 后呈现为「【第'0章'】」。这些引号通常成对包住
+    // 数字 + 中文字符（如 `第'0章'` —— 后引号在 `章` 而非数字后面），所以单纯
+    // "数字两侧" 的正则会漏掉一半。规则改为：标题里若出现数字，就连同所有
+    // 直/弯单引号一并剥掉。CJK 引号「」/双引号""保留，避免误伤合法标点。
+    private val singleQuotesRegex = Regex("""['‘’]""")
+    private val digitRegex = Regex("""\d""")
+
+    internal fun cleanChapterTitle(raw: String): String {
+        val s = raw.trim()
+        return if (digitRegex.containsMatchIn(s)) {
+            s.replace(singleQuotesRegex, "").trim()
+        } else {
+            s
+        }
+    }
+
+    fun tokenize(text: String): List<ContentToken> {
+        if (text.isEmpty()) return emptyList()
+        val raw = ArrayList<ContentToken>(128)
+        var cursor = 0
+        for (line in text.split('\n')) {
+            val lineStart = cursor
+            val lineEnd = lineStart + line.length
+            cursor = lineEnd + 1 // newline that split() consumed
+
+            // Strip trailing CR: Pixiv novel responses use `\r\n` endings, and
+            // splitting on `\n` alone leaves the CR inside each line. The CR
+            // survives into Paragraph.text → StaticLayout treats U+000D as a
+            // line-break control, forcing a hard break mid-paragraph and
+            // stretching the visual gap there. `lineStart` / `lineEnd` still
+            // point at the original source positions so char-based anchors
+            // (bookmarks, selection) stay stable.
+            val cleanLine = line.trimEnd('\r')
+            val trimmed = cleanLine.trim()
+            // Strip leading whitespace from paragraph content: Pixiv authors
+            // often type `　`/space at the start for manual CJK indent. Our
+            // TypeStyle.firstLineIndentPx already handles the indent via
+            // LeadingMarginSpan, so leaving the manual space in would double
+            // up (2em auto + 1em manual ≈ 3em visible). Trim them here and
+            // let the auto-indent own the offset.
+            val paragraphText = cleanLine.trimStart(' ', '\t', '\u3000')
+            when {
+                trimmed == NEWPAGE_TAG -> {
+                    raw += ContentToken.PageBreak(lineStart, lineEnd)
+                }
+                jumpRegex.matchEntire(trimmed) != null -> {
+                    // Block-level `[jump:N]` — own line, parsed as a button.
+                    // Inline-mixed `…[jump:N]…` falls through to Paragraph
+                    // (rare in practice; Pixiv authoring tools always emit
+                    // jump tags on their own line).
+                    val target = jumpRegex.matchEntire(trimmed)!!
+                        .groupValues[1].toIntOrNull() ?: 0
+                    raw += ContentToken.Jump(lineStart, lineEnd, target)
+                }
+                chapterRegex.containsMatchIn(trimmed) -> {
+                    val title = cleanChapterTitle(
+                        chapterRegex.find(trimmed)?.groupValues?.getOrNull(1).orEmpty()
+                    )
+                    raw += ContentToken.Chapter(lineStart, lineEnd, title)
+                }
+                uploadedImageRegex.containsMatchIn(trimmed) -> {
+                    val m = uploadedImageRegex.find(trimmed)!!
+                    val id = m.groupValues[1].toLongOrNull() ?: 0L
+                    raw += ContentToken.UploadedImage(lineStart, lineEnd, id)
+                }
+                pixivImageRegex.containsMatchIn(trimmed) -> {
+                    val m = pixivImageRegex.find(trimmed)!!
+                    val id = m.groupValues[1].toLongOrNull() ?: 0L
+                    val page = m.groupValues.getOrNull(2)?.toIntOrNull() ?: 0
+                    raw += ContentToken.PixivImage(lineStart, lineEnd, id, page)
+                }
+                trimmed.isEmpty() -> {
+                    // Treat whitespace-only lines (including lines containing
+                    // nothing but `　`) as blank — otherwise they rendered as
+                    // ghost 1-char paragraphs with an auto-indent applied.
+                    raw += ContentToken.BlankLine(lineStart, lineEnd)
+                }
+                cleanLine.contains("[jump:") && jumpRegex.containsMatchIn(cleanLine) -> {
+                    // Inline `[jump:N]` (issue #860 follow-up): branching/CYOA
+                    // novels embed jumps at the end of option lines, e.g.
+                    // `——原路返回吧。[jump:8]`. Earlier fix only handled bare
+                    // own-line jumps, so the literal `[jump:N]` was leaking
+                    // into rendered text. Split such a line into Paragraph
+                    // fragment(s) interleaved with Jump token(s).
+                    splitInlineJumps(cleanLine, lineStart, lineEnd, raw)
+                }
+                else -> {
+                    val textSourceStart = lineStart + (cleanLine.length - paragraphText.length)
+                    val processed = InlineMarkupProcessor.process(paragraphText)
+                    raw += ContentToken.Paragraph(
+                        lineStart, lineEnd, processed.text, textSourceStart, processed.spans
+                    )
+                }
+            }
+        }
+        return coalesceParagraphBreaks(raw)
+    }
+
+    /**
+     * Split a paragraph line that contains one or more inline `[jump:N]`
+     * tags into a sequence of Paragraph fragments + Jump tokens, in order.
+     * The first fragment owns the line's leading-whitespace trim (CJK indent
+     * compensation); fragments after a jump start at a non-whitespace char by
+     * construction in real Pixiv content, so we don't trim them again.
+     */
+    private fun splitInlineJumps(
+        cleanLine: String,
+        lineStart: Int,
+        lineEnd: Int,
+        out: MutableList<ContentToken>,
+    ) {
+        var segStart = 0
+        val matches = jumpRegex.findAll(cleanLine).toList()
+        for ((idx, m) in matches.withIndex()) {
+            if (m.range.first > segStart) {
+                val frag = cleanLine.substring(segStart, m.range.first)
+                val display: String
+                val displayStartInFrag: Int
+                if (idx == 0) {
+                    val ts = frag.trimStart(' ', '\t', '　')
+                    display = ts
+                    displayStartInFrag = frag.length - ts.length
+                } else {
+                    display = frag
+                    displayStartInFrag = 0
+                }
+                if (display.isNotEmpty()) {
+                    val processed = InlineMarkupProcessor.process(display)
+                    out += ContentToken.Paragraph(
+                        lineStart + segStart,
+                        lineStart + m.range.first,
+                        processed.text,
+                        lineStart + segStart + displayStartInFrag,
+                        processed.spans,
+                    )
+                }
+            }
+            val target = m.groupValues[1].toIntOrNull() ?: 0
+            out += ContentToken.Jump(
+                lineStart + m.range.first,
+                lineStart + m.range.last + 1,
+                target,
+            )
+            segStart = m.range.last + 1
+        }
+        if (segStart < cleanLine.length) {
+            val frag = cleanLine.substring(segStart)
+            if (frag.isNotEmpty()) {
+                val processed = InlineMarkupProcessor.process(frag)
+                out += ContentToken.Paragraph(
+                    lineStart + segStart,
+                    lineEnd,
+                    processed.text,
+                    lineStart + segStart,
+                    processed.spans,
+                )
+            }
+        }
+    }
+
+    /**
+     * `\n\n` in a novel source is the conventional paragraph separator, not
+     * "paragraph + extra blank line". The paginator already puts
+     * [ceui.pixiv.ui.novel.reader.paginate.TypeStyle.paragraphSpacingPx]
+     * between consecutive paragraphs; if we also emit a [BlankLine] for the
+     * embedded empty line, both gaps compound and every paragraph break
+     * reads as two full lines of whitespace.
+     *
+     * Coalesce: drop the FIRST [BlankLine] that directly follows a
+     * [Paragraph]. Any additional BlankLines (`\n\n\n+`) stay as real extra
+     * breathing space, and BlankLines after chapter headings / images /
+     * at the start of the doc pass through unchanged.
+     */
+    private fun coalesceParagraphBreaks(raw: List<ContentToken>): List<ContentToken> {
+        val out = ArrayList<ContentToken>(raw.size)
+        var swallowedParagraphBreak = false
+        for (tok in raw) {
+            when (tok) {
+                is ContentToken.BlankLine -> {
+                    val prev = out.lastOrNull()
+                    if (prev is ContentToken.Paragraph && !swallowedParagraphBreak) {
+                        swallowedParagraphBreak = true
+                        continue
+                    }
+                    out += tok
+                }
+                else -> {
+                    swallowedParagraphBreak = false
+                    out += tok
+                }
+            }
+        }
+        return out
+    }
+
+    /** Collect the chapter outline for the drawer. Mixes explicit [chapter:]
+     *  entries with `[newpage]`-derived "分页 N" entries so users get the same
+     *  navigation granularity that Pixiv's web reader exposes. A synthetic
+     *  "前言" / "分页 1" fronts the list when the first real content precedes
+     *  every anchor, so the doc's opening is always jumpable. */
+    fun buildChapterOutline(tokens: List<ContentToken>): List<ChapterOutlineEntry> {
+        val outline = mutableListOf<ChapterOutlineEntry>()
+        val hasPageBreaks = tokens.any { it is ContentToken.PageBreak }
+        var firstContentAnchored = false
+        var breaksSeen = 0
+        for ((i, token) in tokens.withIndex()) {
+            when (token) {
+                is ContentToken.Chapter -> {
+                    outline += ChapterOutlineEntry(
+                        title = token.title,
+                        sourceStart = token.sourceStart,
+                    )
+                    firstContentAnchored = true
+                }
+                is ContentToken.PageBreak -> {
+                    breaksSeen += 1
+                    // If the next meaningful token is a Chapter, skip this
+                    // PageBreak — the Chapter entry will represent this position
+                    // and avoids a duplicate "分页 N" + chapter title pair.
+                    val next = tokens.subList(i + 1, tokens.size)
+                        .firstOrNull { it !is ContentToken.BlankLine }
+                    if (next is ContentToken.Chapter) {
+                        firstContentAnchored = true
+                        continue
+                    }
+                    outline += ChapterOutlineEntry(
+                        title = "分页 ${breaksSeen + 1}",
+                        sourceStart = token.sourceEnd,
+                    )
+                    firstContentAnchored = true
+                }
+                is ContentToken.Paragraph,
+                is ContentToken.PixivImage,
+                is ContentToken.UploadedImage,
+                is ContentToken.Jump,
+                -> {
+                    if (!firstContentAnchored) {
+                        outline += ChapterOutlineEntry(
+                            title = if (hasPageBreaks) "分页 1" else "前言",
+                            sourceStart = token.sourceStart,
+                        )
+                        firstContentAnchored = true
+                    }
+                }
+                else -> Unit
+            }
+        }
+        return outline
+    }
+
+    /**
+     * Resolve a `[jump:N]` target (1-indexed `[newpage]`-segment number) to
+     * the source character offset where that segment begins. Returns null
+     * when [target] is out of range so the caller can show a no-op toast.
+     *
+     * Segment 1 = doc start (or first content). Segment N (>1) = char right
+     * after the (N-1)th [PageBreak]. Pixiv numbers pages starting at 1.
+     */
+    fun resolveJumpTarget(tokens: List<ContentToken>, target: Int): Int? {
+        if (target < 1) return null
+        if (target == 1) return tokens.firstOrNull()?.sourceStart ?: 0
+        var seen = 0
+        for (token in tokens) {
+            if (token is ContentToken.PageBreak) {
+                seen += 1
+                if (seen == target - 1) return token.sourceEnd
+            }
+        }
+        return null
+    }
+}
+
+data class ChapterOutlineEntry(
+    val title: String,
+    val sourceStart: Int,
+)

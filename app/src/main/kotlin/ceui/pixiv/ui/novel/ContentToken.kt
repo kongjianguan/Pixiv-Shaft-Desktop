@@ -1,0 +1,58 @@
+package ceui.pixiv.ui.novel
+
+sealed class ContentToken {
+    abstract val sourceStart: Int
+    abstract val sourceEnd: Int
+
+    data class Paragraph(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+        val text: String,
+        /** Position in the raw source where [text] actually begins.
+         *  May differ from [sourceStart] when leading whitespace was trimmed. */
+        val textSourceStart: Int = sourceStart,
+        /** Inline markup spans (links, ruby, etc.) with offsets into [text]. */
+        val inlineSpans: List<InlineSpan> = emptyList(),
+    ) : ContentToken()
+
+    data class Chapter(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+        val title: String,
+    ) : ContentToken()
+
+    data class PixivImage(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+        val illustId: Long,
+        val pageIndex: Int,
+    ) : ContentToken()
+
+    data class UploadedImage(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+        val imageId: Long,
+    ) : ContentToken()
+
+    data class PageBreak(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+    ) : ContentToken()
+
+    data class BlankLine(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+    ) : ContentToken()
+
+    /**
+     * `[jump:N]` — Pixiv novel inter-page navigation. `target` is the
+     * 1-indexed `[newpage]`-delimited segment to jump to. Renders as a
+     * tappable button on its own row. Emitted both for own-line jumps and
+     * for inline jumps split out of a paragraph (CYOA-style option lines).
+     */
+    data class Jump(
+        override val sourceStart: Int,
+        override val sourceEnd: Int,
+        val target: Int,
+    ) : ContentToken()
+}
