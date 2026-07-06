@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -38,7 +40,7 @@ class SettingsScreen : Screen {
         var currentHostMode by remember { mutableStateOf(screenModel.imageHostMode) }
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Settings", style = MaterialTheme.typography.headlineMedium)
