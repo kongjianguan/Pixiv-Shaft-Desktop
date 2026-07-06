@@ -2,8 +2,10 @@ package ceui.pixiv.ui.screen.detail
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import ceui.loxia.GifInfoResponse
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
+import ceui.loxia.UgoiraMetaData
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
@@ -26,6 +28,9 @@ class IllustDetailScreenModel(
     private val _relatedState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val relatedState: StateFlow<UiState<List<Illust>>> = _relatedState.asStateFlow()
 
+    private val _ugoiraState = MutableStateFlow<UiState<UgoiraMetaData?>>(UiState.Loading)
+    val ugoiraState: StateFlow<UiState<UgoiraMetaData?>> = _ugoiraState.asStateFlow()
+
     init {
         loadIllust()
         loadRelated()
@@ -36,12 +41,28 @@ class IllustDetailScreenModel(
             _illustState.value = UiState.Loading
             try {
                 val resp = client.appApi.getIllust(illustId)
-                _illustState.value = resp.illust?.let { UiState.Success(it) }
-                    ?: UiState.Error("Illust not found")
+                _illustState.value = resp.illust?.let { illust ->
+                    if (illust.isGif()) loadUgoira(illust.id)
+                    UiState.Success(illust)
+                } ?: UiState.Error("Illust not found")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _illustState.value = UiState.Error(e.message ?: "Failed to load illust")
+            }
+        }
+    }
+
+    private fun loadUgoira(illustId: Long) {
+        screenModelScope.launch {
+            _ugoiraState.value = UiState.Loading
+            try {
+                val resp = client.appApi.getUgoiraMetadata(illustId)
+                _ugoiraState.value = UiState.Success(resp.ugoira_metadata)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _ugoiraState.value = UiState.Error(e.message ?: "Failed to load ugoira metadata")
             }
         }
     }

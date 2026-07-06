@@ -36,8 +36,10 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import coil3.compose.AsyncImage
 import ceui.loxia.Illust
+import ceui.loxia.UgoiraMetaData
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
+import ceui.pixiv.ui.component.UgoiraPlayer
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
@@ -53,6 +55,7 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val screenModel = rememberScreenModel { IllustDetailScreenModel(illustId) }
         val illustState by screenModel.illustState.collectAsState()
         val relatedState by screenModel.relatedState.collectAsState()
+        val ugoiraState by screenModel.ugoiraState.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
         Scaffold(
@@ -75,7 +78,8 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                         illust = s.data,
                         relatedState = relatedState,
                         onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                        onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) }
+                        onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
+                        ugoiraState = ugoiraState
                     )
                 }
             }
@@ -88,7 +92,8 @@ private fun IllustDetailContent(
     illust: Illust,
     relatedState: UiState<List<Illust>>,
     onIllustClick: (Long) -> Unit,
-    onTagClick: (String) -> Unit
+    onTagClick: (String) -> Unit,
+    ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
@@ -103,7 +108,30 @@ private fun IllustDetailContent(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Image gallery
         item {
-            if (imageUrls.size > 1) {
+            if (illust.isGif()) {
+                // Ugoira: animated player
+                when (val u = ugoiraState) {
+                    is UiState.Loading -> LoadingView()
+                    is UiState.Error -> ErrorView(u.message, {})
+                    is UiState.Success -> {
+                        val meta = u.data
+                        if (meta != null) {
+                            val zipUrl = meta.zip_urls?.medium
+                            val frames = meta.frames ?: emptyList()
+                            if (zipUrl != null && frames.isNotEmpty()) {
+                                UgoiraPlayer(
+                                    zipUrl = zipUrl,
+                                    frames = frames
+                                )
+                            } else {
+                                Text("Ugoira metadata incomplete")
+                            }
+                        } else {
+                            Text("No ugoira metadata")
+                        }
+                    }
+                }
+            } else if (imageUrls.size > 1) {
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })
                 HorizontalPager(state = pagerState) { page ->
                     AsyncImage(
