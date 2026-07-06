@@ -4,7 +4,9 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
+import ceui.loxia.ProfileBean
 import ceui.loxia.SelfProfile
+import ceui.loxia.UserDetailResponse
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
@@ -23,6 +25,9 @@ class ProfileScreenModel : ScreenModel {
     private val _profileState = MutableStateFlow<UiState<SelfProfile>>(UiState.Loading)
     val profileState: StateFlow<UiState<SelfProfile>> = _profileState.asStateFlow()
 
+    private val _profileDetailState = MutableStateFlow<UiState<ProfileBean>>(UiState.Loading)
+    val profileDetailState: StateFlow<UiState<ProfileBean>> = _profileDetailState.asStateFlow()
+
     private val _bookmarksState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val bookmarksState: StateFlow<UiState<List<Illust>>> = _bookmarksState.asStateFlow()
 
@@ -40,11 +45,27 @@ class ProfileScreenModel : ScreenModel {
             try {
                 val profile = client.appApi.getSelfProfile()
                 _profileState.value = UiState.Success(profile)
-                loadBookmarks(profile.profile.id)
+                val userId = profile.profile.user_id.takeIf { it > 0 } ?: profile.profile.id
+                loadProfileDetail(userId)
+                loadBookmarks(userId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _profileState.value = UiState.Error(e.message ?: "Failed to load profile")
+            }
+        }
+    }
+
+    private fun loadProfileDetail(userId: Long) {
+        screenModelScope.launch {
+            _profileDetailState.value = UiState.Loading
+            try {
+                val detail = client.appApi.getUserDetail(userId)
+                _profileDetailState.value = UiState.Success(detail.profile ?: ProfileBean())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _profileDetailState.value = UiState.Error(e.message ?: "Failed to load profile detail")
             }
         }
     }

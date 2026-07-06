@@ -48,6 +48,13 @@ object ImageLoaderFactory {
         val builder = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val req = chain.request().newBuilder()
+                    .header("Referer", "https://app-api.pixiv.net/")
+                    .header("User-Agent", "PixivIOSApp/8.6.10 (iOS 26.5; iPhone16,2)")
+                    .build()
+                chain.proceed(req)
+            }
 
         if (settings.isDirectConnect && !ImageHostManager.requiresStandardClient()) {
             // PIXIV 模式 + 直连：无 SNI TLS + HttpDns(pximg 钉 210.140.139.x) + HTTP/1.1

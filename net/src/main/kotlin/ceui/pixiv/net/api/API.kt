@@ -66,6 +66,12 @@ interface API {
     @GET("/v1/user/me/state")
     suspend fun getSelfProfile(): SelfProfile
 
+    @GET("/v1/user/detail")
+    suspend fun getUserDetail(
+        @Query("user_id") user_id: Long,
+        @Query("filter") filter: String = "for_ios",
+    ): UserDetailResponse
+
     @GET("/v2/novel/series")
     suspend fun getNovelSeries(
         @Query("series_id") series_id: Long,

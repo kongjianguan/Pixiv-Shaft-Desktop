@@ -51,6 +51,7 @@ class ProfileScreen : Screen {
     override fun Content() {
         val screenModel = rememberScreenModel { ProfileScreenModel() }
         val profileState by screenModel.profileState.collectAsState()
+        val profileDetailState by screenModel.profileDetailState.collectAsState()
         val bookmarksState by screenModel.bookmarksState.collectAsState()
         val history by screenModel.history.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
@@ -74,7 +75,7 @@ class ProfileScreen : Screen {
                         is UiState.Success -> {
                             val user = s.data.profile
                             UserAvatar(
-                                url = user.profile_image_urls?.px_50x50,
+                                url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
                                 size = 64
                             )
                             Column(modifier = Modifier.weight(1f)) {
@@ -83,9 +84,16 @@ class ProfileScreen : Screen {
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "${user.id}",
+                                    text = "@${user.pixiv_id ?: user.account ?: user.user_id}",
                                     style = MaterialTheme.typography.labelSmall
                                 )
+                                if (user.is_premium == true) {
+                                    Text(
+                                        text = "Premium",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
@@ -97,15 +105,31 @@ class ProfileScreen : Screen {
 
             // Stats row
             item {
-                profileState.let { state ->
+                profileDetailState.let { state ->
                     if (state is UiState.Success) {
-                        val profile = state.data.profile
+                        val profile = state.data
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text("Illusts: ${profile.total_illusts}", style = MaterialTheme.typography.labelMedium)
                             Text("Bookmarks: ${profile.total_illust_bookmarks_public}", style = MaterialTheme.typography.labelMedium)
+                        }
+                        if (!profile.job.isNullOrEmpty() || !profile.region.isNullOrEmpty() || !profile.twitter_account.isNullOrEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (!profile.job.isNullOrEmpty()) {
+                                    Text("Job: ${profile.job}", style = MaterialTheme.typography.labelSmall)
+                                }
+                                if (!profile.region.isNullOrEmpty()) {
+                                    Text("Region: ${profile.region}", style = MaterialTheme.typography.labelSmall)
+                                }
+                                if (!profile.twitter_account.isNullOrEmpty()) {
+                                    Text("Twitter: @${profile.twitter_account}", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
                     }
                 }
