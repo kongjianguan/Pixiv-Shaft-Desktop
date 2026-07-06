@@ -7,8 +7,8 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 data class OAuthTokenResponse(
-    @SerializedName("access_token") val accessToken: String?,
-    @SerializedName("refresh_token") val refreshToken: String?,
+    @SerializedName("access_token") val accessToken: String? = null,
+    @SerializedName("refresh_token") val refreshToken: String? = null,
     @SerializedName("expires_in") val expiresIn: Long = 0,
     @SerializedName("user") val user: OAuthUser? = null,
 )
