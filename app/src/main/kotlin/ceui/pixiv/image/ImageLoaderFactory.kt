@@ -42,6 +42,8 @@ object ImageLoaderFactory {
             .build()
     }
 
+    fun createImageClient(settings: Settings): OkHttpClient = buildImageClient(settings)
+
     private fun buildImageClient(settings: Settings): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)

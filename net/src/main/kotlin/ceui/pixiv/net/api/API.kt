@@ -364,4 +364,7 @@ interface API {
     suspend fun getInfoList(
         @Query("cid") cid: Int,
     ): InfoListResponse
+
+    @GET("/v1/ugoira/metadata")
+    suspend fun getUgoiraMetadata(@Query("illust_id") illust_id: Long): ceui.loxia.GifInfoResponse
 }

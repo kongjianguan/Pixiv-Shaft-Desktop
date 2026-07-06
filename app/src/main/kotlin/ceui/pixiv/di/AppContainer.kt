@@ -30,6 +30,8 @@ object AppContainer {
         private set
     lateinit var imageLoader: ImageLoader
         private set
+    lateinit var imageClient: OkHttpClient
+        private set
     lateinit var database: Database
         private set
 
@@ -64,6 +66,7 @@ object AppContainer {
         val refresher = RealTokenRefresher(tokenStore, tokenExchange)
         client = Client(settingsStore, tokenStore, refresher, DefaultLanguageProvider(), StdoutLogger)
         imageLoader = ImageLoaderFactory.create(settingsStore)
+        imageClient = ImageLoaderFactory.createImageClient(settingsStore)
         SingletonImageLoader.setUnsafe(imageLoader)
         database = createDatabase()
 
