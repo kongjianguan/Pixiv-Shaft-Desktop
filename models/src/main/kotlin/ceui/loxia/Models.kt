@@ -303,6 +303,8 @@ data class User(
     val require_policy_agreement: Boolean? = null,
     val x_restrict: Int? = null,
     val comment: String? = null,
+    val total_illusts: Int = 0,
+    val total_illust_bookmarks_public: Int = 0,
 ) : Serializable, ModelObject {
     override val objectUniqueId: Long
         get() = id
