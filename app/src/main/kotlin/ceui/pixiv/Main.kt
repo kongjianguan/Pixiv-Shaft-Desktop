@@ -10,6 +10,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import cafe.adriel.voyager.navigator.Navigator
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.platform.TrayManager
 import ceui.pixiv.ui.auth.AuthState
 import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
@@ -17,9 +18,31 @@ import ceui.pixiv.ui.theme.ShaftTheme
 
 fun main() = application {
     AppContainer.init()
-    println("PLAN 7 GATE PASSED — Novel reader integrated")
+    println("PLAN 8 GATE PASSED — Desktop interaction + DMG ready")
+
+    var isExiting = false
+
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            if (!isExiting) {
+                // Close-to-tray: hide window instead of exiting
+                val frame = java.awt.Window.getWindows()
+                    .filterIsInstance<java.awt.Frame>()
+                    .firstOrNull()
+                if (frame != null) {
+                    frame.isVisible = false
+                    TrayManager.setup(
+                        onShow = { frame.isVisible = true; frame.toFront() },
+                        onExit = {
+                            isExiting = true
+                            TrayManager.remove()
+                            AppContainer.close()
+                            exitApplication()
+                        }
+                    )
+                }
+            }
+        },
         title = "Pixiv Shaft"
     ) {
         ShaftTheme {
