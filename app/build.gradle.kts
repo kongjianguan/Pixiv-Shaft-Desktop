@@ -48,6 +48,7 @@ compose.desktop {
     application {
         mainClass = "ceui.pixiv.MainKt"
         nativeDistributions {
+            modules("java.sql")
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
             packageName = "PixivShaft"
             packageVersion = "1.0.0"
