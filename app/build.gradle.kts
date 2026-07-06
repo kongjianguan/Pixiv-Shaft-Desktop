@@ -3,7 +3,6 @@ plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    application
 }
 
 group = "ceui.pixiv"
@@ -45,6 +44,17 @@ dependencies {
 
 tasks.test { useJUnitPlatform() }
 
-application {
-    mainClass.set("ceui.pixiv.MainKt")
+compose.desktop {
+    application {
+        mainClass = "ceui.pixiv.MainKt"
+        nativeDistributions {
+            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)
+            packageName = "PixivShaft"
+            packageVersion = "1.0.0"
+            macOS {
+                bundleID = "ceui.pixiv.Shaft"
+                minimumSystemVersion = "12.0"
+            }
+        }
+    }
 }
