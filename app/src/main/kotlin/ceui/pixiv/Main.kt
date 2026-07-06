@@ -17,7 +17,7 @@ import ceui.pixiv.ui.theme.ShaftTheme
 
 fun main() = application {
     AppContainer.init()
-    println("PLAN 6 GATE PASSED — Ugoira animation integrated")
+    println("PLAN 7 GATE PASSED — Novel reader integrated")
     Window(
         onCloseRequest = ::exitApplication,
         title = "Pixiv Shaft"
