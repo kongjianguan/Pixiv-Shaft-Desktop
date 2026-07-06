@@ -66,7 +66,6 @@ class SettingsScreen : Screen {
                 modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium)
 
             if (restartRequired) {
                 Card(modifier = Modifier.fillMaxWidth()) {
