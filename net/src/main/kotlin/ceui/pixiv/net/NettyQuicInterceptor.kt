@@ -143,6 +143,13 @@ class NettyQuicInterceptor : Interceptor {
                 val name = request.headers.name(i).lowercase()
                 if (name !in skip) h.add(name, request.headers.value(i))
             }
+            // FormBody 的 Content-Type 由 OkHttp BridgeInterceptor 添加，但 QUIC 拦截器
+            // 作为 application interceptor 在 BridgeInterceptor 之前运行，所以 request.headers
+            // 里还没有 Content-Type。必须从 request.body.contentType() 手动取并写入 HTTP/3 头，
+            // 否则服务器不解析 form body（Pixiv OAuth 返回 invalid_client）。
+            request.body?.contentType()?.let { ct ->
+                h.set("content-type", ct.toString())
+            }
             h.add("user-agent", PixivHosts.IOS_UA)
                 .add("app-os", PixivHosts.APP_OS)
                 .add("app-os-version", PixivHosts.APP_OS_VERSION)

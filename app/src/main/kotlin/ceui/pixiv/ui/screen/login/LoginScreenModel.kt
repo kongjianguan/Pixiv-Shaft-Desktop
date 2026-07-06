@@ -70,15 +70,19 @@ class LoginScreenModel : ScreenModel {
 
     private fun extractCode(input: String): String? {
         val trimmed = input.trim()
-        // If it's a URL, extract the "code" query parameter
-        val codeParam = "code="
-        val codeIdx = trimmed.indexOf(codeParam, ignoreCase = true)
-        if (codeIdx >= 0) {
-            val start = codeIdx + codeParam.length
-            val end = trimmed.indexOf('&', start).let { if (it < 0) trimmed.length else it }
-            return trimmed.substring(start, end)
+        // If it looks like a URL, require code= parameter
+        if (trimmed.startsWith("http", ignoreCase = true)) {
+            val codeParam = "code="
+            val codeIdx = trimmed.indexOf(codeParam, ignoreCase = true)
+            if (codeIdx >= 0) {
+                val start = codeIdx + codeParam.length
+                val end = trimmed.indexOf('&', start).let { if (it < 0) trimmed.length else it }
+                return trimmed.substring(start, end)
+            }
+            // URL without code= — user pasted the wrong redirect URL
+            return null
         }
-        // Otherwise, treat the whole input as the code
+        // Not a URL: treat as raw code
         return trimmed.ifBlank { null }
     }
 }
