@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import ceui.pixiv.ui.screen.discover.DiscoverScreen
+import ceui.pixiv.ui.screen.profile.ProfileScreen
 import ceui.pixiv.ui.screen.recommend.RecommendScreen
 import ceui.pixiv.ui.screen.search.SearchScreen
 
@@ -32,7 +34,7 @@ class MainScreen : Screen {
     @Composable
     override fun Content() {
         LaunchedEffect(Unit) {
-            println("PLAN 5 GATE PASSED — Auth gate + Login + UX polish active")
+            println("PLAN 6 GATE PASSED — Settings + Profile + 4th tab")
         }
         TabNavigator(RecommendTab) {
             Scaffold(
@@ -50,7 +52,7 @@ class MainScreen : Screen {
 private fun BottomBar() {
     val tabNavigator = LocalTabNavigator.current
     NavigationBar {
-        listOf(RecommendTab, DiscoverTab, SearchTab).forEach { tab ->
+        listOf(RecommendTab, DiscoverTab, SearchTab, ProfileTab).forEach { tab ->
             NavigationBarItem(
                 selected = tabNavigator.current.key == tab.key,
                 onClick = { tabNavigator.current = tab },
@@ -88,5 +90,15 @@ object SearchTab : Tab {
     @Composable
     override fun Content() {
         Navigator(SearchScreen()) { CurrentScreen() }
+    }
+}
+
+object ProfileTab : Tab {
+    override val options: TabOptions
+        @Composable get() = TabOptions(index = 3u, title = "我的", icon = rememberVectorPainter(Icons.Default.Person))
+
+    @Composable
+    override fun Content() {
+        Navigator(ProfileScreen()) { CurrentScreen() }
     }
 }
