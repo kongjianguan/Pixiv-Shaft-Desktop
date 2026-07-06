@@ -44,6 +44,7 @@ import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.component.ZoomableImage
 import ceui.pixiv.ui.screen.search.SearchScreen
 import ceui.pixiv.ui.state.UiState
 
@@ -134,19 +135,17 @@ private fun IllustDetailContent(
             } else if (imageUrls.size > 1) {
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })
                 HorizontalPager(state = pagerState) { page ->
-                    AsyncImage(
+                    ZoomableImage(
                         model = imageUrls[page],
                         contentDescription = "Page ${page + 1}",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.Fit
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             } else {
-                AsyncImage(
+                ZoomableImage(
                     model = imageUrls.firstOrNull(),
                     contentDescription = illust.title,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentScale = ContentScale.Fit
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
