@@ -50,7 +50,8 @@ class SearchScreenModel(
         screenModelScope.launch {
             _resultsState.value = UiState.Loading
             try {
-                // Save to search history
+                // Save to search history: delete old entry then insert new
+                db.queries.searchHistoryQueries.deleteSearchByKeyword(word)
                 db.queries.searchHistoryQueries.insertKeywordOnly(word, System.currentTimeMillis(), 0L)
                 loadHistory()
 
