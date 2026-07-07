@@ -2,6 +2,7 @@ package ceui.pixiv.ui.screen.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.component.ZoomableImage
 import ceui.pixiv.ui.screen.search.SearchScreen
+import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.util.openInBrowser
 
@@ -135,7 +137,8 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                         isFullscreen = isFullscreen,
                         onToggleFullscreen = { isFullscreen = !isFullscreen },
                         isFollowing = isFollowing,
-                        onToggleFollow = { screenModel.toggleFollow(it) }
+                        onToggleFollow = { screenModel.toggleFollow(it) },
+                        onUserClick = { userId -> navigator.push(UserDetailScreen(userId)) }
                     )
                 }
             }
@@ -154,7 +157,8 @@ private fun IllustDetailContent(
     isFullscreen: Boolean = false,
     onToggleFullscreen: () -> Unit = {},
     isFollowing: Boolean? = null,
-    onToggleFollow: (String) -> Unit = {}
+    onToggleFollow: (String) -> Unit = {},
+    onUserClick: (Long) -> Unit = {}
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
@@ -317,12 +321,19 @@ private fun IllustDetailContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    UserAvatar(url = illust.user?.profile_image_urls?.px_50x50)
-                    Text(
-                        text = illust.user?.name ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { illust.user?.id?.let { onUserClick(it) } },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        UserAvatar(url = illust.user?.profile_image_urls?.px_50x50)
+                        Text(
+                            text = illust.user?.name ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                     val following = isFollowing
                     if (following != null) {
                         if (following) {
