@@ -1,5 +1,6 @@
 package ceui.pixiv.ui.screen.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,13 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import coil3.compose.AsyncImage
@@ -61,19 +65,23 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val ugoiraState by screenModel.ugoiraState.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
+        var isFullscreen by remember { mutableStateOf(false) }
+
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Illust #$illustId") },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                if (!isFullscreen) {
+                    TopAppBar(
+                        title = { Text("Illust #$illustId") },
+                        navigationIcon = {
+                            IconButton(onClick = { navigator.pop() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         ) { padding ->
-            Box(modifier = Modifier.padding(padding)) {
+            Box(modifier = Modifier.padding(if (isFullscreen) PaddingValues(0.dp) else padding)) {
                 when (val s = illustState) {
                     is UiState.Loading -> LoadingView()
                     is UiState.Error -> ErrorView(s.message, {})
@@ -82,7 +90,9 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                         relatedState = relatedState,
                         onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
                         onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
-                        ugoiraState = ugoiraState
+                        ugoiraState = ugoiraState,
+                        isFullscreen = isFullscreen,
+                        onToggleFullscreen = { isFullscreen = !isFullscreen }
                     )
                 }
             }
@@ -96,7 +106,9 @@ private fun IllustDetailContent(
     relatedState: UiState<List<Illust>>,
     onIllustClick: (Long) -> Unit,
     onTagClick: (String) -> Unit,
-    ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading
+    ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading,
+    isFullscreen: Boolean = false,
+    onToggleFullscreen: () -> Unit = {}
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
@@ -141,24 +153,61 @@ private fun IllustDetailContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    HorizontalPager(state = pagerState) { page ->
-                        ZoomableImage(
-                            model = imageUrls[page],
-                            contentDescription = "Page ${page + 1}",
-                            modifier = Modifier.fillMaxWidth()
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        HorizontalPager(state = pagerState) { page ->
+                            ZoomableImage(
+                                model = imageUrls[page],
+                                contentDescription = "Page ${page + 1}",
+                                modifier = Modifier.fillMaxWidth(),
+                                onToggleFullscreen = onToggleFullscreen
+                            )
+                        }
+                        if (isFullscreen) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .padding(8.dp)
+                                    .align(Alignment.TopStart)
+                            ) {
+                                IconButton(onClick = { onToggleFullscreen() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        "Exit fullscreen",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (isFullscreen && imageUrls.size > 1) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Black.copy(alpha = 0.5f))
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "第 ${currentPage + 1} / ${imageUrls.size} P  ← tap to exit",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "第 ${currentPage + 1} / ${imageUrls.size} P",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
-                    Text(
-                        text = "第 ${currentPage + 1} / ${imageUrls.size} P",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
                 }
             } else {
                 ZoomableImage(
                     model = imageUrls.firstOrNull(),
                     contentDescription = illust.title,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onToggleFullscreen = onToggleFullscreen
                 )
             }
         }
