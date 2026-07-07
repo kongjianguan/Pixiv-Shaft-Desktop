@@ -170,6 +170,87 @@ private fun IllustDetailContent(
         }
     }
 
+    // Fullscreen mode: only image + overlay, no LazyColumn
+    if (isFullscreen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            if (illust.isGif()) {
+                when (val u = ugoiraState) {
+                    is UiState.Success -> {
+                        val meta = u.data
+                        if (meta != null) {
+                            val zipUrl = meta.zip_urls?.medium
+                            val frames = meta.frames ?: emptyList()
+                            if (zipUrl != null && frames.isNotEmpty()) {
+                                UgoiraPlayer(zipUrl = zipUrl, frames = frames)
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            } else if (imageUrls.size > 1) {
+                val pagerState = rememberPagerState(pageCount = { imageUrls.size })
+                HorizontalPager(state = pagerState) { page ->
+                    ZoomableImage(
+                        model = imageUrls[page],
+                        contentDescription = "Page ${page + 1}",
+                        modifier = Modifier.fillMaxSize(),
+                        onToggleFullscreen = onToggleFullscreen
+                    )
+                }
+            } else {
+                ZoomableImage(
+                    model = imageUrls.firstOrNull(),
+                    contentDescription = illust.title,
+                    modifier = Modifier.fillMaxSize(),
+                    onToggleFullscreen = onToggleFullscreen
+                )
+            }
+
+            // Top overlay: back button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .padding(8.dp)
+                    .align(Alignment.TopStart)
+            ) {
+                IconButton(onClick = { onToggleFullscreen() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        "Exit fullscreen",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            // Bottom overlay: page indicator
+            if (imageUrls.size > 1) {
+                val pagerState = rememberPagerState(pageCount = { imageUrls.size })
+                val currentPage by remember { derivedStateOf { pagerState.currentPage } }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(8.dp)
+                        .align(Alignment.BottomCenter)
+                ) {
+                    Text(
+                        text = "第 ${currentPage + 1} / ${imageUrls.size} P",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    // Normal mode: full LazyColumn
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Image gallery
         item {
