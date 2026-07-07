@@ -25,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -134,11 +136,22 @@ private fun IllustDetailContent(
                 }
             } else if (imageUrls.size > 1) {
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })
-                HorizontalPager(state = pagerState) { page ->
-                    ZoomableImage(
-                        model = imageUrls[page],
-                        contentDescription = "Page ${page + 1}",
-                        modifier = Modifier.fillMaxWidth()
+                val currentPage by remember { derivedStateOf { pagerState.currentPage } }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    HorizontalPager(state = pagerState) { page ->
+                        ZoomableImage(
+                            model = imageUrls[page],
+                            contentDescription = "Page ${page + 1}",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Text(
+                        text = "第 ${currentPage + 1} / ${imageUrls.size} P",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
             } else {
