@@ -36,7 +36,9 @@ class SearchScreenModel(
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     init {
-        loadHistory()
+        screenModelScope.launch {
+            loadHistory()
+        }
         if (initialQuery != null && initialQuery.isNotBlank()) {
             _query.value = initialQuery
             search(initialQuery)
@@ -129,11 +131,9 @@ class SearchScreenModel(
         }
     }
 
-    private fun loadHistory() {
-        screenModelScope.launch {
-            _history.value = db.queries.searchHistoryQueries.selectRecentSearches(20)
-                .executeAsList()
-                .map { it.keyword }
-        }
+    private suspend fun loadHistory() {
+        _history.value = db.queries.searchHistoryQueries.selectRecentSearches(20)
+            .executeAsList()
+            .map { it.keyword }
     }
 }

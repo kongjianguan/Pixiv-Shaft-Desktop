@@ -38,8 +38,14 @@ class ProfileScreenModel : ScreenModel {
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     init {
-        loadProfile()
-        loadHistory()
+        loadInitial()
+    }
+
+    private fun loadInitial() {
+        screenModelScope.launch {
+            loadProfile()
+            loadHistory()
+        }
     }
 
     fun refresh() {
@@ -51,20 +57,20 @@ class ProfileScreenModel : ScreenModel {
         }
     }
 
-    private fun loadProfile() {
-        screenModelScope.launch {
+    private suspend fun loadProfile() {
+        if (_profileState.value !is UiState.Success) {
             _profileState.value = UiState.Loading
-            try {
-                val profile = client.appApi.getSelfProfile()
-                _profileState.value = UiState.Success(profile)
-                val userId = profile.profile.user_id.takeIf { it > 0 } ?: profile.profile.id
-                loadProfileDetail(userId)
-                loadBookmarks(userId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _profileState.value = UiState.Error(e.message ?: "Failed to load profile")
-            }
+        }
+        try {
+            val profile = client.appApi.getSelfProfile()
+            _profileState.value = UiState.Success(profile)
+            val userId = profile.profile.user_id.takeIf { it > 0 } ?: profile.profile.id
+            loadProfileDetail(userId)
+            loadBookmarks(userId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _profileState.value = UiState.Error(e.message ?: "Failed to load profile")
         }
     }
 
@@ -97,22 +103,20 @@ class ProfileScreenModel : ScreenModel {
         }
     }
 
-    private fun loadHistory() {
-        screenModelScope.launch {
-            try {
-                val rows = db.queries.illustHistoryQueries.selectRecentIllusts(50)
-                    .executeAsList()
-                val illusts = rows.mapNotNull { row ->
-                    try {
-                        com.google.gson.Gson().fromJson(row.illustJson, Illust::class.java)
-                    } catch (_: Exception) { null }
-                }
-                _history.value = illusts
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // History is best-effort
+    private suspend fun loadHistory() {
+        try {
+            val rows = db.queries.illustHistoryQueries.selectRecentIllusts(50)
+                .executeAsList()
+            val illusts = rows.mapNotNull { row ->
+                try {
+                    com.google.gson.Gson().fromJson(row.illustJson, Illust::class.java)
+                } catch (_: Exception) { null }
             }
+            _history.value = illusts
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // History is best-effort
         }
     }
 }
