@@ -43,6 +43,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import coil3.compose.AsyncImage
 import ceui.loxia.Illust
 import ceui.loxia.UgoiraMetaData
+import ceui.pixiv.ui.component.CaptionText
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.UgoiraPlayer
@@ -253,6 +254,16 @@ private fun IllustDetailContent(
                     text = "♥ ${illust.total_bookmarks ?: 0}  👁 ${illust.total_view ?: 0}",
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        // Caption
+        if (!illust.caption.isNullOrBlank()) {
+            item {
+                CaptionText(
+                    html = illust.caption,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
         }
