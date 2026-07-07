@@ -31,6 +31,9 @@ class IllustDetailScreenModel(
     private val _ugoiraState = MutableStateFlow<UiState<UgoiraMetaData?>>(UiState.Loading)
     val ugoiraState: StateFlow<UiState<UgoiraMetaData?>> = _ugoiraState.asStateFlow()
 
+    private val _isBookmarked = MutableStateFlow<Boolean?>(null)
+    val isBookmarked: StateFlow<Boolean?> = _isBookmarked.asStateFlow()
+
     init {
         loadIllust()
         loadRelated()
@@ -43,6 +46,7 @@ class IllustDetailScreenModel(
                 val resp = client.appApi.getIllust(illustId)
                 _illustState.value = resp.illust?.let { illust ->
                     if (illust.isGif()) loadUgoira(illust.id)
+                    _isBookmarked.value = illust.is_bookmarked
                     UiState.Success(illust)
                 } ?: UiState.Error("Illust not found")
             } catch (e: CancellationException) {
@@ -63,6 +67,25 @@ class IllustDetailScreenModel(
                 throw e
             } catch (e: Exception) {
                 _ugoiraState.value = UiState.Error(e.message ?: "Failed to load ugoira metadata")
+            }
+        }
+    }
+
+    fun toggleBookmark(restrict: String = "public") {
+        val current = _isBookmarked.value ?: return
+        val id = illustId
+        screenModelScope.launch {
+            _isBookmarked.value = !current
+            try {
+                if (current) {
+                    client.appApi.removeBookmark(id)
+                } else {
+                    client.appApi.postBookmark(id, restrict)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _isBookmarked.value = current
             }
         }
     }
