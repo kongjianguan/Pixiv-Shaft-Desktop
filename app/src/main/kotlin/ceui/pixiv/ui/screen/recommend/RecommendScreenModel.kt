@@ -21,22 +21,37 @@ class RecommendScreenModel : ScreenModel {
     private val _state = MutableStateFlow<UiState<List<ceui.loxia.Illust>>>(UiState.Loading)
     val state: StateFlow<UiState<List<ceui.loxia.Illust>>> = _state.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     val hasNext get() = pager.hasNext
 
-    init {
-        refresh()
+    init { loadInitial() }
+
+    private fun loadInitial() {
+        screenModelScope.launch {
+            _state.value = UiState.Loading
+            fetchData()
+        }
     }
 
     fun refresh() {
         screenModelScope.launch {
-            _state.value = UiState.Loading
-            try {
-                val resp = client.appApi.getWalkthroughWorks()
-                pager.refresh(resp)
-                _state.value = UiState.Success(pager.items.value)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
+            _isRefreshing.value = true
+            fetchData()
+            _isRefreshing.value = false
+        }
+    }
+
+    private suspend fun fetchData() {
+        try {
+            val resp = client.appApi.getWalkthroughWorks()
+            pager.refresh(resp)
+            _state.value = UiState.Success(pager.items.value)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (_state.value !is UiState.Success) {
                 _state.value = UiState.Error(e.message ?: "Failed to load recommendations")
             }
         }

@@ -34,9 +34,21 @@ class ProfileScreenModel : ScreenModel {
     private val _history = MutableStateFlow<List<Illust>>(emptyList())
     val history: StateFlow<List<Illust>> = _history.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
         loadProfile()
         loadHistory()
+    }
+
+    fun refresh() {
+        screenModelScope.launch {
+            _isRefreshing.value = true
+            loadProfile()
+            loadHistory()
+            _isRefreshing.value = false
+        }
     }
 
     private fun loadProfile() {

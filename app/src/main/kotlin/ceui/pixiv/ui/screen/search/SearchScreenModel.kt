@@ -32,11 +32,43 @@ class SearchScreenModel(
 
     private val _isLoading = MutableStateFlow(false)
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
         loadHistory()
         if (initialQuery != null && initialQuery.isNotBlank()) {
             _query.value = initialQuery
             search(initialQuery)
+        }
+    }
+
+    fun refresh() {
+        val q = _query.value
+        if (q.isBlank()) {
+            screenModelScope.launch {
+                _isRefreshing.value = true
+                loadHistory()
+                _isRefreshing.value = false
+            }
+        } else {
+            screenModelScope.launch {
+                _isRefreshing.value = true
+                try {
+                    val resp = client.appApi.searchIllustManga(
+                        word = q, sort = "date_desc",
+                        search_target = "partial_match_for_tags",
+                        merge_plain_keyword_results = true,
+                        include_translated_tag_results = true
+                    )
+                    pager.refresh(resp)
+                    _resultsState.value = UiState.Success(pager.items.value)
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) {
+                    if (_resultsState.value !is UiState.Success)
+                        _resultsState.value = UiState.Error(e.message ?: "Search failed")
+                } finally { _isRefreshing.value = false }
+            }
         }
     }
 

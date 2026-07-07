@@ -28,22 +28,37 @@ class DiscoverScreenModel : ScreenModel {
     private val _currentModeFlow = MutableStateFlow("day")
     val currentMode: StateFlow<String> = _currentModeFlow.asStateFlow()
 
-    init {
-        loadTags()
-        loadRanking("day")
-    }
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private fun loadTags() {
+    init { loadInitial() }
+
+    private fun loadInitial() {
         screenModelScope.launch {
             _tagsState.value = UiState.Loading
-            try {
-                val resp = client.appApi.trendingTags("illust")
-                _tagsState.value = UiState.Success(resp.displayList)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _tagsState.value = UiState.Error(e.message ?: "Failed to load trending tags")
-            }
+            _rankingState.value = UiState.Loading
+            fetchTags()
+            fetchRanking(_currentMode)
+        }
+    }
+
+    fun refresh() {
+        screenModelScope.launch {
+            _isRefreshing.value = true
+            fetchTags()
+            fetchRanking(_currentMode)
+            _isRefreshing.value = false
+        }
+    }
+
+    private suspend fun fetchTags() {
+        try {
+            val resp = client.appApi.trendingTags("illust")
+            _tagsState.value = UiState.Success(resp.displayList)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _tagsState.value = UiState.Error(e.message ?: "Failed to load trending tags")
         }
     }
 
@@ -52,17 +67,21 @@ class DiscoverScreenModel : ScreenModel {
         _currentModeFlow.value = mode
         screenModelScope.launch {
             _rankingState.value = UiState.Loading
-            try {
-                val resp = client.appApi.getRankingIllusts(mode)
-                if (_currentMode == mode) {
-                    _rankingState.value = UiState.Success(resp.illusts)
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (_currentMode == mode) {
-                    _rankingState.value = UiState.Error(e.message ?: "Failed to load ranking")
-                }
+            fetchRanking(mode)
+        }
+    }
+
+    private suspend fun fetchRanking(mode: String) {
+        try {
+            val resp = client.appApi.getRankingIllusts(mode)
+            if (_currentMode == mode) {
+                _rankingState.value = UiState.Success(resp.illusts)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (_currentMode == mode) {
+                _rankingState.value = UiState.Error(e.message ?: "Failed to load ranking")
             }
         }
     }
