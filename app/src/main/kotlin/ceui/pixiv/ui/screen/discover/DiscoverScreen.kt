@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,83 +37,91 @@ import ceui.pixiv.ui.state.UiState
 
 class DiscoverScreen : Screen {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { DiscoverScreenModel() }
         val tagsState by screenModel.tagsState.collectAsState()
         val rankingState by screenModel.rankingState.collectAsState()
         val currentMode by screenModel.currentMode.collectAsState()
+        val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            // Trending tags
-            item {
-                Text(
-                    text = "Trending Tags",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(16.dp, 8.dp)
-                )
-            }
-            item {
-                when (val s = tagsState) {
-                    is UiState.Loading -> LoadingView(modifier = Modifier.height(120.dp))
-                    is UiState.Error -> ErrorView(s.message, {}, Modifier.height(120.dp))
-                    is UiState.Success -> {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(s.data) { tag ->
-                                TrendingTagItem(tag)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { screenModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                // Trending tags
+                item {
+                    Text(
+                        text = "Trending Tags",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(16.dp, 8.dp)
+                    )
+                }
+                item {
+                    when (val s = tagsState) {
+                        is UiState.Loading -> LoadingView(modifier = Modifier.height(120.dp))
+                        is UiState.Error -> ErrorView(s.message, {}, Modifier.height(120.dp))
+                        is UiState.Success -> {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(s.data) { tag ->
+                                    TrendingTagItem(tag)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // Ranking mode selector
-            item {
-                Row(
-                    modifier = Modifier.padding(16.dp, 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("day" to "Daily", "week" to "Weekly", "month" to "Monthly").forEach { (mode, label) ->
-                        FilterChip(
-                            selected = (currentMode == mode),
-                            onClick = { screenModel.loadRanking(mode) },
-                            label = { Text(label) }
-                        )
+                // Ranking mode selector
+                item {
+                    Row(
+                        modifier = Modifier.padding(16.dp, 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("day" to "Daily", "week" to "Weekly", "month" to "Monthly").forEach { (mode, label) ->
+                            FilterChip(
+                                selected = (currentMode == mode),
+                                onClick = { screenModel.loadRanking(mode) },
+                                label = { Text(label) }
+                            )
+                        }
                     }
                 }
-            }
 
-            // Ranking illusts
-            item {
-                Text(
-                    text = "Ranking",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(16.dp, 8.dp)
-                )
-            }
-            when (val s = rankingState) {
-                is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-                is UiState.Error -> item { ErrorView(s.message, {}, Modifier.height(200.dp)) }
-                is UiState.Success -> {
-                    val columns = 2
-                    val rows = (s.data.size + columns - 1) / columns
-                    items(rows) { rowIndex ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            for (col in 0 until columns) {
-                                val index = rowIndex * columns + col
-                                if (index < s.data.size) {
-                                    IllustCard(
-                                        illust = s.data[index],
-                                        onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                // Ranking illusts
+                item {
+                    Text(
+                        text = "Ranking",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(16.dp, 8.dp)
+                    )
+                }
+                when (val s = rankingState) {
+                    is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
+                    is UiState.Error -> item { ErrorView(s.message, {}, Modifier.height(200.dp)) }
+                    is UiState.Success -> {
+                        val columns = 2
+                        val rows = (s.data.size + columns - 1) / columns
+                        items(rows) { rowIndex ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                for (col in 0 until columns) {
+                                    val index = rowIndex * columns + col
+                                    if (index < s.data.size) {
+                                        IllustCard(
+                                            illust = s.data[index],
+                                            onClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
                         }

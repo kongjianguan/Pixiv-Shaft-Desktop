@@ -12,11 +12,13 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -44,70 +46,78 @@ class SearchScreen(
     private val initialQuery: String? = null
 ) : Screen {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { SearchScreenModel(initialQuery) }
         val query by screenModel.query.collectAsState()
         val resultsState by screenModel.resultsState.collectAsState()
         val history by screenModel.history.collectAsState()
+        val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Search bar
-            OutlinedTextField(
-                value = query,
-                onValueChange = screenModel::updateQuery,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                placeholder = { Text("Search illusts\u2026") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { screenModel.updateQuery("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear")
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { screenModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Search bar
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = screenModel::updateQuery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    placeholder = { Text("Search illusts\u2026") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { screenModel.updateQuery("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { screenModel.search(query) })
+                )
+
+                // Search history (when no results yet)
+                if (resultsState is UiState.Loading && history.isNotEmpty()) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(history) { keyword ->
+                            AssistChip(
+                                onClick = { screenModel.search(keyword) },
+                                label = { Text(keyword) }
+                            )
                         }
                     }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { screenModel.search(query) })
-            )
-
-            // Search history (when no results yet)
-            if (resultsState is UiState.Loading && history.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(history) { keyword ->
-                        AssistChip(
-                            onClick = { screenModel.search(keyword) },
-                            label = { Text(keyword) }
-                        )
-                    }
                 }
-            }
 
-            // Results
-            when (val s = resultsState) {
-                is UiState.Loading -> LoadingView()
-                is UiState.Error -> ErrorView(s.message, { screenModel.search(query) })
-                is UiState.Success -> {
-                    if (s.data.isEmpty()) {
-                        EmptyView("No results")
-                    } else {
-                        LazyVerticalStaggeredGrid(
-                            columns = StaggeredGridCells.Fixed(2),
-                            contentPadding = PaddingValues(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalItemSpacing = 4.dp
-                        ) {
-                            items(s.data, key = { it.id }) { illust ->
-                                IllustCard(
-                                    illust = illust,
-                                    onClick = { id -> navigator.push(IllustDetailScreen(id)) }
-                                )
+                // Results
+                when (val s = resultsState) {
+                    is UiState.Loading -> LoadingView()
+                    is UiState.Error -> ErrorView(s.message, { screenModel.search(query) })
+                    is UiState.Success -> {
+                        if (s.data.isEmpty()) {
+                            EmptyView("No results")
+                        } else {
+                            LazyVerticalStaggeredGrid(
+                                columns = StaggeredGridCells.Fixed(2),
+                                contentPadding = PaddingValues(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalItemSpacing = 4.dp
+                            ) {
+                                items(s.data, key = { it.id }) { illust ->
+                                    IllustCard(
+                                        illust = illust,
+                                        onClick = { id -> navigator.push(IllustDetailScreen(id)) }
+                                    )
+                                }
                             }
                         }
                     }

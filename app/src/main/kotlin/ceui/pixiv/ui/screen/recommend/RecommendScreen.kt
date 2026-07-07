@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,24 +28,32 @@ import ceui.pixiv.ui.state.UiState
 
 class RecommendScreen : Screen {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { RecommendScreenModel() }
         val state by screenModel.state.collectAsState()
+        val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
-        when (val s = state) {
-            is UiState.Loading -> LoadingView()
-            is UiState.Error -> ErrorView(s.message, screenModel::refresh)
-            is UiState.Success -> {
-                if (s.data.isEmpty()) {
-                    EmptyView("No recommendations")
-                } else {
-                    IllustGrid(
-                        illusts = s.data,
-                        onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                        onLoadMore = screenModel::loadMore
-                    )
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { screenModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when (val s = state) {
+                is UiState.Loading -> LoadingView()
+                is UiState.Error -> ErrorView(s.message, { screenModel.refresh() })
+                is UiState.Success -> {
+                    if (s.data.isEmpty()) {
+                        EmptyView("No recommendations")
+                    } else {
+                        IllustGrid(
+                            illusts = s.data,
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                            onLoadMore = screenModel::loadMore
+                        )
+                    }
                 }
             }
         }
