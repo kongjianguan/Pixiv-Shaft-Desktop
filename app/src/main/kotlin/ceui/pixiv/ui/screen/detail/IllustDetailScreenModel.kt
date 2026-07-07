@@ -34,6 +34,10 @@ class IllustDetailScreenModel(
     private val _isBookmarked = MutableStateFlow<Boolean?>(null)
     val isBookmarked: StateFlow<Boolean?> = _isBookmarked.asStateFlow()
 
+    private val _isFollowing = MutableStateFlow<Boolean?>(null)
+    val isFollowing: StateFlow<Boolean?> = _isFollowing.asStateFlow()
+    private var _userId: Long = 0
+
     init {
         loadIllust()
         loadRelated()
@@ -47,6 +51,8 @@ class IllustDetailScreenModel(
                 _illustState.value = resp.illust?.let { illust ->
                     if (illust.isGif()) loadUgoira(illust.id)
                     _isBookmarked.value = illust.is_bookmarked
+                    _isFollowing.value = illust.user?.is_followed
+                    _userId = illust.user?.id ?: 0
                     UiState.Success(illust)
                 } ?: UiState.Error("Illust not found")
             } catch (e: CancellationException) {
@@ -86,6 +92,26 @@ class IllustDetailScreenModel(
                 throw e
             } catch (e: Exception) {
                 _isBookmarked.value = current
+            }
+        }
+    }
+
+    fun toggleFollow(restrict: String = "public") {
+        val current = _isFollowing.value ?: return
+        val userId = _userId
+        if (userId == 0L) return
+        screenModelScope.launch {
+            _isFollowing.value = !current
+            try {
+                if (current) {
+                    client.appApi.postUnFollow(userId)
+                } else {
+                    client.appApi.postFollow(userId, restrict)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _isFollowing.value = current
             }
         }
     }
