@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -22,10 +23,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -41,6 +44,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -70,6 +74,7 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val illustState by screenModel.illustState.collectAsState()
         val relatedState by screenModel.relatedState.collectAsState()
         val ugoiraState by screenModel.ugoiraState.collectAsState()
+        val isFollowing by screenModel.isFollowing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
         var isFullscreen by remember { mutableStateOf(false) }
@@ -128,7 +133,9 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                         onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
                         ugoiraState = ugoiraState,
                         isFullscreen = isFullscreen,
-                        onToggleFullscreen = { isFullscreen = !isFullscreen }
+                        onToggleFullscreen = { isFullscreen = !isFullscreen },
+                        isFollowing = isFollowing,
+                        onToggleFollow = { screenModel.toggleFollow(it) }
                     )
                 }
             }
@@ -136,6 +143,7 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun IllustDetailContent(
     illust: Illust,
@@ -144,7 +152,9 @@ private fun IllustDetailContent(
     onTagClick: (String) -> Unit,
     ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading,
     isFullscreen: Boolean = false,
-    onToggleFullscreen: () -> Unit = {}
+    onToggleFullscreen: () -> Unit = {},
+    isFollowing: Boolean? = null,
+    onToggleFollow: (String) -> Unit = {}
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
@@ -301,15 +311,42 @@ private fun IllustDetailContent(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Row(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     UserAvatar(url = illust.user?.profile_image_urls?.px_50x50)
                     Text(
                         text = illust.user?.name ?: "",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
                     )
+                    val following = isFollowing
+                    if (following != null) {
+                        if (following) {
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.combinedClickable(
+                                    onClick = { onToggleFollow("public") },
+                                    onLongClick = { onToggleFollow("private") }
+                                ).clip(RoundedCornerShape(16.dp))
+                            ) {
+                                Text("Following", style = MaterialTheme.typography.labelSmall)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = {},
+                                modifier = Modifier.combinedClickable(
+                                    onClick = { onToggleFollow("public") },
+                                    onLongClick = { onToggleFollow("private") }
+                                )
+                            ) {
+                                Text("Follow", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
                 }
                 Text(
                     text = "♥ ${illust.total_bookmarks ?: 0}  👁 ${illust.total_view ?: 0}",
