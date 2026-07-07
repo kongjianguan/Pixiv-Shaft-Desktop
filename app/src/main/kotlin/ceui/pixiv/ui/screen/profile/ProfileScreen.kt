@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -25,6 +26,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
+import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
@@ -61,12 +64,24 @@ class ProfileScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         var selectedTab by remember { mutableStateOf(0) }
 
+        val listState = rememberLazyListState()
+        val scrollToTopValue = LocalScrollToTop.current.value
+        LaunchedEffect(scrollToTopValue) {
+            if (scrollToTopValue > 0) {
+                listState.scrollToItem(0)
+                screenModel.refresh()
+            }
+        }
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { screenModel.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 // Header: avatar + name + stats + settings button
                 item {
                     Row(

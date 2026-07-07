@@ -21,6 +21,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
+import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
@@ -51,7 +52,8 @@ class RecommendScreen : Screen {
                         IllustGrid(
                             illusts = s.data,
                             onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                            onLoadMore = screenModel::loadMore
+                            onLoadMore = screenModel::loadMore,
+                            onRefresh = screenModel::refresh
                         )
                     }
                 }
@@ -64,10 +66,20 @@ class RecommendScreen : Screen {
 fun IllustGrid(
     illusts: List<ceui.loxia.Illust>,
     onIllustClick: (Long) -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     val gridState = rememberLazyStaggeredGridState()
     val visibleItems = gridState.layoutInfo.visibleItemsInfo
+
+    // Tab re-click scroll-to-top + refresh
+    val scrollToTopValue = LocalScrollToTop.current.value
+    LaunchedEffect(scrollToTopValue) {
+        if (scrollToTopValue > 0) {
+            gridState.scrollToItem(0)
+            onRefresh()
+        }
+    }
 
     // Infinite scroll: if last visible item is near the end, trigger loadMore
     LaunchedEffect(visibleItems) {

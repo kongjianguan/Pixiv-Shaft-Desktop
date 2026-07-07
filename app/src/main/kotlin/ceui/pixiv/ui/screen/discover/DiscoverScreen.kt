@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -31,6 +33,7 @@ import coil3.compose.AsyncImage
 import ceui.loxia.TrendingTag
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
+import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
 import ceui.pixiv.ui.state.UiState
@@ -47,12 +50,24 @@ class DiscoverScreen : Screen {
         val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
+        val listState = rememberLazyListState()
+        val scrollToTopValue = LocalScrollToTop.current.value
+        LaunchedEffect(scrollToTopValue) {
+            if (scrollToTopValue > 0) {
+                listState.scrollToItem(0)
+                screenModel.refresh()
+            }
+        }
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { screenModel.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 // Trending tags
                 item {
                     Text(

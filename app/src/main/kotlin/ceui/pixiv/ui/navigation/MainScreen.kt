@@ -13,7 +13,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import cafe.adriel.voyager.core.screen.Screen
@@ -29,19 +33,21 @@ import ceui.pixiv.ui.screen.profile.ProfileScreen
 import ceui.pixiv.ui.screen.recommend.RecommendScreen
 import ceui.pixiv.ui.screen.search.SearchScreen
 
+val LocalScrollToTop = compositionLocalOf { mutableStateOf(0) }
+
 class MainScreen : Screen {
 
     @Composable
     override fun Content() {
-        LaunchedEffect(Unit) {
-            println("PLAN 6 GATE PASSED — Settings + Profile + 4th tab")
-        }
-        TabNavigator(RecommendTab) {
-            Scaffold(
-                bottomBar = { BottomBar() }
-            ) { padding ->
-                Box(modifier = Modifier.padding(padding)) {
-                    CurrentTab()
+        val scrollToTopState = remember { mutableStateOf(0) }
+        CompositionLocalProvider(LocalScrollToTop provides scrollToTopState) {
+            TabNavigator(RecommendTab) {
+                Scaffold(
+                    bottomBar = { BottomBar() }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        CurrentTab()
+                    }
                 }
             }
         }
@@ -51,11 +57,18 @@ class MainScreen : Screen {
 @Composable
 private fun BottomBar() {
     val tabNavigator = LocalTabNavigator.current
+    val scrollToTopState = LocalScrollToTop.current
     NavigationBar {
         listOf(RecommendTab, DiscoverTab, SearchTab, ProfileTab).forEach { tab ->
             NavigationBarItem(
                 selected = tabNavigator.current.key == tab.key,
-                onClick = { tabNavigator.current = tab },
+                onClick = {
+                    if (tabNavigator.current.key == tab.key) {
+                        scrollToTopState.value++
+                    } else {
+                        tabNavigator.current = tab
+                    }
+                },
                 icon = { Icon(painter = tab.options.icon!!, contentDescription = tab.options.title) },
                 label = { Text(tab.options.title) }
             )

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -37,6 +39,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
+import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
@@ -55,6 +58,15 @@ class SearchScreen(
         val history by screenModel.history.collectAsState()
         val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
+
+        val gridState = rememberLazyStaggeredGridState()
+        val scrollToTopValue = LocalScrollToTop.current.value
+        LaunchedEffect(scrollToTopValue) {
+            if (scrollToTopValue > 0) {
+                gridState.scrollToItem(0)
+                screenModel.refresh()
+            }
+        }
 
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -108,6 +120,7 @@ class SearchScreen(
                         } else {
                             LazyVerticalStaggeredGrid(
                                 columns = StaggeredGridCells.Fixed(2),
+                                state = gridState,
                                 contentPadding = PaddingValues(4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalItemSpacing = 4.dp
