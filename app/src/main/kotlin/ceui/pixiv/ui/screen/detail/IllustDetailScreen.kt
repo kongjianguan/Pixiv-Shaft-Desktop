@@ -1,6 +1,8 @@
 package ceui.pixiv.ui.screen.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,7 +63,7 @@ import ceui.pixiv.util.openInBrowser
 
 class IllustDetailScreen(private val illustId: Long) : Screen {
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { IllustDetailScreenModel(illustId) }
@@ -81,6 +85,7 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                             }
                         },
                         actions = {
+                            val isBookmarked by screenModel.isBookmarked.collectAsState()
                             val illust = (illustState as? UiState.Success)?.data
                             val originalUrl = illust?.maxUrl()
                             if (originalUrl != null) {
@@ -88,6 +93,22 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                                     Icon(
                                         Icons.AutoMirrored.Filled.OpenInNew,
                                         contentDescription = "Open original in browser"
+                                    )
+                                }
+                            }
+                            val bookmarked = isBookmarked
+                            if (bookmarked != null) {
+                                IconButton(
+                                    onClick = { screenModel.toggleBookmark("public") },
+                                    modifier = Modifier.combinedClickable(
+                                        onClick = { screenModel.toggleBookmark("public") },
+                                        onLongClick = { screenModel.toggleBookmark("private") }
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = if (bookmarked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = "Bookmark",
+                                        tint = if (bookmarked) Color.Red else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
