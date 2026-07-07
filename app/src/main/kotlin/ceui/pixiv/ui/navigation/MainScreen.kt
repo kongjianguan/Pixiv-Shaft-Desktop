@@ -66,6 +66,7 @@ private fun BottomBar() {
                     if (tabNavigator.current.key == tab.key) {
                         scrollToTopState.value++
                     } else {
+                        scrollToTopState.value = 0
                         tabNavigator.current = tab
                     }
                 },
