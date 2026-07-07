@@ -203,12 +203,31 @@ private fun IllustDetailContent(
                     }
                 }
             } else {
-                ZoomableImage(
-                    model = imageUrls.firstOrNull(),
-                    contentDescription = illust.title,
-                    modifier = Modifier.fillMaxWidth(),
-                    onToggleFullscreen = onToggleFullscreen
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    ZoomableImage(
+                        model = imageUrls.firstOrNull(),
+                        contentDescription = illust.title,
+                        modifier = Modifier.fillMaxWidth(),
+                        onToggleFullscreen = onToggleFullscreen
+                    )
+                    if (isFullscreen) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Black.copy(alpha = 0.5f))
+                                .padding(8.dp)
+                                .align(Alignment.TopStart)
+                        ) {
+                            IconButton(onClick = { onToggleFullscreen() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    "Exit fullscreen",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
