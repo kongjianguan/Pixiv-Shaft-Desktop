@@ -27,6 +27,7 @@ dependencies {
     // brief Step 6 应用了 compose 插件但未显式加运行时，此处补齐「空 Compose 窗口可编译」）。
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
     // Coil 3 图片加载（Compose Desktop）

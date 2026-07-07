@@ -17,6 +17,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +55,7 @@ import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.component.ZoomableImage
 import ceui.pixiv.ui.screen.search.SearchScreen
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.util.openInBrowser
 
 class IllustDetailScreen(private val illustId: Long) : Screen {
 
@@ -76,6 +78,18 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                         navigationIcon = {
                             IconButton(onClick = { navigator.pop() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        actions = {
+                            val illust = (illustState as? UiState.Success)?.data
+                            val originalUrl = illust?.maxUrl()
+                            if (originalUrl != null) {
+                                IconButton(onClick = { openInBrowser(originalUrl) }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.OpenInNew,
+                                        contentDescription = "Open original in browser"
+                                    )
+                                }
                             }
                         }
                     )
@@ -228,6 +242,32 @@ private fun IllustDetailContent(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Image info (resolution, pages, date)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "${illust.width}×${illust.height}",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    text = "| ${illust.page_count}P",
+                    style = MaterialTheme.typography.labelSmall
+                )
+                val date = illust.create_date?.take(10)
+                if (date != null) {
+                    Text(
+                        text = "| $date",
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
             }
         }
