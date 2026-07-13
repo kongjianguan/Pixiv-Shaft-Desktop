@@ -7,7 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Window
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.window.application
+import java.awt.KeyEventDispatcher
+import java.awt.KeyboardFocusManager
+import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.platform.TrayManager
@@ -16,8 +20,24 @@ import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
+// Global ESC signal — incremented by an AWT KeyEventDispatcher. Compose UI observes
+// this and decides what to do (pop navigator / exit fullscreen). Bypasses Compose's
+// focus-based key dispatch which doesn't fire on non-focusable containers.
+internal val globalEscCounter = mutableStateOf(0)
+internal val fullscreenImageActive = mutableStateOf(false)
+
 fun main() = application {
     AppContainer.init()
+    // Install a global key dispatcher: fires regardless of focus.
+    val escDispatcher = KeyEventDispatcher { e ->
+        if (e.id == KeyEvent.KEY_RELEASED && e.keyCode == KeyEvent.VK_ESCAPE) {
+            globalEscCounter.value = globalEscCounter.value + 1
+            true // consume
+        } else {
+            false
+        }
+    }
+    KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(escDispatcher)
     println("PLAN 8 GATE PASSED — Desktop interaction + DMG ready")
 
     var isExiting = false
