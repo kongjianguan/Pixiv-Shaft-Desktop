@@ -4,6 +4,7 @@
 
 ### macOS port of Pixiv-Shaft
 
+[![CI](https://github.com/kongjianguan/Pixiv-Shaft-Desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/kongjianguan/Pixiv-Shaft-Desktop/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 A desktop port of [CeuiLiSA/Pixiv-Shaft](https://github.com/CeuiLiSA/Pixiv-Shaft), built with Kotlin + Compose Multiplatform.
@@ -67,4 +68,3 @@ ls app/build/compose/binaries/main/dmg/PixivShaft-1.0.0.dmg
 ## Credits
 
 Based on [CeuiLiSA/Pixiv-Shaft](https://github.com/CeuiLiSA/Pixiv-Shaft), an excellent third-party Pixiv client for Android.
-
