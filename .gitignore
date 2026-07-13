@@ -5,7 +5,6 @@ build/
 .idea/
 out/
 .DS_Store
-.kotlin/
 AGENTS.md
 docs/
 .superpowers/
