@@ -29,6 +29,9 @@ dependencies {
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // JNA — native libobjc bridge for macOS trackpad pinch (NSEvent.magnify)
+    implementation("net.java.dev.jna:jna:5.14.0")
+    implementation("net.java.dev.jna:jna-platform:5.14.0")
     implementation("com.google.code.gson:gson:2.11.0")
     // Coil 3 图片加载（Compose Desktop）
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
@@ -48,6 +51,12 @@ tasks.test { useJUnitPlatform() }
 compose.desktop {
     application {
         mainClass = "ceui.pixiv.MainKt"
+        jvmArgs += listOf(
+            "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED"
+        )
         nativeDistributions {
             modules("java.sql", "jdk.unsupported")
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg)

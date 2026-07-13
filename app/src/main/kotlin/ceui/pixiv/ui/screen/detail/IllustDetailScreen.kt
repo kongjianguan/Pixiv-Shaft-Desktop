@@ -35,6 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.drop
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +82,15 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val navigator = LocalNavigator.currentOrThrow
 
         var isFullscreen by remember { mutableStateOf(false) }
+        // Sync fullscreen state to a global flag so the tab-level EscBackNavigator
+        // can prioritize exit-fullscreen over back-pop (single ESC handler, no race).
+        LaunchedEffect(isFullscreen) { ceui.pixiv.fullscreenImageActive.value = isFullscreen }
+        // ESC handler in MainScreen sets the global flag to false. Sync it back here
+        // so the local isFullscreen follows — EscBackNavigator can't touch our state.
+        LaunchedEffect(Unit) {
+            androidx.compose.runtime.snapshotFlow { ceui.pixiv.fullscreenImageActive.value }
+                .collect { fs -> if (!fs && isFullscreen) isFullscreen = false }
+        }
 
         Scaffold(
             topBar = {

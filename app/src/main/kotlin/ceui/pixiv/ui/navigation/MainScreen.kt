@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import cafe.adriel.voyager.core.screen.Screen
@@ -34,6 +35,29 @@ import ceui.pixiv.ui.screen.recommend.RecommendScreen
 import ceui.pixiv.ui.screen.search.SearchScreen
 
 val LocalScrollToTop = compositionLocalOf { mutableStateOf(0) }
+
+@Composable
+private fun EscBackNavigator(
+    navigator: cafe.adriel.voyager.navigator.Navigator,
+    content: @Composable () -> Unit
+) {
+    // Observe the global ESC counter (set by AWT KeyEventDispatcher in Main.kt) and pop
+    // when there's something to go back to. This bypasses Compose's focus-based key
+    // dispatch, which doesn't fire on non-focusable containers like Box/Scaffold.
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { ceui.pixiv.globalEscCounter.value }
+            .drop(1)
+            .collect {
+                // Single decision point — no race. Fullscreen takes priority.
+                if (ceui.pixiv.fullscreenImageActive.value) {
+                    ceui.pixiv.fullscreenImageActive.value = false
+                } else if (navigator.canPop) {
+                    navigator.pop()
+                }
+            }
+    }
+    content()
+}
 
 class MainScreen : Screen {
 
@@ -83,7 +107,7 @@ object RecommendTab : Tab {
 
     @Composable
     override fun Content() {
-        Navigator(RecommendScreen()) { CurrentScreen() }
+        Navigator(RecommendScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
     }
 }
 
@@ -93,7 +117,7 @@ object DiscoverTab : Tab {
 
     @Composable
     override fun Content() {
-        Navigator(DiscoverScreen()) { CurrentScreen() }
+        Navigator(DiscoverScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
     }
 }
 
@@ -103,7 +127,7 @@ object SearchTab : Tab {
 
     @Composable
     override fun Content() {
-        Navigator(SearchScreen()) { CurrentScreen() }
+        Navigator(SearchScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
     }
 }
 
@@ -113,6 +137,6 @@ object ProfileTab : Tab {
 
     @Composable
     override fun Content() {
-        Navigator(ProfileScreen()) { CurrentScreen() }
+        Navigator(ProfileScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
     }
 }
