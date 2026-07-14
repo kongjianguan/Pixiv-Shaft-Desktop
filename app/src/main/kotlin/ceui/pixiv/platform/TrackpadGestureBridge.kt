@@ -41,7 +41,6 @@ object TrackpadGestureBridge {
     fun install(): Boolean {
         if (installed) return true
         try {
-            println("[TrackpadGestureBridge] install() called")
             val objc = objcLib
             val foundation = NativeLibrary.getInstance("Foundation")
 
@@ -77,7 +76,6 @@ object TrackpadGestureBridge {
             // --- [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMagnify handler:block]
             val nsEventClass = objc.getFunction("objc_getClass")
                 .invokePointer(arrayOf<Any>("NSEvent")) ?: run {
-                println("[TrackpadGestureBridge] objc_getClass(\"NSEvent\") returned null")
                 return false
             }
             // NSEventTypeMagnify = 30  ->  NSEventMaskMagnify = 1 << 30
@@ -86,15 +84,14 @@ object TrackpadGestureBridge {
             // objc_msgSend returns an opaque monitor object we must keep alive.
             val monitor = objc.getFunction("objc_msgSend")
                 .invokePointer(arrayOf<Any>(nsEventClass, sel, mask, block)) ?: run {
-                println("[TrackpadGestureBridge] addLocalMonitor returned null")
                 return false
             }
             monitorObject = monitor
             installed = true
-            println("[TrackpadGestureBridge] install() SUCCESS — NSEvent local monitor installed")
         } catch (t: Throwable) {
-            println("[TrackpadGestureBridge] install() EXCEPTION: ${t}")
-            t.printStackTrace()
+            // JNA/ObjC bridge 初始化失败（如缺少 native 库或不支持的平台），
+            // 直接抛出，由调用方决定是否降级。
+            throw t
         }
         return installed
     }
@@ -117,24 +114,14 @@ object TrackpadGestureBridge {
     }
 
     // Called by the JNA stub whenever AppKit dispatches a magnify event.
-    private var eventCount = 0
-
     fun onMagnify(block: Pointer, event: Pointer): Pointer {
-        eventCount++
-        if (eventCount <= 5) {
-            println("[TrackpadGestureBridge] magnify event #${eventCount} received")
-        }
         val h = magnifyHandler.get()
         if (h != null) {
             try {
                 val mag = objcLib.getFunction("objc_msgSend")
                     .invokeDouble(arrayOf<Any>(event, selRegister("magnification")))
-                if (eventCount <= 5) {
-                    println("[TrackpadGestureBridge] magnification=${mag}")
-                }
                 h.invoke(mag)
-            } catch (t: Throwable) {
-                println("[TrackpadGestureBridge] magnify dispatch failed: ${t}")
+            } catch (_: Throwable) {
             }
         }
         // Return the event unchanged so the rest of the responder chain still sees it.
