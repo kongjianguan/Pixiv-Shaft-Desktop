@@ -21,9 +21,6 @@ class RecommendScreenModel : ScreenModel {
     private val _state = MutableStateFlow<UiState<List<ceui.loxia.Illust>>>(UiState.Loading)
     val state: StateFlow<UiState<List<ceui.loxia.Illust>>> = _state.asStateFlow()
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
     val hasNext get() = pager.hasNext
 
     init { loadInitial() }
@@ -37,9 +34,7 @@ class RecommendScreenModel : ScreenModel {
 
     fun refresh() {
         screenModelScope.launch {
-            _isRefreshing.value = true
             fetchData()
-            _isRefreshing.value = false
         }
     }
 

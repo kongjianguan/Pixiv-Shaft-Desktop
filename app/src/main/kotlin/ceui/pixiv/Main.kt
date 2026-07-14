@@ -5,16 +5,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Window
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.window.application
+import kotlinx.coroutines.delay
 import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.platform.TrayManager
+import ceui.pixiv.platform.WindowBackgroundBridge
 import ceui.pixiv.ui.auth.AuthState
 import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
@@ -30,6 +33,10 @@ fun main() {
     // 让 macOS 托盘图标按 template image（模板图像）渲染，自动随菜单栏反色。
     // 这个 property（属性）必须在 AWT 加载 CTrayIcon 类之前设置。
     System.setProperty("apple.awt.enableTemplateImages", "true")
+
+    // 让 AWT 窗口标题栏跟随 macOS 系统外观（浅色/深色模式）。
+    // 默认 AWT 在 macOS 上会强制使用浅色标题栏，不加这一行深色模式下也会是白标题栏。
+    System.setProperty("apple.awt.application.appearance", "system")
 
     return application {
         AppContainer.init()
@@ -68,6 +75,26 @@ fun main() {
             },
             title = "Pixiv Shaft"
         ) {
+            // Prevent AWT from repainting the window background on its own schedule.
+            // During a live resize AWT's background paint and Compose's Skia render
+            // are not synchronised, producing vertical pixel jitter. With ignoreRepaint
+            // the SkiaLayer is the sole renderer and the window surface stays coherent.
+            LaunchedEffect(Unit) {
+                // The AWT Frame may not be in getWindows() yet when this effect
+                // fires — retry until we find it.
+                var frame: java.awt.Frame? = null
+                while (frame == null) {
+                    frame = java.awt.Window.getWindows()
+                        .filterIsInstance<java.awt.Frame>()
+                        .firstOrNull()
+                    if (frame == null) delay(50)
+                }
+                @Suppress("DEPRECATION")
+                frame.ignoreRepaint = true
+                frame.background = java.awt.Color(30, 30, 30)
+                WindowBackgroundBridge.setDark(frame)
+            }
+
             ShaftTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val authState by AppContainer.authState.collectAsState()

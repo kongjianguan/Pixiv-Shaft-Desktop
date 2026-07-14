@@ -55,7 +55,7 @@ compose.desktop {
             "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
             "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
-            "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED"
+            "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
         )
         nativeDistributions {
             modules("java.sql", "jdk.unsupported")
@@ -65,6 +65,12 @@ compose.desktop {
             macOS {
                 bundleID = "ceui.pixiv.Shaft"
                 minimumSystemVersion = "12.0"
+                infoPlist {
+                    extraKeysRawXml = """
+                        <key>NSRequiresAquaSystemAppearance</key>
+                        <false/>
+                    """.trimIndent()
+                }
             }
         }
     }

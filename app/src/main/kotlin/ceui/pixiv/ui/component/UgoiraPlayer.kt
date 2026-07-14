@@ -59,10 +59,20 @@ fun UgoiraPlayer(
     // Animate
     val currentBitmap = bitmaps.getOrNull(currentIndex)
     if (currentBitmap != null && bitmaps.isNotEmpty()) {
-        val delayMs = frames.getOrNull(currentIndex)?.delay ?: 100
-        LaunchedEffect(bitmaps, currentIndex) {
-            delay(delayMs.toLong())
-            currentIndex = (currentIndex + 1) % bitmaps.size
+        LaunchedEffect(bitmaps) {
+            var i = 0
+            while (true) {
+                val delayMs = frames.getOrNull(i)?.delay ?: 100
+                try {
+                    withContext(Dispatchers.Default) {
+                        delay(delayMs.toLong())
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                }
+                i = (i + 1) % bitmaps.size
+                currentIndex = i
+            }
         }
         Image(
             bitmap = currentBitmap,
