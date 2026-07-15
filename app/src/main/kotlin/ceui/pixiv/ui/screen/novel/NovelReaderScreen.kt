@@ -24,7 +24,10 @@ import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.novel.NovelContent
 import ceui.pixiv.ui.state.UiState
 
-class NovelReaderScreen(private val novelId: Long) : Screen {
+class NovelReaderScreen(
+    private val novelId: Long,
+    private val novelTitle: String? = null,
+) : Screen {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -36,7 +39,7 @@ class NovelReaderScreen(private val novelId: Long) : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Novel Reader") },
+                    title = { Text(novelTitle?.takeIf { it.isNotBlank() } ?: "Novel Reader") },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

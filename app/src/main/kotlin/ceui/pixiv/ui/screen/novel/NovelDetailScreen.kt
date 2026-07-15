@@ -1,12 +1,14 @@
 package ceui.pixiv.ui.screen.novel
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,8 +23,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
@@ -47,7 +51,13 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Novel") },
+                    title = {
+                        Text(
+                            text = (state as? UiState.Success)?.data?.title ?: "Novel",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -56,65 +66,73 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                 )
             }
         ) { padding ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                when (val s = state) {
-                    is UiState.Loading -> LoadingView()
-                    is UiState.Error -> ErrorView(s.message, {})
-                    is UiState.Success -> {
-                        val novel = s.data
-                        // Cover image
-                        novel.image_urls?.large?.let { url ->
-                            AsyncImage(
-                                model = url,
-                                contentDescription = novel.title,
-                                modifier = Modifier.fillMaxWidth(),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                        // Title
-                        Text(
-                            text = novel.title ?: "Untitled",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        // Author
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            UserAvatar(url = novel.user?.profile_image_urls?.px_50x50)
-                            Text(
-                                text = novel.user?.name ?: "",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        // Stats
-                        Text(
-                            text = "${novel.text_length ?: 0} chars  ♥ ${novel.total_bookmarks ?: 0}  👁 ${novel.total_view ?: 0}",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        // Caption
-                        novel.caption?.let { caption ->
-                            Text(
-                                text = caption,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        // Tags
-                        novel.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(tags) { tag ->
-                                    TagChip(tag = tag, onClick = {})
+            when (val s = state) {
+                is UiState.Loading -> Box(modifier = Modifier.fillMaxSize().padding(padding)) { LoadingView() }
+                is UiState.Error -> Box(modifier = Modifier.fillMaxSize().padding(padding)) { ErrorView(s.message, {}) }
+                is UiState.Success -> {
+                    val novel = s.data
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            novel.image_urls?.large?.let { url ->
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = novel.title,
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.5f)
+                                            .aspectRatio(240f / 338f),
+                                        contentScale = ContentScale.Crop
+                                    )
                                 }
                             }
                         }
-                        // Read button
-                        Button(
-                            onClick = { navigator.push(NovelReaderScreen(novelId)) },
-                            modifier = Modifier.padding(top = 16.dp)
-                        ) {
-                            Text("Read")
+                        item {
+                            Text(
+                                text = novel.title ?: "Untitled",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                        item {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                UserAvatar(url = novel.user?.profile_image_urls?.px_50x50)
+                                Text(
+                                    text = novel.user?.name ?: "",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                text = "${novel.text_length ?: 0} 字  ·  ♥ ${novel.total_bookmarks ?: 0}  ·  👁 ${novel.total_view ?: 0}",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        novel.caption?.takeIf { it.isNotBlank() }?.let { caption ->
+                            item {
+                                Text(text = caption, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        novel.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+                            item {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(tags) { tag -> TagChip(tag = tag, onClick = {}) }
+                                }
+                            }
+                        }
+                        item {
+                            Button(
+                                onClick = { navigator.push(NovelReaderScreen(novelId, novel.title)) },
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            ) {
+                                Text("开始阅读")
+                            }
                         }
                     }
                 }
