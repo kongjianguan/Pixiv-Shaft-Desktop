@@ -1,103 +1,351 @@
 package ceui.pixiv.ui.screen.recommend
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
+import ceui.loxia.Illust
+import ceui.loxia.Novel
+import ceui.pixiv.platform.TrackpadGestureBridge
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
+import ceui.pixiv.ui.screen.novel.NovelDetailScreen
 import ceui.pixiv.ui.state.UiState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+
+private const val TRACKPAD_SCROLL_MULTIPLIER = 1f
+private const val TRACKPAD_GESTURE_IDLE_MS = 120L
+private const val TRACKPAD_HORIZONTAL_RATIO = 0.55f
+private const val TRACKPAD_AXIS_DECISION_DISTANCE = 2f
+
+private enum class ScrollIntent { UNDECIDED, HORIZONTAL, VERTICAL }
 
 class RecommendScreen : Screen {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { RecommendScreenModel() }
-        val state by screenModel.state.collectAsState()
-        val navigator = LocalNavigator.currentOrThrow
+        val pagerState = rememberPagerState(pageCount = { 4 })
+        val scope = rememberCoroutineScope()
+        var pagerWidth by remember { mutableFloatStateOf(0f) }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val s = state) {
-                is UiState.Loading -> LoadingView()
-                is UiState.Error -> ErrorView(s.message, { screenModel.refresh() })
-                is UiState.Success -> {
-                    if (s.data.isEmpty()) {
-                        EmptyView("No recommendations")
-                    } else {
-                        IllustGrid(
-                            illusts = s.data,
-                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                            onLoadMore = screenModel::loadMore,
-                            onRefresh = screenModel::refresh
+        val illustState by screenModel.illustState.collectAsState()
+        val mangaState by screenModel.mangaState.collectAsState()
+        val novelState by screenModel.novelState.collectAsState()
+        val walkState by screenModel.walkState.collectAsState()
+
+        val illustRefreshing by screenModel.illustRefreshing.collectAsState()
+        val mangaRefreshing by screenModel.mangaRefreshing.collectAsState()
+        val novelRefreshing by screenModel.novelRefreshing.collectAsState()
+        val walkRefreshing by screenModel.walkRefreshing.collectAsState()
+
+        val navigator = LocalNavigator.currentOrThrow
+        val scrollHandlerToken = remember { Any() }
+
+        DisposableEffect(scrollHandlerToken, pagerState, pagerWidth) {
+            TrackpadGestureBridge.install()
+
+            var intent = ScrollIntent.UNDECIDED
+            var physicalGestureActive = false
+            var ignoreMomentum = false
+            var decisionX = 0f
+            var decisionY = 0f
+            var accumulatedX = 0f
+            var appliedX = 0f
+            var startPage = pagerState.settledPage
+            var idleJob: Job? = null
+            val gestureLock = Any()
+
+            fun resetPhysicalGesture() {
+                intent = ScrollIntent.UNDECIDED
+                physicalGestureActive = false
+                decisionX = 0f
+                decisionY = 0f
+                accumulatedX = 0f
+                appliedX = 0f
+                idleJob?.cancel()
+                idleJob = null
+            }
+
+            fun applyHorizontalDelta(deltaX: Float) {
+                accumulatedX += deltaX
+                val clamped = accumulatedX.coerceIn(-pagerWidth, pagerWidth)
+                val rawDelta = clamped - appliedX
+                appliedX = clamped
+                if (rawDelta != 0f) {
+                    scope.launch { pagerState.dispatchRawDelta(rawDelta) }
+                }
+            }
+
+            fun settleHorizontalGesture() {
+                val threshold = pagerWidth * 0.12f
+                val target = when {
+                    accumulatedX > threshold -> (startPage + 1).coerceAtMost(3)
+                    accumulatedX < -threshold -> (startPage - 1).coerceAtLeast(0)
+                    else -> startPage
+                }
+                scope.launch { pagerState.animateScrollToPage(target) }
+                resetPhysicalGesture()
+            }
+
+            val handler: (TrackpadGestureBridge.ScrollEvent) -> Boolean = handler@ { event ->
+                synchronized(gestureLock) {
+                    val phase = TrackpadGestureBridge.Phase
+
+                    if (event.momentumPhase != phase.NONE) {
+                        val consume = ignoreMomentum
+                        if (phase.isFinished(event.momentumPhase)) ignoreMomentum = false
+                        return@handler consume
+                    }
+
+                    if (!physicalGestureActive || phase.has(event.phase, phase.BEGAN)) {
+                        physicalGestureActive = true
+                        ignoreMomentum = false
+                        intent = ScrollIntent.UNDECIDED
+                        decisionX = 0f
+                        decisionY = 0f
+                        accumulatedX = 0f
+                        appliedX = 0f
+                        startPage = pagerState.settledPage
+                    }
+
+                    // NSEvent reports content-scroll direction, opposite to the finger motion.
+                    val deltaX = -event.deltaX.toFloat() * TRACKPAD_SCROLL_MULTIPLIER
+                    val deltaY = event.deltaY.toFloat() * TRACKPAD_SCROLL_MULTIPLIER
+
+                    if (intent == ScrollIntent.UNDECIDED) {
+                        decisionX += deltaX
+                        decisionY += deltaY
+                        if (abs(decisionX) + abs(decisionY) >= TRACKPAD_AXIS_DECISION_DISTANCE) {
+                            intent = if (abs(decisionX) >= abs(decisionY) * TRACKPAD_HORIZONTAL_RATIO) {
+                                ScrollIntent.HORIZONTAL
+                            } else {
+                                ScrollIntent.VERTICAL
+                            }
+                            if (intent == ScrollIntent.HORIZONTAL) {
+                                applyHorizontalDelta(decisionX)
+                            }
+                        }
+                    } else if (intent == ScrollIntent.HORIZONTAL) {
+                        applyHorizontalDelta(deltaX)
+                    }
+
+                    if (intent == ScrollIntent.VERTICAL) {
+                        if (phase.isFinished(event.phase)) resetPhysicalGesture()
+                        return@handler false
+                    }
+
+                    if (intent != ScrollIntent.HORIZONTAL) return@handler false
+
+                    idleJob?.cancel()
+                    if (phase.isFinished(event.phase)) {
+                        ignoreMomentum = true
+                        settleHorizontalGesture()
+                    } else if (event.phase == phase.NONE) {
+                        idleJob = scope.launch {
+                            delay(TRACKPAD_GESTURE_IDLE_MS)
+                            synchronized(gestureLock) {
+                                ignoreMomentum = true
+                                settleHorizontalGesture()
+                            }
+                        }
+                    }
+                    true
+                }
+            }
+
+            TrackpadGestureBridge.setScrollHandler(scrollHandlerToken, handler)
+            onDispose {
+                synchronized(gestureLock) { idleJob?.cancel() }
+                TrackpadGestureBridge.setScrollHandler(scrollHandlerToken, null)
+            }
+        }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            TabRow(selectedTabIndex = pagerState.currentPage) {
+                RecommendPage.entries.forEachIndexed { index, page ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(index) }
+                        },
+                        text = { Text(page.label) }
+                    )
+                }
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = true,
+                modifier = Modifier.fillMaxSize().onSizeChanged { pagerWidth = it.width.toFloat() }
+            ) { page ->
+                    when (page) {
+                        0 -> IllustTabContent(
+                            state = illustState, isRefreshing = illustRefreshing,
+                            onRefresh = screenModel::refreshIllust,
+                            onLoadMore = screenModel::loadMoreIllust,
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
+                        )
+                        1 -> IllustTabContent(
+                            state = mangaState, isRefreshing = mangaRefreshing,
+                            onRefresh = screenModel::refreshManga,
+                            onLoadMore = screenModel::loadMoreManga,
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
+                        )
+                        2 -> NovelTabContent(
+                            state = novelState, isRefreshing = novelRefreshing,
+                            onRefresh = screenModel::refreshNovel,
+                            onLoadMore = screenModel::loadMoreNovel,
+                            onNovelClick = { id -> navigator.push(NovelDetailScreen(id)) }
+                        )
+                        3 -> IllustTabContent(
+                            state = walkState, isRefreshing = walkRefreshing,
+                            onRefresh = screenModel::refreshWalk,
+                            onLoadMore = screenModel::loadMoreWalk,
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
                         )
                     }
-                }
             }
         }
     }
 }
 
+// ----- Illust Grid (shared by 推荐/漫画/最新) -----
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IllustGrid(
-    illusts: List<ceui.loxia.Illust>,
-    onIllustClick: (Long) -> Unit,
-    onLoadMore: () -> Unit,
-    onRefresh: () -> Unit = {}
+private fun IllustTabContent(
+    state: UiState<List<Illust>>, isRefreshing: Boolean, onRefresh: () -> Unit,
+    onLoadMore: () -> Unit, onIllustClick: (Long) -> Unit
 ) {
     val gridState = rememberLazyStaggeredGridState()
-
-    // Tab re-click scroll-to-top + refresh
     val scrollToTopValue = LocalScrollToTop.current.value
     LaunchedEffect(scrollToTopValue) {
-        if (scrollToTopValue > 0) {
-            gridState.scrollToItem(0)
-            onRefresh()
-        }
+        if (scrollToTopValue > 0) { gridState.scrollToItem(0); onRefresh() }
     }
-
-    // Infinite scroll: derivedStateOf avoids relaunching LaunchedEffect on every
-    // resize/layout event (only fires when shouldLoadMore actually toggles).
     val shouldLoadMore by remember {
         derivedStateOf {
-            val visibleItems = gridState.layoutInfo.visibleItemsInfo
-            val lastVisible = visibleItems.lastOrNull()?.index ?: 0
-            lastVisible >= illusts.size - 5
+            val items = (state as? UiState.Success)?.data ?: return@derivedStateOf false
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= items.size - 5 && items.isNotEmpty()
         }
     }
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) onLoadMore()
+    LaunchedEffect(shouldLoadMore) { if (shouldLoadMore) onLoadMore() }
+    PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+        when (state) {
+            is UiState.Loading -> LoadingView()
+            is UiState.Error -> ErrorView(state.message, onRefresh)
+            is UiState.Success -> if (state.data.isEmpty()) EmptyView("No works")
+            else LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2), state = gridState,
+                contentPadding = PaddingValues(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalItemSpacing = 4.dp, modifier = Modifier.fillMaxSize()
+            ) { items(state.data, key = { it.id }) { illust ->
+                IllustCard(illust = illust, onClick = onIllustClick)
+            }}
+        }
     }
+}
 
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Fixed(2),
-        state = gridState,
-        contentPadding = PaddingValues(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalItemSpacing = 4.dp,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(illusts, key = { it.id }) { illust ->
-            IllustCard(illust = illust, onClick = onIllustClick)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NovelTabContent(
+    state: UiState<List<Novel>>, isRefreshing: Boolean, onRefresh: () -> Unit,
+    onLoadMore: () -> Unit, onNovelClick: (Long) -> Unit
+) {
+    val gridState = rememberLazyStaggeredGridState()
+    val scrollToTopValue = LocalScrollToTop.current.value
+    LaunchedEffect(scrollToTopValue) {
+        if (scrollToTopValue > 0) { gridState.scrollToItem(0); onRefresh() }
+    }
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val items = (state as? UiState.Success)?.data ?: return@derivedStateOf false
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= items.size - 5 && items.isNotEmpty()
+        }
+    }
+    LaunchedEffect(shouldLoadMore) { if (shouldLoadMore) onLoadMore() }
+    PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+        when (state) {
+            is UiState.Loading -> LoadingView()
+            is UiState.Error -> ErrorView(state.message, onRefresh)
+            is UiState.Success -> if (state.data.isEmpty()) EmptyView("No novels")
+            else LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2), state = gridState,
+                contentPadding = PaddingValues(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalItemSpacing = 4.dp, modifier = Modifier.fillMaxSize()
+            ) { items(state.data, key = { it.id }) { novel ->
+                NovelCard(novel = novel, onClick = onNovelClick)
+            }}
+        }
+    }
+}
+
+@Composable
+private fun NovelCard(novel: Novel, onClick: (Long) -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth().clickable { onClick(novel.id) }, shape = RoundedCornerShape(8.dp)) {
+        Column {
+            AsyncImage(
+                model = novel.image_urls?.medium ?: novel.image_urls?.large,
+                contentDescription = novel.title,
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(novel.title ?: "Untitled", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(novel.user?.name ?: "", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("\u2665 ${novel.total_bookmarks ?: 0}  \u270D ${novel.page_count ?: 0}", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

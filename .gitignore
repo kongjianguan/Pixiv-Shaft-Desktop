@@ -1,3 +1,4 @@
+.bin/
 .gradle/
 .kotlin/
 build/
@@ -10,3 +11,5 @@ docs/
 .superpowers/
 */*.log
 *.log
+.mcp.json
+CLAUDE.md

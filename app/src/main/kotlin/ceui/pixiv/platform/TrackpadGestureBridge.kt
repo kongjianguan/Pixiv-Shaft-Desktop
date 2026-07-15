@@ -25,14 +25,16 @@ import java.util.concurrent.atomic.AtomicReference
 object TrackpadGestureBridge {
 
     private val magnifyHandler = AtomicReference<((Double) -> Unit)?>(null)
+    private val scrollHandler = AtomicReference<((ScrollEvent) -> Boolean)?>(null)
     // Owner token so only the page the user is actually looking at can register/clear
     // the single global handler. Without this, HorizontalPager preloaded adjacent pages would each overwrite (and on dispose null out) the handler.
     private val handlerLock = Any()
     private var handlerOwner: Any? = null
+    private var scrollHandlerOwner: Any? = null
     @Volatile private var installed = false
 
     // Strong refs to prevent GC of the native-backed callback and block memory.
-    private var blockCallback: MagnifyBlockCallback? = null
+    private var blockCallback: EventBlockCallback? = null
     private var blockMemory: Memory? = null
     private var blockDescriptor: Memory? = null
     @Volatile private var monitorObject: Pointer? = null
@@ -54,8 +56,8 @@ object TrackpadGestureBridge {
             val globalBlockClass = concreteGlobalBlockSym.getPointer(0)
 
             // invoke = JNA-generated stub backed by our Callback
-            val cb = object : MagnifyBlockCallback {
-                override fun invoke(block: Pointer, event: Pointer): Pointer = onMagnify(block, event)
+            val cb = object : EventBlockCallback {
+                override fun invoke(block: Pointer, event: Pointer): Pointer? = onEvent(event)
             }
             blockCallback = cb
             val invokePtr = CallbackReference.getFunctionPointer(cb)
@@ -73,13 +75,14 @@ object TrackpadGestureBridge {
             blockMemory = block
             blockDescriptor = descriptor
 
-            // --- [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskMagnify handler:block]
+            // Listen for magnify and scroll-wheel events. Scroll events include the
+            // native gesture and momentum phases that Compose Desktop discards.
             val nsEventClass = objc.getFunction("objc_getClass")
                 .invokePointer(arrayOf<Any>("NSEvent")) ?: run {
                 return false
             }
-            // NSEventTypeMagnify = 30  ->  NSEventMaskMagnify = 1 << 30
-            val mask: Long = 1L shl 30
+            // NSEventTypeScrollWheel = 22, NSEventTypeMagnify = 30.
+            val mask: Long = (1L shl 22) or (1L shl 30)
             val sel = selRegister("addLocalMonitorForEventsMatchingMask:handler:")
             // objc_msgSend returns an opaque monitor object we must keep alive.
             val monitor = objc.getFunction("objc_msgSend")
@@ -108,12 +111,72 @@ object TrackpadGestureBridge {
         }
     }
 
-    /** Block invoke signature: NSEvent* (^)(NSEvent*). First arg is the block itself. */
-    interface MagnifyBlockCallback : Callback {
-        fun invoke(block: Pointer, event: Pointer): Pointer
+    fun setScrollHandler(token: Any, h: ((ScrollEvent) -> Boolean)?) {
+        synchronized(handlerLock) {
+            if (h != null) {
+                scrollHandlerOwner = token
+                scrollHandler.set(h)
+            } else if (scrollHandlerOwner === token) {
+                scrollHandlerOwner = null
+                scrollHandler.set(null)
+            }
+        }
     }
 
-    // Called by the JNA stub whenever AppKit dispatches a magnify event.
+    /** Block invoke signature: NSEvent* (^)(NSEvent*). First arg is the block itself. */
+    interface EventBlockCallback : Callback {
+        fun invoke(block: Pointer, event: Pointer): Pointer?
+    }
+
+    data class ScrollEvent(
+        val deltaX: Double,
+        val deltaY: Double,
+        val phase: Long,
+        val momentumPhase: Long,
+    )
+
+    object Phase {
+        const val NONE = 0L
+        const val BEGAN = 1L shl 0
+        const val CHANGED = 1L shl 2
+        const val ENDED = 1L shl 3
+        const val CANCELLED = 1L shl 4
+
+        fun has(value: Long, flag: Long): Boolean = value and flag != 0L
+        fun isFinished(value: Long): Boolean = has(value, ENDED) || has(value, CANCELLED)
+    }
+
+    // Returning null consumes an event before it reaches AWT/Compose.
+    private fun onEvent(event: Pointer): Pointer? {
+        return try {
+            val msgSend = objcLib.getFunction("objc_msgSend")
+            when (msgSend.invokeLong(arrayOf<Any>(event, selRegister("type")))) {
+                30L -> {
+                    val h = magnifyHandler.get()
+                    if (h != null) {
+                        val mag = msgSend.invokeDouble(arrayOf<Any>(event, selRegister("magnification")))
+                        h.invoke(mag)
+                    }
+                    event
+                }
+                22L -> {
+                    val h = scrollHandler.get() ?: return event
+                    val scrollEvent = ScrollEvent(
+                        deltaX = msgSend.invokeDouble(arrayOf<Any>(event, selRegister("scrollingDeltaX"))),
+                        deltaY = msgSend.invokeDouble(arrayOf<Any>(event, selRegister("scrollingDeltaY"))),
+                        phase = msgSend.invokeLong(arrayOf<Any>(event, selRegister("phase"))),
+                        momentumPhase = msgSend.invokeLong(arrayOf<Any>(event, selRegister("momentumPhase"))),
+                    )
+                    if (h.invoke(scrollEvent)) null else event
+                }
+                else -> event
+            }
+        } catch (_: Throwable) {
+            event
+        }
+    }
+
+    // Kept public for the existing magnify bridge tests/callers.
     fun onMagnify(block: Pointer, event: Pointer): Pointer {
         val h = magnifyHandler.get()
         if (h != null) {
@@ -124,7 +187,6 @@ object TrackpadGestureBridge {
             } catch (_: Throwable) {
             }
         }
-        // Return the event unchanged so the rest of the responder chain still sees it.
         return event
     }
 

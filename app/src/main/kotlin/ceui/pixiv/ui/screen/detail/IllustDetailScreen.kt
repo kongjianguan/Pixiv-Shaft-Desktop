@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -181,6 +182,15 @@ private fun IllustDetailContent(
         }
     }
 
+    // Pre-size image containers so the layout never collapses before images load.
+    val imageAspectRatio = if (illust.width > 0 && illust.height > 0)
+        illust.width.toFloat() / illust.height.toFloat()
+    else null
+    val imageSizeMod = if (imageAspectRatio != null)
+        Modifier.fillMaxWidth().aspectRatio(imageAspectRatio)
+    else
+        Modifier.fillMaxWidth()
+
     // Fullscreen mode: only image + overlay, no LazyColumn
     if (isFullscreen) {
         Box(
@@ -271,20 +281,25 @@ private fun IllustDetailContent(
                     is UiState.Loading -> LoadingView()
                     is UiState.Error -> ErrorView(u.message, {})
                     is UiState.Success -> {
-                        val meta = u.data
-                        if (meta != null) {
-                            val zipUrl = meta.zip_urls?.medium
-                            val frames = meta.frames ?: emptyList()
-                            if (zipUrl != null && frames.isNotEmpty()) {
-                                UgoiraPlayer(
-                                    zipUrl = zipUrl,
-                                    frames = frames
-                                )
+                        Box(
+                            modifier = imageSizeMod
+                                .background(Color(0xFFE0E0E0))
+                        ) {
+                            val meta = u.data
+                            if (meta != null) {
+                                val zipUrl = meta.zip_urls?.medium
+                                val frames = meta.frames ?: emptyList()
+                                if (zipUrl != null && frames.isNotEmpty()) {
+                                    UgoiraPlayer(
+                                        zipUrl = zipUrl,
+                                        frames = frames
+                                    )
+                                } else {
+                                    Text("Ugoira metadata incomplete")
+                                }
                             } else {
-                                Text("Ugoira metadata incomplete")
+                                Text("No ugoira metadata")
                             }
-                        } else {
-                            Text("No ugoira metadata")
                         }
                     }
                 }
@@ -295,12 +310,15 @@ private fun IllustDetailContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = imageSizeMod
+                            .background(Color(0xFFE0E0E0))
+                    ) {
                         HorizontalPager(state = pagerState) { page ->
                             ZoomableImage(
                                 model = imageUrls[page],
                                 contentDescription = "Page ${page + 1}",
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxSize(),
                                 onToggleFullscreen = onToggleFullscreen
                             )
                         }
@@ -345,11 +363,14 @@ private fun IllustDetailContent(
                     }
                 }
             } else {
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = imageSizeMod
+                        .background(Color(0xFFE0E0E0))
+                ) {
                     ZoomableImage(
                         model = imageUrls.firstOrNull(),
                         contentDescription = illust.title,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxSize(),
                         onToggleFullscreen = onToggleFullscreen
                     )
                     if (isFullscreen) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,9 +39,10 @@ fun TagChip(tag: Tag, onClick: (String) -> Unit) {
 
 @Composable
 fun LoadingView(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
+    ShimmerBox(
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(4.dp)
+    )
 }
 
 @Composable
