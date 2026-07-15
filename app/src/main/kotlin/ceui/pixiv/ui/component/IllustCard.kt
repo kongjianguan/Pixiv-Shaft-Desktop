@@ -13,6 +13,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import ceui.loxia.Illust
+import ceui.pixiv.di.AppContainer
 
 private val placeholderColor = Color(0xFFE0E0E0)
 
@@ -30,6 +33,7 @@ fun IllustCard(
     onClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val titleMaxLines by AppContainer.settingsStore.workTitleMaxLinesFlow.collectAsState()
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -58,7 +62,7 @@ fun IllustCard(
                 Text(
                     text = illust.title ?: "Untitled",
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
+                    maxLines = titleMaxLines,
                     overflow = TextOverflow.Ellipsis
                 )
                 Row(

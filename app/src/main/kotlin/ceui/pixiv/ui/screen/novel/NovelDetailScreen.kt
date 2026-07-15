@@ -1,5 +1,6 @@
 package ceui.pixiv.ui.screen.novel
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.state.UiState
 import coil3.compose.AsyncImage
 
@@ -100,11 +102,26 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                             )
                         }
                         item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val userId = novel.user?.id ?: 0L
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = if (userId > 0) Modifier.clickable { navigator.push(UserDetailScreen(userId)) } else Modifier,
+                            ) {
                                 UserAvatar(url = novel.user?.profile_image_urls?.px_50x50)
                                 Text(
                                     text = novel.user?.name ?: "",
                                     style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        val series = novel.series
+                        series?.title?.takeIf { it.isNotBlank() }?.let { seriesTitle ->
+                            item {
+                                Text(
+                                    text = seriesTitle,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { navigator.push(NovelSeriesScreen(series.id)) },
                                 )
                             }
                         }

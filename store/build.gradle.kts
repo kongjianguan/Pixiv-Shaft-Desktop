@@ -17,6 +17,7 @@ dependencies {
     implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
     testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
     implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
 tasks.test { useJUnitPlatform() }

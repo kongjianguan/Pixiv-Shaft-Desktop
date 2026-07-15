@@ -789,6 +789,11 @@ data class WebNovel(
     val userId: String? = null
 )
 
+/** The `pixiv` object embedded in the HTML returned by /webview/v2/novel. */
+data class PixivHtmlObject(
+    val novel: WebNovel? = null,
+) : Serializable
+
 data class WebIllustHolder(
     val illust: WebIllust? = null,
     val id: Long? = null,

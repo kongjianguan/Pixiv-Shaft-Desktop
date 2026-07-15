@@ -19,15 +19,22 @@ object ContentParser {
     // 用户反馈：部分 Pixiv 作品的章节标题里数字两侧出现多余的引号（直引号 /
     // 弯引号都见过），导出 TXT 后呈现为「【第'0章'】」。这些引号通常成对包住
     // 数字 + 中文字符（如 `第'0章'` —— 后引号在 `章` 而非数字后面），所以单纯
-    // "数字两侧" 的正则会漏掉一半。规则改为：标题里若出现数字，就连同所有
-    // 直/弯单引号一并剥掉。CJK 引号「」/双引号""保留，避免误伤合法标点。
-    private val singleQuotesRegex = Regex("""['‘’]""")
+    // "数字两侧" 的正则会漏掉一半。只移除包围数字的直/弯引号对，避免误伤
+    // `John's` 这类正文标题中的合法撇号；CJK 引号「」/双引号""保留。
+    private val quotedNumberRegex = Regex("""(['‘’])([^'‘’]*\d[^'‘’]*)(['‘’])""")
+    private val danglingChapterQuoteRegex = Regex(
+        """(?<=[\u3400-\u4DBF\u4E00-\u9FFF])['‘’](?=\s|[，。！？；：、,.!?;:]|$)"""
+    )
     private val digitRegex = Regex("""\d""")
 
     internal fun cleanChapterTitle(raw: String): String {
         val s = raw.trim()
         return if (digitRegex.containsMatchIn(s)) {
-            s.replace(singleQuotesRegex, "").trim()
+            // Remove only quote pairs that surround a number. Apostrophes in
+            // ordinary words such as `John's` must remain untouched.
+            s.replace(quotedNumberRegex, "$2")
+                .replace(danglingChapterQuoteRegex, "")
+                .trim()
         } else {
             s
         }

@@ -58,6 +58,18 @@ interface API {
     )
 
     @FormUrlEncoded
+    @POST("/v1/watchlist/novel/add")
+    suspend fun addNovelSeriesToWatchlist(
+        @Field("series_id") seriesId: Long
+    )
+
+    @FormUrlEncoded
+    @POST("/v1/watchlist/novel/delete")
+    suspend fun removeNovelSeriesFromWatchlist(
+        @Field("series_id") seriesId: Long
+    )
+
+    @FormUrlEncoded
     @POST("/v1/illust/bookmark/delete")
     suspend fun removeBookmark(
         @Field("illust_id") illust_id: Long
@@ -107,9 +119,9 @@ interface API {
         @Path("type") type: String,
     ): HomeIllustResponse
 
-    @GET("/v1/novel/recommended")
+    @GET("/v1/novel/recommended?include_privacy_policy=true&filter=for_ios")
     suspend fun getRecmdNovels(
-        @Query("include_ranking_illusts") include_ranking_illusts: Boolean = false,
+        @Query("include_ranking_novels") includeRankingNovels: Boolean = true,
     ): NovelResponse
 
     @GET("/webview/v2/novel")

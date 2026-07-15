@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.ConcurrentHashMap
 
 enum class RecommendPage(val label: String) {
     ILLUST("推荐"),
@@ -60,6 +61,7 @@ class RecommendScreenModel : ScreenModel {
     private val mangaLoadingMore = AtomicBoolean(false)
     private val novelLoadingMore = AtomicBoolean(false)
     private val walkLoadingMore = AtomicBoolean(false)
+    private val novelBookmarksInFlight = ConcurrentHashMap.newKeySet<Long>()
 
     init {
         // Load all tabs in parallel on start
@@ -104,7 +106,7 @@ class RecommendScreenModel : ScreenModel {
         try {
             val resp = client.appApi.getRecmdNovels()
             novelPager.refresh(resp)
-            _novelState.value = UiState.Success(novelPager.items.value)
+            _novelState.value = UiState.Success(visibleNovels())
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (_novelState.value !is UiState.Success)
@@ -163,8 +165,53 @@ class RecommendScreenModel : ScreenModel {
 
     fun loadMoreIllust() = loadMore(illustPager, _illustState, illustLoadingMore)
     fun loadMoreManga() = loadMore(mangaPager, _mangaState, mangaLoadingMore)
-    fun loadMoreNovel() = loadMore(novelPager, _novelState, novelLoadingMore)
+    fun loadMoreNovel() {
+        if (!novelPager.hasNext.value || !novelLoadingMore.compareAndSet(false, true)) return
+        screenModelScope.launch {
+            try {
+                novelPager.loadMore()
+                _novelState.value = UiState.Success(visibleNovels())
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* keep existing items */ }
+            finally { novelLoadingMore.set(false) }
+        }
+    }
     fun loadMoreWalk() = loadMore(walkPager, _walkState, walkLoadingMore)
+
+    fun toggleNovelBookmark(novel: Novel) {
+        if (!novelBookmarksInFlight.add(novel.id)) return
+
+        val wasBookmarked = novel.is_bookmarked == true
+        updateNovelBookmark(novel.id, !wasBookmarked)
+        screenModelScope.launch {
+            try {
+                if (wasBookmarked) {
+                    client.appApi.removeNovelBookmark(novel.id)
+                } else {
+                    client.appApi.addNovelBookmark(novel.id, "public")
+                }
+            } catch (e: CancellationException) {
+                updateNovelBookmark(novel.id, wasBookmarked)
+                throw e
+            } catch (_: Exception) {
+                // Restore the visible state if the server rejected the operation.
+                updateNovelBookmark(novel.id, wasBookmarked)
+            } finally {
+                novelBookmarksInFlight.remove(novel.id)
+            }
+        }
+    }
+
+    private fun visibleNovels(): List<Novel> = novelPager.items.value.filter { it.visible != false }
+
+    private fun updateNovelBookmark(novelId: Long, isBookmarked: Boolean) {
+        novelPager.updateItems { novels ->
+            novels.map { novel ->
+                if (novel.id == novelId) novel.copy(is_bookmarked = isBookmarked) else novel
+            }
+        }
+        _novelState.value = UiState.Success(visibleNovels())
+    }
 
     private fun <T : ceui.loxia.KListShow<Item>, Item : Any> loadMore(
         pager: Pager<T, Item>,

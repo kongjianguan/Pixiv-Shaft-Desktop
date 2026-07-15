@@ -16,6 +16,14 @@ class SettingsScreenModel : ScreenModel {
     val isUseSecureDns: Boolean get() = settingsStore.isUseSecureDns
     val imageHostMode: Int get() = settingsStore.imageHostMode
     val customImageHost: String get() = settingsStore.customImageHost
+    val workFeedMaxColumnWidthDp: Int get() = settingsStore.workFeedMaxColumnWidthDp
+    val workFeedMaxColumns: Int get() = settingsStore.workFeedMaxColumns
+    val workFeedMinColumnWidthDp: Int get() = settingsStore.workFeedMinColumnWidthDp
+    val workTitleMaxLines: Int get() = settingsStore.workTitleMaxLines
+    val novelFeedMaxColumnWidthDp: Int get() = settingsStore.novelFeedMaxColumnWidthDp
+    val novelFeedMaxColumns: Int get() = settingsStore.novelFeedMaxColumns
+    val novelFeedMinColumnWidthDp: Int get() = settingsStore.novelFeedMinColumnWidthDp
+    val novelTitleMaxLines: Int get() = settingsStore.novelTitleMaxLines
 
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
@@ -41,6 +49,32 @@ class SettingsScreenModel : ScreenModel {
         settingsStore.setCustomImageHost(host)
         ImageHostManager.setCustomHost(host)
         _restartRequired.value = true
+    }
+
+    fun setWorkFeedMaxColumnWidthDp(value: Int) {
+        settingsStore.setWorkFeedMaxColumnWidthDp(value)
+    }
+    fun setWorkFeedMaxColumns(value: Int) {
+        settingsStore.setWorkFeedMaxColumns(value)
+    }
+    fun setWorkFeedMinColumnWidthDp(value: Int) {
+        settingsStore.setWorkFeedMinColumnWidthDp(value)
+    }
+    fun setWorkTitleMaxLines(value: Int) {
+        settingsStore.setWorkTitleMaxLines(value)
+    }
+
+    fun setNovelFeedMaxColumnWidthDp(value: Int) {
+        settingsStore.setNovelFeedMaxColumnWidthDp(value)
+    }
+    fun setNovelFeedMaxColumns(value: Int) {
+        settingsStore.setNovelFeedMaxColumns(value)
+    }
+    fun setNovelFeedMinColumnWidthDp(value: Int) {
+        settingsStore.setNovelFeedMinColumnWidthDp(value)
+    }
+    fun setNovelTitleMaxLines(value: Int) {
+        settingsStore.setNovelTitleMaxLines(value)
     }
 
     fun logout() {

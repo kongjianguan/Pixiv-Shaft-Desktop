@@ -32,6 +32,11 @@ class Pager<T : KListShow<Item>, Item : Any>(
         _hasNext.value = !nextUrl.isNullOrEmpty()
     }
 
+    /** Updates already-loaded rows without losing the next-page cursor. */
+    fun updateItems(transform: (List<Item>) -> List<Item>) {
+        _items.value = transform(_items.value)
+    }
+
     suspend fun loadMore() {
         val url = nextUrl ?: return
         val body = client.appApi.generalGet(url)
