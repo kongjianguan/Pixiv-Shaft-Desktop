@@ -44,6 +44,12 @@ class SettingsStore(
     private val _readerTheme = MutableStateFlow(
         kv.getString("readerTheme")?.takeIf { it in READER_THEMES } ?: "paper"
     )
+    private val _themeColorIndex = MutableStateFlow(
+        kv.getInt("themeColorIndex", 0).coerceIn(0, 9)
+    )
+    private val _themeMode = MutableStateFlow(
+        kv.getString("themeMode")?.takeIf { it in THEME_MODES } ?: "system"
+    )
 
     override val isDirectConnect: Boolean get() = kv.getBoolean("isDirectConnect", true)
     override val isUseSecureDns: Boolean get() = kv.getBoolean("isUseSecureDns", false)
@@ -75,6 +81,10 @@ class SettingsStore(
     val readerParagraphSpacingDpFlow: StateFlow<Int> = _readerParagraphSpacingDp.asStateFlow()
     val readerTheme: String get() = _readerTheme.value
     val readerThemeFlow: StateFlow<String> = _readerTheme.asStateFlow()
+    val themeColorIndex: Int get() = _themeColorIndex.value
+    val themeColorIndexFlow: StateFlow<Int> = _themeColorIndex.asStateFlow()
+    val themeMode: String get() = _themeMode.value
+    val themeModeFlow: StateFlow<String> = _themeMode.asStateFlow()
 
     fun setDirectConnect(value: Boolean) {
         kv.putBoolean("isDirectConnect", value)
@@ -153,6 +163,18 @@ class SettingsStore(
         _readerTheme.value = theme
     }
 
+    fun setThemeColorIndex(value: Int) {
+        val index = value.coerceIn(0, 9)
+        kv.putInt("themeColorIndex", index)
+        _themeColorIndex.value = index
+    }
+
+    fun setThemeMode(value: String) {
+        val mode = value.takeIf { it in THEME_MODES } ?: "system"
+        kv.putString("themeMode", mode)
+        _themeMode.value = mode
+    }
+
     fun readerProgress(novelId: Long): Float =
         kv.getString("readerProgress_$novelId")?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f
 
@@ -162,5 +184,6 @@ class SettingsStore(
 
     private companion object {
         val READER_THEMES = setOf("system", "paper", "night", "sage")
+        val THEME_MODES = setOf("system", "light", "dark")
     }
 }

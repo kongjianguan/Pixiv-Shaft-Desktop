@@ -2,11 +2,14 @@ package ceui.pixiv.ui.screen.recommend
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -15,13 +18,18 @@ import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridS
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,10 +37,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,7 +84,7 @@ private enum class ScrollIntent { UNDECIDED, HORIZONTAL, VERTICAL }
 
 class RecommendScreen : Screen {
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { RecommendScreenModel() }
@@ -90,6 +104,28 @@ class RecommendScreen : Screen {
 
         val navigator = LocalNavigator.currentOrThrow
         val scrollHandlerToken = remember { Any() }
+        var isTabBarVisible by remember { mutableStateOf(false) }
+        var isPointerInsideTabBar by remember { mutableStateOf(false) }
+        var tabBarHideJob by remember { mutableStateOf<Job?>(null) }
+
+        fun showTabBar() {
+            tabBarHideJob?.cancel()
+            isTabBarVisible = true
+        }
+
+        fun scheduleTabBarHide() {
+            tabBarHideJob?.cancel()
+            tabBarHideJob = scope.launch {
+                delay(100L)
+                if (!isPointerInsideTabBar) {
+                    isTabBarVisible = false
+                }
+            }
+        }
+
+        DisposableEffect(Unit) {
+            onDispose { tabBarHideJob?.cancel() }
+        }
 
         DisposableEffect(scrollHandlerToken, pagerState, pagerWidth) {
             TrackpadGestureBridge.install()
@@ -210,19 +246,7 @@ class RecommendScreen : Screen {
             }
         }
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            TabRow(selectedTabIndex = pagerState.currentPage) {
-                RecommendPage.entries.forEachIndexed { index, page ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            scope.launch { pagerState.animateScrollToPage(index) }
-                        },
-                        text = { Text(page.label) }
-                    )
-                }
-            }
-
+        Box(modifier = Modifier.fillMaxSize()) {
             HorizontalPager(
                 state = pagerState,
                 userScrollEnabled = true,
@@ -257,6 +281,93 @@ class RecommendScreen : Screen {
                             onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
                         )
                     }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .pointerMoveFilter(
+                        onEnter = {
+                            showTabBar()
+                            false
+                        },
+                        onMove = {
+                            showTabBar()
+                            false
+                        },
+                        onExit = {
+                            if (!isPointerInsideTabBar) {
+                                scheduleTabBarHide()
+                            }
+                            false
+                        },
+                    ),
+            )
+
+            AnimatedVisibility(
+                visible = isTabBarVisible,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.pointerMoveFilter(
+                        onEnter = {
+                            isPointerInsideTabBar = true
+                            showTabBar()
+                            false
+                        },
+                        onMove = {
+                            showTabBar()
+                            false
+                        },
+                        onExit = {
+                            isPointerInsideTabBar = false
+                            scheduleTabBarHide()
+                            false
+                        },
+                    ),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                    tonalElevation = 4.dp,
+                    shadowElevation = 8.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        RecommendPage.entries.forEachIndexed { index, page ->
+                            val selected = pagerState.currentPage == index
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (selected) MaterialTheme.colorScheme.primaryContainer
+                                        else Color.Transparent,
+                                    )
+                                    .clickable {
+                                        showTabBar()
+                                        scope.launch { pagerState.animateScrollToPage(index) }
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                            ) {
+                                Text(
+                                    text = page.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

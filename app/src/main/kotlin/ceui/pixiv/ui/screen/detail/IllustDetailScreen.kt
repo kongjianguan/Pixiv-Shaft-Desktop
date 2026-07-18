@@ -97,7 +97,14 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
             topBar = {
                 if (!isFullscreen) {
                     TopAppBar(
-                        title = { Text("Illust #$illustId") },
+                        title = {
+                            val title = (illustState as? UiState.Success)
+                                ?.data
+                                ?.title
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "Illust #$illustId"
+                            Text(title)
+                        },
                         navigationIcon = {
                             IconButton(onClick = { navigator.pop() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -219,6 +226,7 @@ private fun IllustDetailContent(
                         model = imageUrls[page],
                         contentDescription = "Page ${page + 1}",
                         modifier = Modifier.fillMaxSize(),
+                        active = true,
                         onToggleFullscreen = onToggleFullscreen
                     )
                 }
@@ -227,6 +235,7 @@ private fun IllustDetailContent(
                     model = imageUrls.firstOrNull(),
                     contentDescription = illust.title,
                     modifier = Modifier.fillMaxSize(),
+                    active = true,
                     onToggleFullscreen = onToggleFullscreen
                 )
             }
@@ -319,6 +328,7 @@ private fun IllustDetailContent(
                                 model = imageUrls[page],
                                 contentDescription = "Page ${page + 1}",
                                 modifier = Modifier.fillMaxSize(),
+                                active = false,
                                 onToggleFullscreen = onToggleFullscreen
                             )
                         }
@@ -371,6 +381,7 @@ private fun IllustDetailContent(
                         model = imageUrls.firstOrNull(),
                         contentDescription = illust.title,
                         modifier = Modifier.fillMaxSize(),
+                        active = false,
                         onToggleFullscreen = onToggleFullscreen
                     )
                     if (isFullscreen) {

@@ -24,6 +24,10 @@ class SettingsScreenModel : ScreenModel {
     val novelFeedMaxColumns: Int get() = settingsStore.novelFeedMaxColumns
     val novelFeedMinColumnWidthDp: Int get() = settingsStore.novelFeedMinColumnWidthDp
     val novelTitleMaxLines: Int get() = settingsStore.novelTitleMaxLines
+    val themeColorIndex: Int get() = settingsStore.themeColorIndex
+    val themeColorIndexFlow = settingsStore.themeColorIndexFlow
+    val themeMode: String get() = settingsStore.themeMode
+    val themeModeFlow = settingsStore.themeModeFlow
 
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
@@ -75,6 +79,14 @@ class SettingsScreenModel : ScreenModel {
     }
     fun setNovelTitleMaxLines(value: Int) {
         settingsStore.setNovelTitleMaxLines(value)
+    }
+
+    fun setThemeColorIndex(value: Int) {
+        settingsStore.setThemeColorIndex(value)
+    }
+
+    fun setThemeMode(value: String) {
+        settingsStore.setThemeMode(value)
     }
 
     fun logout() {

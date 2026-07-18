@@ -1,26 +1,10 @@
 package ceui.pixiv.ui.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -29,10 +13,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.flow.drop
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -116,62 +97,7 @@ class MainScreen : Screen {
                     }
                 }
 
-                Scaffold(
-                    topBar = {
-                        MainToolbar(
-                            currentTabTitle = tabNavigator.current.options.title,
-                            onSearch = { selectTab(SearchTab) },
-                            onRefresh = { scrollToTopState.value++ },
-                            onSettings = { ceui.pixiv.mainSettingsRequest.value++ },
-                        )
-                    },
-                ) { padding ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        CurrentTab()
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainToolbar(
-    currentTabTitle: String,
-    onSearch: () -> Unit,
-    onRefresh: () -> Unit,
-    onSettings: () -> Unit,
-) {
-    Surface(
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = "Pixiv Shaft",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = "· $currentTabTitle",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onSearch, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Search, contentDescription = "搜索")
-            }
-            IconButton(onClick = onRefresh, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Refresh, contentDescription = "刷新")
-            }
-            IconButton(onClick = onSettings, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Settings, contentDescription = "设置")
+                CurrentTab()
             }
         }
     }

@@ -2,21 +2,25 @@ package ceui.pixiv.ui.screen.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NetworkCheck
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,6 +49,8 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import ceui.pixiv.ui.theme.ShaftThemeMode
+import ceui.pixiv.ui.theme.ShaftThemePreset
 
 class SettingsScreen : Screen {
 
@@ -88,6 +94,7 @@ private enum class SettingsCategory(
     NETWORK("网络与连接", "QUIC（快速网络协议）、安全 DNS 和连接方式", Icons.Default.NetworkCheck),
     IMAGES("图片", "图片源与自定义图片代理", Icons.Default.Image),
     FEEDS("信息流布局", "作品流与小说流的列宽、列数和标题显示", Icons.Default.MenuBook),
+    APPEARANCE("外观", "主题色与浅色、深色模式", Icons.Default.Palette),
     ACCOUNT("账号", "退出当前 Pixiv 账号", Icons.Default.Person),
 }
 
@@ -135,9 +142,51 @@ private class SettingsCategoryScreen(private val category: SettingsCategory) : S
                     SettingsCategory.NETWORK -> NetworkSettings(screenModel)
                     SettingsCategory.IMAGES -> ImageSettings(screenModel)
                     SettingsCategory.FEEDS -> FeedLayoutSettings(screenModel)
+                    SettingsCategory.APPEARANCE -> AppearanceSettings(screenModel)
                     SettingsCategory.ACCOUNT -> AccountSettings(screenModel)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceSettings(screenModel: SettingsScreenModel) {
+    val themeColorIndex by screenModel.themeColorIndexFlow.collectAsState()
+    val themeModeValue by screenModel.themeModeFlow.collectAsState()
+    val themeMode = ShaftThemeMode.fromStorage(themeModeValue)
+
+    Text("主题色彩", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "选择原版 Shaft 的主题色，修改后立即生效",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(ShaftThemePreset.entries.toList()) { preset ->
+            FilterChip(
+                selected = themeColorIndex == preset.index,
+                onClick = { screenModel.setThemeColorIndex(preset.index) },
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(preset.lightPrimary, CircleShape),
+                    )
+                },
+                label = { Text(preset.label) },
+            )
+        }
+    }
+
+    Text("主题模式", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(ShaftThemeMode.entries.toList()) { mode ->
+            FilterChip(
+                selected = themeMode == mode,
+                onClick = { screenModel.setThemeMode(mode.storageValue) },
+                label = { Text(mode.label) },
+            )
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +80,14 @@ fun ZoomableImage(
         }
     }
 
+    LaunchedEffect(active) {
+        if (!active) {
+            scale.snapTo(1f)
+            offsetX.snapTo(0f)
+            offsetY.snapTo(0f)
+        }
+    }
+
     // Stable per-instance token so the bridge only lets this view clear its own handler.
     val handlerToken = remember { Any() }
     DisposableEffect(active) {
@@ -113,54 +122,57 @@ fun ZoomableImage(
                     }
                 )
             }
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
-                    scope.launch {
-                        try {
-                            val oldScale = scale.value
-                            val newScale = (oldScale * zoom).coerceIn(0.5f, 5f)
-                            if (newScale > 1f) {
-                                zoomTo(newScale, centroid.x, centroid.y)
-                                // then pan
-                                offsetX.snapTo(offsetX.value + pan.x)
-                                offsetY.snapTo(offsetY.value + pan.y)
-                                clampAndApply(newScale)
-                            } else {
-                                scale.snapTo(newScale)
-                                offsetX.snapTo(0f)
-                                offsetY.snapTo(0f)
+            .pointerInput(active) {
+                if (active) {
+                    detectTransformGestures { centroid, pan, zoom, _ ->
+                        scope.launch {
+                            try {
+                                val oldScale = scale.value
+                                val newScale = (oldScale * zoom).coerceIn(0.5f, 5f)
+                                if (newScale > 1f) {
+                                    zoomTo(newScale, centroid.x, centroid.y)
+                                    offsetX.snapTo(offsetX.value + pan.x)
+                                    offsetY.snapTo(offsetY.value + pan.y)
+                                    clampAndApply(newScale)
+                                } else {
+                                    scale.snapTo(newScale)
+                                    offsetX.snapTo(0f)
+                                    offsetY.snapTo(0f)
+                                }
+                            } catch (e: CancellationException) {
+                                throw e
                             }
-                        } catch (e: CancellationException) {
-                            throw e
                         }
                     }
                 }
             }
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        if (event.type != PointerEventType.Scroll) continue
-                        val change = event.changes.firstOrNull() ?: continue
-                        val delta = change.scrollDelta
-                        if (delta == Offset.Zero) continue
-                        val cursorPos = change.position
+            .pointerInput(active) {
+                if (active) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.type != PointerEventType.Scroll) continue
+                            val change = event.changes.firstOrNull() ?: continue
+                            val delta = change.scrollDelta
+                            if (delta == Offset.Zero) continue
+                            val cursorPos = change.position
 
-                        val useCtrl = event.keyboardModifiers.isCtrlPressed
-                        scope.launch {
-                            try {
-                                if (useCtrl) {
-                                    val oldScale = scale.value
-                                    val zoomFactor = 1f - delta.y * 0.02f
-                                    val newScale = (oldScale * zoomFactor).coerceIn(0.5f, 5f)
-                                    zoomTo(newScale, cursorPos.x, cursorPos.y)
-                                } else if (scale.value > 1f) {
-                                    offsetX.snapTo(offsetX.value - delta.x * 30f)
-                                    offsetY.snapTo(offsetY.value - delta.y * 30f)
-                                    clampAndApply(scale.value)
+                            val useCtrl = event.keyboardModifiers.isCtrlPressed
+                            scope.launch {
+                                try {
+                                    if (useCtrl) {
+                                        val oldScale = scale.value
+                                        val zoomFactor = 1f - delta.y * 0.02f
+                                        val newScale = (oldScale * zoomFactor).coerceIn(0.5f, 5f)
+                                        zoomTo(newScale, cursorPos.x, cursorPos.y)
+                                    } else if (scale.value > 1f) {
+                                        offsetX.snapTo(offsetX.value - delta.x * 30f)
+                                        offsetY.snapTo(offsetY.value - delta.y * 30f)
+                                        clampAndApply(scale.value)
+                                    }
+                                } catch (e: CancellationException) {
+                                    throw e
                                 }
-                            } catch (e: CancellationException) {
-                                throw e
                             }
                         }
                     }
