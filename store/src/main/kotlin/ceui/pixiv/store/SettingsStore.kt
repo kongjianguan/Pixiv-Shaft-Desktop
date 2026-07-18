@@ -32,6 +32,18 @@ class SettingsStore(
     private val _novelTitleMaxLines = MutableStateFlow(
         kv.getInt("novelTitleMaxLines", 2).coerceIn(1, 5)
     )
+    private val _readerFontSizeSp = MutableStateFlow(
+        kv.getInt("readerFontSizeSp", 18).coerceIn(14, 30)
+    )
+    private val _readerLineSpacing = MutableStateFlow(
+        (kv.getString("readerLineSpacing")?.toFloatOrNull() ?: 1.8f).coerceIn(1.2f, 2.6f)
+    )
+    private val _readerParagraphSpacingDp = MutableStateFlow(
+        kv.getInt("readerParagraphSpacingDp", 12).coerceIn(4, 28)
+    )
+    private val _readerTheme = MutableStateFlow(
+        kv.getString("readerTheme")?.takeIf { it in READER_THEMES } ?: "paper"
+    )
 
     override val isDirectConnect: Boolean get() = kv.getBoolean("isDirectConnect", true)
     override val isUseSecureDns: Boolean get() = kv.getBoolean("isUseSecureDns", false)
@@ -55,6 +67,14 @@ class SettingsStore(
     val novelFeedMinColumnWidthDpFlow: StateFlow<Int> = _novelFeedMinColumnWidthDp.asStateFlow()
     val novelTitleMaxLines: Int get() = _novelTitleMaxLines.value
     val novelTitleMaxLinesFlow: StateFlow<Int> = _novelTitleMaxLines.asStateFlow()
+    val readerFontSizeSp: Int get() = _readerFontSizeSp.value
+    val readerFontSizeSpFlow: StateFlow<Int> = _readerFontSizeSp.asStateFlow()
+    val readerLineSpacing: Float get() = _readerLineSpacing.value
+    val readerLineSpacingFlow: StateFlow<Float> = _readerLineSpacing.asStateFlow()
+    val readerParagraphSpacingDp: Int get() = _readerParagraphSpacingDp.value
+    val readerParagraphSpacingDpFlow: StateFlow<Int> = _readerParagraphSpacingDp.asStateFlow()
+    val readerTheme: String get() = _readerTheme.value
+    val readerThemeFlow: StateFlow<String> = _readerTheme.asStateFlow()
 
     fun setDirectConnect(value: Boolean) {
         kv.putBoolean("isDirectConnect", value)
@@ -107,5 +127,40 @@ class SettingsStore(
         val clamped = value.coerceIn(1, 5)
         kv.putInt("novelTitleMaxLines", clamped)
         _novelTitleMaxLines.value = clamped
+    }
+
+    fun setReaderFontSizeSp(value: Int) {
+        val clamped = value.coerceIn(14, 30)
+        kv.putInt("readerFontSizeSp", clamped)
+        _readerFontSizeSp.value = clamped
+    }
+
+    fun setReaderLineSpacing(value: Float) {
+        val clamped = value.coerceIn(1.2f, 2.6f)
+        kv.putString("readerLineSpacing", clamped.toString())
+        _readerLineSpacing.value = clamped
+    }
+
+    fun setReaderParagraphSpacingDp(value: Int) {
+        val clamped = value.coerceIn(4, 28)
+        kv.putInt("readerParagraphSpacingDp", clamped)
+        _readerParagraphSpacingDp.value = clamped
+    }
+
+    fun setReaderTheme(value: String) {
+        val theme = value.takeIf { it in READER_THEMES } ?: "paper"
+        kv.putString("readerTheme", theme)
+        _readerTheme.value = theme
+    }
+
+    fun readerProgress(novelId: Long): Float =
+        kv.getString("readerProgress_$novelId")?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f
+
+    fun setReaderProgress(novelId: Long, value: Float) {
+        kv.putString("readerProgress_$novelId", value.coerceIn(0f, 1f).toString())
+    }
+
+    private companion object {
+        val READER_THEMES = setOf("system", "paper", "night", "sage")
     }
 }

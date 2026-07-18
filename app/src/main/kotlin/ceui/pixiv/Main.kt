@@ -6,21 +6,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.Window
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyShortcut
+import androidx.compose.ui.window.MenuBar
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.delay
 import java.awt.KeyEventDispatcher
 import java.awt.KeyboardFocusManager
 import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.navigator.CurrentScreen
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.platform.TrayManager
 import ceui.pixiv.platform.WindowBackgroundBridge
 import ceui.pixiv.ui.auth.AuthState
 import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
+import ceui.pixiv.ui.screen.settings.SettingsScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
 // Global ESC signal — incremented by an AWT KeyEventDispatcher. Compose UI observes
@@ -29,6 +35,18 @@ import ceui.pixiv.ui.theme.ShaftTheme
 internal val globalEscCounter = mutableStateOf(0)
 internal val fullscreenImageActive = mutableStateOf(false)
 
+internal enum class MainNavigationTarget {
+    RECOMMEND,
+    DISCOVER,
+    SEARCH,
+    PROFILE,
+}
+
+internal val mainNavigationRequest = mutableStateOf<MainNavigationTarget?>(null)
+internal val mainRefreshRequest = mutableStateOf(0)
+internal val mainSettingsRequest = mutableStateOf(0)
+
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     // 让 macOS 托盘图标按 template image（模板图像）渲染，自动随菜单栏反色。
     // 这个 property（属性）必须在 AWT 加载 CTrayIcon 类之前设置。
@@ -75,6 +93,49 @@ fun main() {
             },
             title = "Pixiv Shaft"
         ) {
+            val authState by AppContainer.authState.collectAsState()
+
+            if (authState is AuthState.LoggedIn) {
+                // MenuBar（菜单栏）必须位于 Window 的窗口作用域中，才能注册到 macOS 菜单栏。
+                MenuBar {
+                    Menu("前往", mnemonic = 'G') {
+                        Item(
+                            "推荐",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.RECOMMEND },
+                            shortcut = KeyShortcut(Key.One, meta = true),
+                        )
+                        Item(
+                            "发现",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.DISCOVER },
+                            shortcut = KeyShortcut(Key.Two, meta = true),
+                        )
+                        Item(
+                            "搜索",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.SEARCH },
+                            shortcut = KeyShortcut(Key.Three, meta = true),
+                        )
+                        Item(
+                            "我的",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.PROFILE },
+                            shortcut = KeyShortcut(Key.Four, meta = true),
+                        )
+                    }
+
+                    Menu("操作", mnemonic = 'A') {
+                        Item(
+                            "刷新当前页面",
+                            onClick = { mainRefreshRequest.value++ },
+                            shortcut = KeyShortcut(Key.R, meta = true),
+                        )
+                        Separator()
+                        Item(
+                            "设置",
+                            onClick = { mainSettingsRequest.value++ },
+                        )
+                    }
+                }
+            }
+
             // Prevent AWT from repainting the window background on its own schedule.
             // During a live resize AWT's background paint and Compose's Skia render
             // are not synchronised, producing vertical pixel jitter. With ignoreRepaint
@@ -97,12 +158,24 @@ fun main() {
 
             ShaftTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val authState by AppContainer.authState.collectAsState()
                     key(authState) {
                         Navigator(
                             if (authState is AuthState.LoggedIn) MainScreen()
                             else LoginScreen()
-                        )
+                        ) { rootNavigator ->
+                            // SettingsScreen（设置页）是普通 Screen，必须交给根 Navigator，
+                            // 不能交给 MainScreen 内部的 TabNavigator。
+                            val settingsRequest = mainSettingsRequest.value
+                            LaunchedEffect(settingsRequest) {
+                                if (settingsRequest > 0) {
+                                    if (rootNavigator.lastItem !is SettingsScreen) {
+                                        rootNavigator.push(SettingsScreen())
+                                    }
+                                    mainSettingsRequest.value = 0
+                                }
+                            }
+                            CurrentScreen()
+                        }
                     }
                 }
             }

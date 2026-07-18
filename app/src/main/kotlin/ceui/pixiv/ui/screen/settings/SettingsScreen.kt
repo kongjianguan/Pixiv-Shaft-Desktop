@@ -53,7 +53,18 @@ class SettingsScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         Scaffold(
-            topBar = { TopAppBar(title = { Text("设置") }) },
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        if (navigator.canPop) {
+                            IconButton(onClick = { navigator.pop() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
+                        }
+                    },
+                    title = { Text("设置") },
+                )
+            },
         ) { padding ->
             Column(
                 modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),

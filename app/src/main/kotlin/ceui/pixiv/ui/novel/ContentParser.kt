@@ -14,6 +14,7 @@ object ContentParser {
     private val pixivImageRegex = Regex("""\[pixivimage:(\d+)(?:-(\d+))?]""")
     private val chapterRegex = Regex("""\[chapter:(.+?)]""")
     private val jumpRegex = Regex("""\[jump:(\d+)]""")
+    private val htmlBreakRegex = Regex("""<br\b[^>]*>""", RegexOption.IGNORE_CASE)
     private const val NEWPAGE_TAG = "[newpage]"
 
     // 用户反馈：部分 Pixiv 作品的章节标题里数字两侧出现多余的引号（直引号 /
@@ -42,9 +43,14 @@ object ContentParser {
 
     fun tokenize(text: String): List<ContentToken> {
         if (text.isEmpty()) return emptyList()
+        // A few webview/proxy responses encode line breaks as HTML. Replace
+        // each tag with a newline plus padding so source offsets remain stable.
+        val normalizedText = htmlBreakRegex.replace(text) { match ->
+            "\n" + " ".repeat(match.value.length - 1)
+        }
         val raw = ArrayList<ContentToken>(128)
         var cursor = 0
-        for (line in text.split('\n')) {
+        for (line in normalizedText.split('\n')) {
             val lineStart = cursor
             val lineEnd = lineStart + line.length
             cursor = lineEnd + 1 // newline that split() consumed

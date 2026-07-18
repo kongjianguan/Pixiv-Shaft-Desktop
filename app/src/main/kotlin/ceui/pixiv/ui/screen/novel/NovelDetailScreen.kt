@@ -35,6 +35,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
+import ceui.pixiv.ui.component.CaptionText
 import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.screen.user.UserDetailScreen
@@ -133,7 +134,10 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                         }
                         novel.caption?.takeIf { it.isNotBlank() }?.let { caption ->
                             item {
-                                Text(text = caption, style = MaterialTheme.typography.bodySmall)
+                                CaptionText(
+                                    html = caption,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                         }
                         novel.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
