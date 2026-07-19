@@ -1,0 +1,44 @@
+CREATE TABLE IF NOT EXISTS browse_history (
+    contentType TEXT NOT NULL,
+    targetId INTEGER NOT NULL,
+    payloadJson TEXT NOT NULL,
+    viewedAt INTEGER NOT NULL,
+    PRIMARY KEY (contentType, targetId)
+);
+
+upsertBrowseHistory:
+INSERT OR REPLACE INTO browse_history(contentType, targetId, payloadJson, viewedAt)
+VALUES (?, ?, ?, ?);
+
+selectBrowseHistoryByType:
+SELECT * FROM browse_history
+WHERE contentType = ?
+ORDER BY viewedAt DESC
+LIMIT ? OFFSET ?;
+
+searchBrowseHistoryByType:
+SELECT * FROM browse_history
+WHERE contentType = ?
+  AND payloadJson LIKE '%' || ? || '%'
+ORDER BY viewedAt DESC
+LIMIT ? OFFSET ?;
+
+selectAllBrowseHistory:
+SELECT * FROM browse_history ORDER BY viewedAt DESC;
+
+deleteBrowseHistory:
+DELETE FROM browse_history WHERE contentType = ? AND targetId = ?;
+
+deleteBrowseHistoryByType:
+DELETE FROM browse_history WHERE contentType = ?;
+
+clearBrowseHistory:
+DELETE FROM browse_history;
+
+migrateLegacyIllustHistory:
+INSERT OR IGNORE INTO browse_history(contentType, targetId, payloadJson, viewedAt)
+SELECT CASE WHEN type = 1 THEN 'novel' ELSE 'illust' END,
+       illustID,
+       illustJson,
+       time
+FROM illust_table;

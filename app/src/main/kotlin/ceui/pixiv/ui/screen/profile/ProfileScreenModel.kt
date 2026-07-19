@@ -105,11 +105,14 @@ class ProfileScreenModel : ScreenModel {
 
     private suspend fun loadHistory() {
         try {
-            val rows = db.queries.illustHistoryQueries.selectRecentIllusts(50)
-                .executeAsList()
+            val rows = db.browseHistory.list(
+                contentType = "illust",
+                limit = 50L,
+                offset = 0L,
+            )
             val illusts = rows.mapNotNull { row ->
                 try {
-                    com.google.gson.Gson().fromJson(row.illustJson, Illust::class.java)
+                    com.google.gson.Gson().fromJson(row.payloadJson, Illust::class.java)
                 } catch (_: Exception) { null }
             }
             _history.value = illusts

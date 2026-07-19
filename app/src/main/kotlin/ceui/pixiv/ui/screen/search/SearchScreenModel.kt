@@ -5,6 +5,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.store.Search_table
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,8 +28,11 @@ class SearchScreenModel(
     private val _resultsState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val resultsState: StateFlow<UiState<List<Illust>>> = _resultsState.asStateFlow()
 
-    private val _history = MutableStateFlow<List<String>>(emptyList())
-    val history: StateFlow<List<String>> = _history.asStateFlow()
+    private val _pinnedHistory = MutableStateFlow<List<Search_table>>(emptyList())
+    val pinnedHistory: StateFlow<List<Search_table>> = _pinnedHistory.asStateFlow()
+
+    private val _recentHistory = MutableStateFlow<List<Search_table>>(emptyList())
+    val recentHistory: StateFlow<List<Search_table>> = _recentHistory.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
 
@@ -84,9 +88,20 @@ class SearchScreenModel(
         screenModelScope.launch {
             _resultsState.value = UiState.Loading
             try {
-                // Save to search history: delete old entry then insert new
-                db.queries.searchHistoryQueries.deleteSearchByKeyword(word)
-                db.queries.searchHistoryQueries.insertKeywordOnly(word, System.currentTimeMillis(), 0L)
+                val existing = db.queries.searchHistoryQueries.selectSearchByKeyword(word).executeAsOneOrNull()
+                if (existing?.pinned == 1L) {
+                    db.queries.searchHistoryQueries.insertSearch(
+                        id = existing.id,
+                        keyword = word,
+                        searchTime = System.currentTimeMillis(),
+                        searchType = existing.searchType,
+                        pinned = 1L,
+                        previewIllustsJson = existing.previewIllustsJson,
+                    )
+                } else {
+                    db.queries.searchHistoryQueries.deleteSearchByKeyword(word)
+                    db.queries.searchHistoryQueries.insertKeywordOnly(word, System.currentTimeMillis(), 0L)
+                }
                 loadHistory()
 
                 val resp = client.appApi.searchIllustManga(
@@ -131,9 +146,41 @@ class SearchScreenModel(
         }
     }
 
+    fun deleteHistory(id: Long) {
+        screenModelScope.launch {
+            db.queries.searchHistoryQueries.deleteSearch(id)
+            loadHistory()
+        }
+    }
+
+    fun togglePinned(entry: Search_table) {
+        screenModelScope.launch {
+            db.queries.searchHistoryQueries.setSearchPinned(
+                pinned = if (entry.pinned == 1L) 0L else 1L,
+                id = entry.id,
+            )
+            loadHistory()
+        }
+    }
+
+    fun clearRecentHistory() {
+        screenModelScope.launch {
+            db.queries.searchHistoryQueries.clearUnpinnedSearches()
+            loadHistory()
+        }
+    }
+
+    fun clearPinnedHistory() {
+        screenModelScope.launch {
+            db.queries.searchHistoryQueries.clearPinnedSearches()
+            loadHistory()
+        }
+    }
+
     private suspend fun loadHistory() {
-        _history.value = db.queries.searchHistoryQueries.selectRecentSearches(20)
+        _pinnedHistory.value = db.queries.searchHistoryQueries.selectPinnedSearches()
             .executeAsList()
-            .map { it.keyword }
+        _recentHistory.value = db.queries.searchHistoryQueries.selectRecentUnpinnedSearches(50L)
+            .executeAsList()
     }
 }

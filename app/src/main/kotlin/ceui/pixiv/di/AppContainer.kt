@@ -2,13 +2,16 @@
 package ceui.pixiv.di
 
 import ceui.pixiv.image.ImageLoaderFactory
+import ceui.pixiv.download.DownloadManager
 import ceui.pixiv.net.NettyQuicInterceptor
 import ceui.pixiv.net.api.Client
 import ceui.pixiv.net.auth.RealTokenRefresher
 import ceui.pixiv.net.auth.TokenExchange
 import ceui.pixiv.net.impl.DefaultLanguageProvider
 import ceui.pixiv.net.impl.StdoutLogger
+import ceui.pixiv.net.imagehost.ImageHostManager
 import ceui.pixiv.store.Database
+import ceui.pixiv.store.DownloadQueueStore
 import ceui.pixiv.store.KeychainTokenStore
 import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.store.createDatabase
@@ -33,6 +36,8 @@ object AppContainer {
     lateinit var imageClient: OkHttpClient
         private set
     lateinit var database: Database
+        private set
+    lateinit var downloadManager: DownloadManager
         private set
 
     lateinit var tokenExchange: TokenExchange
@@ -65,15 +70,22 @@ object AppContainer {
         tokenExchange = TokenExchange(oauthClient)
         val refresher = RealTokenRefresher(tokenStore, tokenExchange)
         client = Client(settingsStore, tokenStore, refresher, DefaultLanguageProvider(), StdoutLogger)
+        ImageHostManager.setModeOrdinal(settingsStore.imageHostMode)
+        ImageHostManager.setCustomHost(settingsStore.customImageHost)
         imageLoader = ImageLoaderFactory.create(settingsStore)
         imageClient = ImageLoaderFactory.createImageClient(settingsStore)
         SingletonImageLoader.setUnsafe(imageLoader)
         database = createDatabase()
+        downloadManager = DownloadManager(
+            client = imageClient,
+            queue = DownloadQueueStore(database.queries.downloadQueueQueries),
+        )
 
         updateAuthState()
     }
 
     fun close() {
+        downloadManager.close()
         client.close()
         oauthQuicInterceptor?.close()
     }

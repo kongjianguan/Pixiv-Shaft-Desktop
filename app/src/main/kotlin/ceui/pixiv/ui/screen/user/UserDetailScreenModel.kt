@@ -8,6 +8,7 @@ import ceui.loxia.ProfileBean
 import ceui.loxia.User
 import ceui.loxia.UserDetailResponse
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.ui.history.BrowseHistoryRecorder
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,7 +52,9 @@ class UserDetailScreenModel(
                 val detail = client.appApi.getUserDetail(userId)
                 val user = detail.user ?: User()
                 val profile = detail.profile ?: ProfileBean()
-                _userState.value = UiState.Success(user to profile)
+                val normalizedUser = if (user.id > 0L) user else user.copy(id = user.user_id)
+                if (normalizedUser.id > 0L) BrowseHistoryRecorder.recordUser(normalizedUser)
+                _userState.value = UiState.Success(normalizedUser to profile)
                 _isFollowing.value = user.is_followed
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {

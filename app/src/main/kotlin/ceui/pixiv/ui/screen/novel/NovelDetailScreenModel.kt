@@ -5,6 +5,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Novel
 import ceui.loxia.SingleNovelResponse
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.ui.history.BrowseHistoryRecorder
 import ceui.pixiv.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +31,13 @@ class NovelDetailScreenModel(
             _state.value = UiState.Loading
             try {
                 val resp = client.appApi.getNovel(novelId)
-                _state.value = resp.novel?.let { UiState.Success(it) }
-                    ?: UiState.Error("Novel not found")
+                val novel = resp.novel
+                if (novel == null) {
+                    _state.value = UiState.Error("Novel not found")
+                } else {
+                    BrowseHistoryRecorder.recordNovel(novel)
+                    _state.value = UiState.Success(novel)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

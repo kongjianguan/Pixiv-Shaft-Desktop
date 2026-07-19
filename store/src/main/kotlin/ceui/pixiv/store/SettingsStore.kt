@@ -50,6 +50,9 @@ class SettingsStore(
     private val _themeMode = MutableStateFlow(
         kv.getString("themeMode")?.takeIf { it in THEME_MODES } ?: "system"
     )
+    private val _saveBrowseHistory = MutableStateFlow(
+        kv.getBoolean("saveBrowseHistory", true)
+    )
 
     override val isDirectConnect: Boolean get() = kv.getBoolean("isDirectConnect", true)
     override val isUseSecureDns: Boolean get() = kv.getBoolean("isUseSecureDns", false)
@@ -85,6 +88,8 @@ class SettingsStore(
     val themeColorIndexFlow: StateFlow<Int> = _themeColorIndex.asStateFlow()
     val themeMode: String get() = _themeMode.value
     val themeModeFlow: StateFlow<String> = _themeMode.asStateFlow()
+    val saveBrowseHistory: Boolean get() = _saveBrowseHistory.value
+    val saveBrowseHistoryFlow: StateFlow<Boolean> = _saveBrowseHistory.asStateFlow()
 
     fun setDirectConnect(value: Boolean) {
         kv.putBoolean("isDirectConnect", value)
@@ -173,6 +178,11 @@ class SettingsStore(
         val mode = value.takeIf { it in THEME_MODES } ?: "system"
         kv.putString("themeMode", mode)
         _themeMode.value = mode
+    }
+
+    fun setSaveBrowseHistory(value: Boolean) {
+        kv.putBoolean("saveBrowseHistory", value)
+        _saveBrowseHistory.value = value
     }
 
     fun readerProgress(novelId: Long): Float =

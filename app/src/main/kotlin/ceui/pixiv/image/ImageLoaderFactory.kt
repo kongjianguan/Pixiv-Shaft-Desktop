@@ -17,12 +17,14 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 object ImageLoaderFactory {
+    private const val MEMORY_CACHE_SIZE_BYTES = 128L * 1024 * 1024
+
     fun create(settings: Settings): ImageLoader {
         val client = buildImageClient(settings)
         return ImageLoader.Builder(PlatformContext.INSTANCE)
             .memoryCache {
                 MemoryCache.Builder()
-                    .maxSizePercent(PlatformContext.INSTANCE, 0.25)
+                    .maxSizeBytes(MEMORY_CACHE_SIZE_BYTES)
                     .build()
             }
             .diskCache {

@@ -83,6 +83,7 @@ class MainScreen : Screen {
                         ceui.pixiv.MainNavigationTarget.DISCOVER -> selectTab(DiscoverTab)
                         ceui.pixiv.MainNavigationTarget.SEARCH -> selectTab(SearchTab)
                         ceui.pixiv.MainNavigationTarget.PROFILE -> selectTab(ProfileTab)
+                        ceui.pixiv.MainNavigationTarget.HISTORY -> Unit
                         null -> Unit
                     }
                     if (navigationRequest != null) {

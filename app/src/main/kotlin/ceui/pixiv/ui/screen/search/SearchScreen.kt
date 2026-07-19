@@ -3,6 +3,7 @@ package ceui.pixiv.ui.screen.search
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,9 +20,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +48,7 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.store.Search_table
 
 class SearchScreen(
     private val initialQuery: String? = null
@@ -55,7 +60,8 @@ class SearchScreen(
         val screenModel = rememberScreenModel { SearchScreenModel(initialQuery) }
         val query by screenModel.query.collectAsState()
         val resultsState by screenModel.resultsState.collectAsState()
-        val history by screenModel.history.collectAsState()
+        val pinnedHistory by screenModel.pinnedHistory.collectAsState()
+        val recentHistory by screenModel.recentHistory.collectAsState()
         val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
@@ -96,17 +102,26 @@ class SearchScreen(
                 )
 
                 // Search history (when no results yet)
-                if (resultsState is UiState.Loading && history.isNotEmpty()) {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(history) { keyword ->
-                            AssistChip(
-                                onClick = { screenModel.search(keyword) },
-                                label = { Text(keyword) }
-                            )
-                        }
+                if (resultsState is UiState.Loading && (pinnedHistory.isNotEmpty() || recentHistory.isNotEmpty())) {
+                    if (pinnedHistory.isNotEmpty()) {
+                        SearchHistoryRow(
+                            title = "置顶搜索",
+                            entries = pinnedHistory,
+                            onSearch = screenModel::search,
+                            onTogglePinned = screenModel::togglePinned,
+                            onDelete = screenModel::deleteHistory,
+                            onClear = screenModel::clearPinnedHistory,
+                        )
+                    }
+                    if (recentHistory.isNotEmpty()) {
+                        SearchHistoryRow(
+                            title = "最近搜索",
+                            entries = recentHistory,
+                            onSearch = screenModel::search,
+                            onTogglePinned = screenModel::togglePinned,
+                            onDelete = screenModel::deleteHistory,
+                            onClear = screenModel::clearRecentHistory,
+                        )
                     }
                 }
 
@@ -135,6 +150,52 @@ class SearchScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchHistoryRow(
+    title: String,
+    entries: List<Search_table>,
+    onSearch: (String) -> Unit,
+    onTogglePinned: (Search_table) -> Unit,
+    onDelete: (Long) -> Unit,
+    onClear: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = title, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = onClear) { Text("清空") }
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(entries, key = { it.id }) { entry ->
+                AssistChip(
+                    onClick = { onSearch(entry.keyword) },
+                    label = { Text(entry.keyword) },
+                    leadingIcon = {
+                        if (entry.pinned == 1L) {
+                            Icon(Icons.Default.PushPin, contentDescription = "已置顶")
+                        }
+                    },
+                    trailingIcon = {
+                        Row {
+                            IconButton(onClick = { onTogglePinned(entry) }) {
+                                Icon(Icons.Default.PushPin, contentDescription = "切换置顶")
+                            }
+                            IconButton(onClick = { onDelete(entry.id) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "删除")
+                            }
+                        }
+                    },
+                )
             }
         }
     }

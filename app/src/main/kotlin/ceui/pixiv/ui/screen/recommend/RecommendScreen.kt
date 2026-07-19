@@ -63,6 +63,7 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.NovelCard
+import ceui.pixiv.ui.component.WorkFeedGrid
 import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
 import ceui.pixiv.ui.screen.novel.NovelDetailScreen
@@ -79,6 +80,8 @@ private const val TRACKPAD_SCROLL_MULTIPLIER = 1f
 private const val TRACKPAD_GESTURE_IDLE_MS = 120L
 private const val TRACKPAD_HORIZONTAL_RATIO = 0.55f
 private const val TRACKPAD_AXIS_DECISION_DISTANCE = 2f
+private const val RECOMMEND_FAST_SWIPE_VELOCITY = 1200f
+private const val RECOMMEND_FAST_SWIPE_MIN_DISTANCE = 0.06f
 
 private enum class ScrollIntent { UNDECIDED, HORIZONTAL, VERTICAL }
 
@@ -137,6 +140,8 @@ class RecommendScreen : Screen {
             var decisionY = 0f
             var accumulatedX = 0f
             var appliedX = 0f
+            var lastEventTimeNanos = 0L
+            var peakHorizontalVelocity = 0f
             var startPage = pagerState.settledPage
             var idleJob: Job? = null
             val gestureLock = Any()
@@ -148,6 +153,8 @@ class RecommendScreen : Screen {
                 decisionY = 0f
                 accumulatedX = 0f
                 appliedX = 0f
+                lastEventTimeNanos = 0L
+                peakHorizontalVelocity = 0f
                 idleJob?.cancel()
                 idleJob = null
             }
@@ -164,9 +171,19 @@ class RecommendScreen : Screen {
 
             fun settleHorizontalGesture() {
                 val threshold = pagerWidth * 0.12f
+                val distanceSwitch = abs(accumulatedX) >= threshold
+                val velocitySwitch =
+                    abs(accumulatedX) >= pagerWidth * RECOMMEND_FAST_SWIPE_MIN_DISTANCE &&
+                        abs(peakHorizontalVelocity) >= RECOMMEND_FAST_SWIPE_VELOCITY &&
+                        accumulatedX * peakHorizontalVelocity > 0f
+                val direction = when {
+                    velocitySwitch -> peakHorizontalVelocity
+                    distanceSwitch -> accumulatedX
+                    else -> 0f
+                }
                 val target = when {
-                    accumulatedX > threshold -> (startPage + 1).coerceAtMost(3)
-                    accumulatedX < -threshold -> (startPage - 1).coerceAtLeast(0)
+                    direction > 0f -> (startPage + 1).coerceAtMost(3)
+                    direction < 0f -> (startPage - 1).coerceAtLeast(0)
                     else -> startPage
                 }
                 scope.launch { pagerState.animateScrollToPage(target) }
@@ -191,12 +208,24 @@ class RecommendScreen : Screen {
                         decisionY = 0f
                         accumulatedX = 0f
                         appliedX = 0f
+                        lastEventTimeNanos = 0L
+                        peakHorizontalVelocity = 0f
                         startPage = pagerState.settledPage
                     }
 
                     // NSEvent reports content-scroll direction, opposite to the finger motion.
                     val deltaX = -event.deltaX.toFloat() * TRACKPAD_SCROLL_MULTIPLIER
                     val deltaY = event.deltaY.toFloat() * TRACKPAD_SCROLL_MULTIPLIER
+                    val nowNanos = System.nanoTime()
+                    if (lastEventTimeNanos != 0L) {
+                        val elapsedSeconds = (nowNanos - lastEventTimeNanos)
+                            .coerceAtLeast(1L) / 1_000_000_000f
+                        val instantaneousVelocity = deltaX / elapsedSeconds
+                        if (abs(instantaneousVelocity) > abs(peakHorizontalVelocity)) {
+                            peakHorizontalVelocity = instantaneousVelocity
+                        }
+                    }
+                    lastEventTimeNanos = nowNanos
 
                     if (intent == ScrollIntent.UNDECIDED) {
                         decisionX += deltaX
@@ -382,9 +411,6 @@ private fun IllustTabContent(
     onLoadMore: () -> Unit, onIllustClick: (Long) -> Unit
 ) {
     val gridState = rememberLazyStaggeredGridState()
-    val maxColumnWidthDp by AppContainer.settingsStore.workFeedMaxColumnWidthDpFlow.collectAsState()
-    val maxColumns by AppContainer.settingsStore.workFeedMaxColumnsFlow.collectAsState()
-    val minColumnWidthDp by AppContainer.settingsStore.workFeedMinColumnWidthDpFlow.collectAsState()
     val scrollToTopValue = LocalScrollToTop.current.value
     LaunchedEffect(scrollToTopValue) {
         if (scrollToTopValue > 0) { gridState.scrollToItem(0); onRefresh() }
@@ -402,23 +428,10 @@ private fun IllustTabContent(
             is UiState.Loading -> LoadingView()
             is UiState.Error -> ErrorView(state.message, onRefresh)
             is UiState.Success -> if (state.data.isEmpty()) EmptyView("No works")
-            else BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val spacing = 4.dp
-                val desiredColumns = ceil(
-                    (maxWidth.value + spacing.value) / (maxColumnWidthDp.dp.value + spacing.value)
-                ).toInt()
-                val columnsAllowedByMinimum = (
-                    (maxWidth.value + spacing.value) / (minColumnWidthDp.dp.value + spacing.value)
-                ).toInt()
-                val columns = minOf(desiredColumns, maxColumns, columnsAllowedByMinimum).coerceAtLeast(1)
-                LazyVerticalStaggeredGrid(
-                    columns = StaggeredGridCells.Fixed(columns), state = gridState,
-                    contentPadding = PaddingValues(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(spacing),
-                    verticalItemSpacing = spacing, modifier = Modifier.fillMaxSize()
-                ) { items(state.data, key = { it.id }) { illust ->
+            else WorkFeedGrid(state = gridState) { _, _ ->
+                items(state.data, key = { it.id }) { illust ->
                     IllustCard(illust = illust, onClick = onIllustClick)
-                }}
+                }
             }
         }
     }

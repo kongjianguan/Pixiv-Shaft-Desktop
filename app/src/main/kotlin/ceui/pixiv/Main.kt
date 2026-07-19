@@ -21,11 +21,14 @@ import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.CurrentScreen
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.platform.MacApplicationMenuBridge
 import ceui.pixiv.platform.TrayManager
 import ceui.pixiv.platform.WindowBackgroundBridge
 import ceui.pixiv.ui.auth.AuthState
 import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
+import ceui.pixiv.ui.screen.download.DownloadScreen
+import ceui.pixiv.ui.history.BrowseHistoryScreen
 import ceui.pixiv.ui.screen.settings.SettingsScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
@@ -40,11 +43,14 @@ internal enum class MainNavigationTarget {
     DISCOVER,
     SEARCH,
     PROFILE,
+    HISTORY,
 }
 
 internal val mainNavigationRequest = mutableStateOf<MainNavigationTarget?>(null)
 internal val mainRefreshRequest = mutableStateOf(0)
 internal val mainSettingsRequest = mutableStateOf(0)
+internal val mainDownloadsRequest = mutableStateOf(0)
+internal val mainHistoryRequest = mutableStateOf(0)
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -115,9 +121,9 @@ fun main() {
                             shortcut = KeyShortcut(Key.Three, meta = true),
                         )
                         Item(
-                            "我的",
-                            onClick = { mainNavigationRequest.value = MainNavigationTarget.PROFILE },
-                            shortcut = KeyShortcut(Key.Four, meta = true),
+                            "浏览记录",
+                            onClick = { mainHistoryRequest.value++ },
+                            shortcut = KeyShortcut(Key.Five, meta = true),
                         )
                     }
 
@@ -129,10 +135,29 @@ fun main() {
                         )
                         Separator()
                         Item(
-                            "设置",
-                            onClick = { mainSettingsRequest.value++ },
+                            "下载管理",
+                            onClick = { mainDownloadsRequest.value++ },
                         )
                     }
+                }
+            }
+
+            LaunchedEffect(authState) {
+                if (authState is AuthState.LoggedIn) {
+                    repeat(20) {
+                        if (MacApplicationMenuBridge.installProfileItem {
+                                mainNavigationRequest.value = MainNavigationTarget.PROFILE
+                            } && MacApplicationMenuBridge.installSettingsItem {
+                                mainSettingsRequest.value++
+                            }
+                        ) {
+                            return@LaunchedEffect
+                        }
+                        delay(50)
+                    }
+                } else {
+                    MacApplicationMenuBridge.removeProfileItem()
+                    MacApplicationMenuBridge.removeSettingsItem()
                 }
             }
 
@@ -172,6 +197,24 @@ fun main() {
                                         rootNavigator.push(SettingsScreen())
                                     }
                                     mainSettingsRequest.value = 0
+                                }
+                            }
+                            val downloadsRequest = mainDownloadsRequest.value
+                            LaunchedEffect(downloadsRequest) {
+                                if (downloadsRequest > 0) {
+                                    if (rootNavigator.lastItem !is DownloadScreen) {
+                                        rootNavigator.push(DownloadScreen())
+                                    }
+                                    mainDownloadsRequest.value = 0
+                                }
+                            }
+                            val historyRequest = mainHistoryRequest.value
+                            LaunchedEffect(historyRequest) {
+                                if (historyRequest > 0) {
+                                    if (rootNavigator.lastItem !is BrowseHistoryScreen) {
+                                        rootNavigator.push(BrowseHistoryScreen())
+                                    }
+                                    mainHistoryRequest.value = 0
                                 }
                             }
                             CurrentScreen()

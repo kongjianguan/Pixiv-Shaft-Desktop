@@ -13,11 +13,29 @@ INSERT OR REPLACE INTO search_table(id, keyword, searchTime, searchType, pinned,
 selectRecentSearches:
 SELECT * FROM search_table ORDER BY pinned DESC, searchTime DESC LIMIT ?;
 
+selectPinnedSearches:
+SELECT * FROM search_table WHERE pinned = 1 ORDER BY searchTime DESC;
+
+selectRecentUnpinnedSearches:
+SELECT * FROM search_table WHERE pinned = 0 ORDER BY searchTime DESC LIMIT ?;
+
+selectSearchByKeyword:
+SELECT * FROM search_table WHERE keyword = ? LIMIT 1;
+
 deleteSearch:
 DELETE FROM search_table WHERE id = ?;
 
 deleteSearchByKeyword:
 DELETE FROM search_table WHERE keyword = ?;
+
+setSearchPinned:
+UPDATE search_table SET pinned = ? WHERE id = ?;
+
+clearUnpinnedSearches:
+DELETE FROM search_table WHERE pinned = 0;
+
+clearPinnedSearches:
+DELETE FROM search_table WHERE pinned = 1;
 
 insertKeywordOnly:
 INSERT INTO search_table(keyword, searchTime, searchType, pinned)

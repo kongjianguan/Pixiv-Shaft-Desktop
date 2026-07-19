@@ -7,6 +7,8 @@ import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
 import ceui.loxia.UgoiraMetaData
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.download.DownloadManager
+import ceui.pixiv.ui.history.BrowseHistoryRecorder
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ class IllustDetailScreenModel(
 ) : ScreenModel {
 
     private val client = AppContainer.client
+    private val downloadManager: DownloadManager = AppContainer.downloadManager
     private val relatedPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
 
     private val _illustState = MutableStateFlow<UiState<Illust>>(UiState.Loading)
@@ -48,13 +51,17 @@ class IllustDetailScreenModel(
             _illustState.value = UiState.Loading
             try {
                 val resp = client.appApi.getIllust(illustId)
-                _illustState.value = resp.illust?.let { illust ->
+                val illust = resp.illust
+                if (illust == null) {
+                    _illustState.value = UiState.Error("Illust not found")
+                } else {
                     if (illust.isGif()) loadUgoira(illust.id)
                     _isBookmarked.value = illust.is_bookmarked
                     _isFollowing.value = illust.user?.is_followed
                     _userId = illust.user?.id ?: 0
-                    UiState.Success(illust)
-                } ?: UiState.Error("Illust not found")
+                    BrowseHistoryRecorder.recordIllust(illust)
+                    _illustState.value = UiState.Success(illust)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -115,6 +122,11 @@ class IllustDetailScreenModel(
             }
         }
     }
+
+    fun enqueueDownload(illust: Illust): Int = downloadManager.enqueueIllust(illust)
+
+    fun enqueueUgoira(illust: Illust, metadata: UgoiraMetaData): Int =
+        downloadManager.enqueueUgoira(illust, metadata)
 
     private fun loadRelated() {
         screenModelScope.launch {

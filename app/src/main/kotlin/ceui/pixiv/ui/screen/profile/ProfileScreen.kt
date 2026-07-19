@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,7 @@ import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
+import ceui.pixiv.ui.history.BrowseHistoryScreen
 import ceui.pixiv.ui.screen.settings.SettingsScreen
 import ceui.pixiv.ui.state.UiState
 
@@ -199,6 +201,14 @@ class ProfileScreen : Screen {
                         }
                     }
                     1 -> {
+                        item {
+                            Button(
+                                onClick = { navigator.push(BrowseHistoryScreen()) },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            ) {
+                                Text("打开完整浏览记录")
+                            }
+                        }
                         if (history.isEmpty()) {
                             item { Text("No browse history", modifier = Modifier.padding(16.dp)) }
                         } else {

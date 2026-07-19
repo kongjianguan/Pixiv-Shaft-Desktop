@@ -18,6 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Palette
@@ -94,6 +95,7 @@ private enum class SettingsCategory(
     NETWORK("网络与连接", "QUIC（快速网络协议）、安全 DNS 和连接方式", Icons.Default.NetworkCheck),
     IMAGES("图片", "图片源与自定义图片代理", Icons.Default.Image),
     FEEDS("信息流布局", "作品流与小说流的列宽、列数和标题显示", Icons.Default.MenuBook),
+    HISTORY("历史记录", "控制本地浏览历史的保存方式", Icons.Default.History),
     APPEARANCE("外观", "主题色与浅色、深色模式", Icons.Default.Palette),
     ACCOUNT("账号", "退出当前 Pixiv 账号", Icons.Default.Person),
 }
@@ -142,12 +144,30 @@ private class SettingsCategoryScreen(private val category: SettingsCategory) : S
                     SettingsCategory.NETWORK -> NetworkSettings(screenModel)
                     SettingsCategory.IMAGES -> ImageSettings(screenModel)
                     SettingsCategory.FEEDS -> FeedLayoutSettings(screenModel)
+                    SettingsCategory.HISTORY -> HistorySettings(screenModel)
                     SettingsCategory.APPEARANCE -> AppearanceSettings(screenModel)
                     SettingsCategory.ACCOUNT -> AccountSettings(screenModel)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun HistorySettings(screenModel: SettingsScreenModel) {
+    val saveBrowseHistory by screenModel.saveBrowseHistoryFlow.collectAsState()
+    Text("浏览历史", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "关闭后不会再记录新的插画、小说和用户浏览记录，已有记录不会被删除。",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    SettingSwitch(
+        title = "保存浏览历史",
+        subtitle = "只保存在本机，不上传云端",
+        checked = saveBrowseHistory,
+        onCheckedChange = screenModel::setSaveBrowseHistory,
+    )
 }
 
 @Composable

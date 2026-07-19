@@ -2,7 +2,6 @@ package ceui.pixiv.ui.screen.settings
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import ceui.pixiv.di.AppContainer
-import ceui.pixiv.net.imagehost.ImageHostManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +27,8 @@ class SettingsScreenModel : ScreenModel {
     val themeColorIndexFlow = settingsStore.themeColorIndexFlow
     val themeMode: String get() = settingsStore.themeMode
     val themeModeFlow = settingsStore.themeModeFlow
+    val saveBrowseHistory: Boolean get() = settingsStore.saveBrowseHistory
+    val saveBrowseHistoryFlow = settingsStore.saveBrowseHistoryFlow
 
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
@@ -44,14 +45,11 @@ class SettingsScreenModel : ScreenModel {
 
     fun setImageHostMode(mode: Int) {
         settingsStore.setImageHostMode(mode)
-        ImageHostManager.setModeOrdinal(mode)
-        ImageHostManager.setCustomHost(settingsStore.customImageHost)
         _restartRequired.value = true
     }
 
     fun setCustomImageHost(host: String) {
         settingsStore.setCustomImageHost(host)
-        ImageHostManager.setCustomHost(host)
         _restartRequired.value = true
     }
 
@@ -87,6 +85,10 @@ class SettingsScreenModel : ScreenModel {
 
     fun setThemeMode(value: String) {
         settingsStore.setThemeMode(value)
+    }
+
+    fun setSaveBrowseHistory(value: Boolean) {
+        settingsStore.setSaveBrowseHistory(value)
     }
 
     fun logout() {
