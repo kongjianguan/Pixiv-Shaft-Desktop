@@ -15,7 +15,16 @@ enum class SearchTarget(val apiValue: String, val label: String) {
     NovelKeyword("keyword", "关键词"),
     ;
 
-    fun queryValue(): String? = if (this == PartialTags) null else apiValue
+    /**
+     * Every visible search scope must be sent explicitly. Omitting this query
+     * lets the server choose its own default, which is not the selected scope.
+     */
+    fun queryValue(): String = apiValue
+
+    companion object {
+        fun fromApiValue(value: String?): SearchTarget =
+            values().firstOrNull { it.apiValue == value } ?: PartialTags
+    }
 }
 
 enum class SearchAiMode(val label: String) {

@@ -34,6 +34,7 @@ class SearchScreenModel(
 
     private val client = AppContainer.client
     private val db = AppContainer.database
+    private val settings = AppContainer.settingsStore
 
     private val illustPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
     private val novelPager = Pager<NovelResponse, Novel>(client, NovelResponse::class.java)
@@ -73,10 +74,14 @@ class SearchScreenModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _illustFilter = MutableStateFlow(SearchFilter())
+    private val _illustFilter = MutableStateFlow(
+        SearchFilter(target = SearchTarget.fromApiValue(settings.searchIllustTarget))
+    )
     val illustFilter: StateFlow<SearchFilter> = _illustFilter.asStateFlow()
 
-    private val _novelFilter = MutableStateFlow(SearchFilter())
+    private val _novelFilter = MutableStateFlow(
+        SearchFilter(target = SearchTarget.fromApiValue(settings.searchNovelTarget))
+    )
     val novelFilter: StateFlow<SearchFilter> = _novelFilter.asStateFlow()
 
     private val _searchOptions = MutableStateFlow<SearchOptionsResponse?>(null)
@@ -98,6 +103,8 @@ class SearchScreenModel(
     val recentHistory: StateFlow<List<Search_table>> = _recentHistory.asStateFlow()
 
     private var suggestionJob: Job? = null
+    private var searchOptionsJob: Job? = null
+    private var searchOptionsGeneration = 0L
     private val novelBookmarksInFlight = ConcurrentHashMap.newKeySet<Long>()
 
     init {
@@ -165,6 +172,9 @@ class SearchScreenModel(
         _query.value = ""
         _hasSubmitted.value = false
         clearSuggestions()
+        searchOptionsGeneration++
+        searchOptionsJob?.cancel()
+        searchOptionsJob = null
         _searchOptions.value = null
         setState(SearchTab.Illust, UiState.Loading)
         setState(SearchTab.Novel, UiState.Loading)
@@ -180,11 +190,15 @@ class SearchScreenModel(
         clearSuggestions()
         val tab = _activeTab.value
         val filter = filterFor(tab)
+        val optionsGeneration = ++searchOptionsGeneration
+        searchOptionsJob?.cancel()
+        searchOptionsJob = screenModelScope.launch {
+            loadSearchOptions(normalized, filter, optionsGeneration)
+        }
         screenModelScope.launch {
             setState(tab, UiState.Loading)
             try {
                 saveSearchHistory(normalized)
-                launch { loadSearchOptions(normalized, filter) }
                 fetch(tab, normalized, filter)
             } catch (e: CancellationException) {
                 throw e
@@ -227,8 +241,14 @@ class SearchScreenModel(
 
     fun updateActiveFilter(filter: SearchFilter) {
         when (_activeTab.value) {
-            SearchTab.Illust -> _illustFilter.value = filter
-            SearchTab.Novel -> _novelFilter.value = filter
+            SearchTab.Illust -> {
+                _illustFilter.value = filter
+                settings.setSearchIllustTarget(filter.target.apiValue)
+            }
+            SearchTab.Novel -> {
+                _novelFilter.value = filter
+                settings.setSearchNovelTarget(filter.target.apiValue)
+            }
             SearchTab.User -> Unit
         }
     }
@@ -488,12 +508,19 @@ class SearchScreenModel(
         }
     }
 
-    private suspend fun loadSearchOptions(word: String, filter: SearchFilter) {
+    private suspend fun loadSearchOptions(
+        word: String,
+        filter: SearchFilter,
+        generation: Long,
+    ) {
         try {
-            _searchOptions.value = client.appApi.searchOptions(
+            val response = client.appApi.searchOptions(
                 word = word,
                 search_target = filter.target.apiValue,
             )
+            if (generation == searchOptionsGeneration) {
+                _searchOptions.value = response
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -667,7 +694,7 @@ class SearchScreenModel(
     }
 }
 
-private fun SearchAiMode.serverValue(): Int = if (this == SearchAiMode.ExcludeAi) 1 else 0
+internal fun SearchAiMode.serverValue(): Int = if (this == SearchAiMode.ExcludeAi) 0 else 1
 
 private fun SearchBodyLength.valueFor(unit: SearchBodyLengthUnit, min: Boolean): Int? {
     if (this.unit != unit) return null

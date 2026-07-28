@@ -1,12 +1,13 @@
 package ceui.pixiv.ui.search
 
 import ceui.pixiv.ui.screen.search.SearchFilter
+import ceui.pixiv.ui.screen.search.SearchAiMode
 import ceui.pixiv.ui.screen.search.SearchRatio
 import ceui.pixiv.ui.screen.search.SearchSort
 import ceui.pixiv.ui.screen.search.SearchTarget
+import ceui.pixiv.ui.screen.search.serverValue
 import ceui.pixiv.ui.screen.search.shouldLoadSearchMore
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -14,9 +15,12 @@ import org.junit.jupiter.api.Test
 class SearchFilterTest {
 
     @Test
-    fun `partial tag target is omitted from the request`() {
-        assertNull(SearchTarget.PartialTags.queryValue())
+    fun `all search targets are sent explicitly`() {
+        assertEquals("partial_match_for_tags", SearchTarget.PartialTags.queryValue())
+        assertEquals("exact_match_for_tags", SearchTarget.ExactTags.queryValue())
         assertEquals("title_and_caption", SearchTarget.TitleCaption.queryValue())
+        assertEquals("text", SearchTarget.NovelText.queryValue())
+        assertEquals("keyword", SearchTarget.NovelKeyword.queryValue())
     }
 
     @Test
@@ -34,6 +38,13 @@ class SearchFilterTest {
     fun `default search filter has no active conditions`() {
         assertTrue(SearchFilter().activeCount(isNovel = false) == 0)
         assertTrue(SearchFilter().activeCount(isNovel = true) == 0)
+    }
+
+    @Test
+    fun `ai search mode keeps AI works available for local filtering`() {
+        assertEquals(1, SearchAiMode.All.serverValue())
+        assertEquals(0, SearchAiMode.ExcludeAi.serverValue())
+        assertEquals(1, SearchAiMode.OnlyAi.serverValue())
     }
 
     @Test

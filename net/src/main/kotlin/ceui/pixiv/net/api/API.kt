@@ -201,8 +201,7 @@ interface API {
     suspend fun popularPreview(
         @Query("word") word: String,
         @Query("sort") sort: String,
-        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
-        @Query("search_target") search_target: String?,
+        @Query("search_target") search_target: String,
         @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
         @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
         @Query("search_ai_type") search_ai_type: Int = 0,
@@ -223,8 +222,7 @@ interface API {
     suspend fun popularPreviewNovel(
         @Query("word") word: String,
         @Query("sort") sort: String,
-        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
-        @Query("search_target") search_target: String?,
+        @Query("search_target") search_target: String,
         @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
         @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
         @Query("search_ai_type") search_ai_type: Int = 0,
@@ -253,8 +251,7 @@ interface API {
     suspend fun searchIllustManga(
         @Query("word") word: String,
         @Query("sort") sort: String,
-        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
-        @Query("search_target") search_target: String?,
+        @Query("search_target") search_target: String,
         @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
         @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
         @Query("search_ai_type") search_ai_type: Int = 0,
@@ -275,8 +272,7 @@ interface API {
     suspend fun searchNovel(
         @Query("word") word: String,
         @Query("sort") sort: String,
-        // null = 不传——见 [ceui.pixiv.ui.search.v3.SearchTarget.toQueryValue]（#906）
-        @Query("search_target") search_target: String?,
+        @Query("search_target") search_target: String,
         @Query("merge_plain_keyword_results") merge_plain_keyword_results: Boolean,
         @Query("include_translated_tag_results") include_translated_tag_results: Boolean,
         @Query("search_ai_type") search_ai_type: Int = 0,

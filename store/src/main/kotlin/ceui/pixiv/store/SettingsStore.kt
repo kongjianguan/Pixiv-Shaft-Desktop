@@ -90,6 +90,10 @@ class SettingsStore(
     val themeModeFlow: StateFlow<String> = _themeMode.asStateFlow()
     val saveBrowseHistory: Boolean get() = _saveBrowseHistory.value
     val saveBrowseHistoryFlow: StateFlow<Boolean> = _saveBrowseHistory.asStateFlow()
+    val searchIllustTarget: String
+        get() = validSearchTarget(kv.getString(SEARCH_ILLUST_TARGET_KEY))
+    val searchNovelTarget: String
+        get() = validSearchTarget(kv.getString(SEARCH_NOVEL_TARGET_KEY))
 
     fun setDirectConnect(value: Boolean) {
         kv.putBoolean("isDirectConnect", value)
@@ -185,6 +189,14 @@ class SettingsStore(
         _saveBrowseHistory.value = value
     }
 
+    fun setSearchIllustTarget(value: String) {
+        kv.putString(SEARCH_ILLUST_TARGET_KEY, validSearchTarget(value))
+    }
+
+    fun setSearchNovelTarget(value: String) {
+        kv.putString(SEARCH_NOVEL_TARGET_KEY, validSearchTarget(value))
+    }
+
     fun readerProgress(novelId: Long): Float =
         kv.getString("readerProgress_$novelId")?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f
 
@@ -195,5 +207,17 @@ class SettingsStore(
     private companion object {
         val READER_THEMES = setOf("system", "paper", "night", "sage")
         val THEME_MODES = setOf("system", "light", "dark")
+        val SEARCH_TARGETS = setOf(
+            "partial_match_for_tags",
+            "exact_match_for_tags",
+            "title_and_caption",
+            "text",
+            "keyword",
+        )
+        const val SEARCH_ILLUST_TARGET_KEY = "searchIllustTarget"
+        const val SEARCH_NOVEL_TARGET_KEY = "searchNovelTarget"
+
+        fun validSearchTarget(value: String?): String =
+            value?.takeIf { it in SEARCH_TARGETS } ?: "partial_match_for_tags"
     }
 }
