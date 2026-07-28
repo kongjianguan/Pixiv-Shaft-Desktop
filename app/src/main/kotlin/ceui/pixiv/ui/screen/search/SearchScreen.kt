@@ -117,11 +117,13 @@ class SearchScreen(
         var numericInput by remember { mutableStateOf<String?>(null) }
 
         val illustGridState = rememberLazyStaggeredGridState()
-        val scrollToTopValue = LocalScrollToTop.current.value
+        val scrollToTopState = LocalScrollToTop.current
+        val scrollToTopValue = scrollToTopState.value
         LaunchedEffect(scrollToTopValue) {
             if (scrollToTopValue > 0) {
                 illustGridState.scrollToItem(0)
                 screenModel.refresh()
+                scrollToTopState.value = 0
             }
         }
 

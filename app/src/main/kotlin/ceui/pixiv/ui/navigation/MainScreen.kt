@@ -62,16 +62,18 @@ class MainScreen : Screen {
 
     @Composable
     override fun Content() {
-        val scrollToTopState = remember { mutableStateOf(0) }
-        CompositionLocalProvider(LocalScrollToTop provides scrollToTopState) {
-            TabNavigator(RecommendTab) {
-                val tabNavigator = LocalTabNavigator.current
+        TabNavigator(RecommendTab) {
+            val tabNavigator = LocalTabNavigator.current
+            // Keep refresh/reselection events local to the active top-level tab.
+            // A shared counter would be replayed when another tab is composed.
+            val scrollToTopState = remember(tabNavigator.current.key) { mutableStateOf(0) }
+
+            CompositionLocalProvider(LocalScrollToTop provides scrollToTopState) {
 
                 fun selectTab(tab: Tab) {
                     if (tabNavigator.current.key == tab.key) {
                         scrollToTopState.value++
                     } else {
-                        scrollToTopState.value = 0
                         tabNavigator.current = tab
                     }
                 }
@@ -95,6 +97,7 @@ class MainScreen : Screen {
                 LaunchedEffect(refreshRequest) {
                     if (refreshRequest > 0) {
                         scrollToTopState.value++
+                        ceui.pixiv.mainRefreshRequest.value = 0
                     }
                 }
 

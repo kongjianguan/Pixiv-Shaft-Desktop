@@ -411,9 +411,14 @@ private fun IllustTabContent(
     onLoadMore: () -> Unit, onIllustClick: (Long) -> Unit
 ) {
     val gridState = rememberLazyStaggeredGridState()
-    val scrollToTopValue = LocalScrollToTop.current.value
+    val scrollToTopState = LocalScrollToTop.current
+    val scrollToTopValue = scrollToTopState.value
     LaunchedEffect(scrollToTopValue) {
-        if (scrollToTopValue > 0) { gridState.scrollToItem(0); onRefresh() }
+        if (scrollToTopValue > 0) {
+            gridState.scrollToItem(0)
+            onRefresh()
+            scrollToTopState.value = 0
+        }
     }
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -449,9 +454,14 @@ private fun NovelTabContent(
     val maxColumnWidthDp by AppContainer.settingsStore.novelFeedMaxColumnWidthDpFlow.collectAsState()
     val maxColumns by AppContainer.settingsStore.novelFeedMaxColumnsFlow.collectAsState()
     val minColumnWidthDp by AppContainer.settingsStore.novelFeedMinColumnWidthDpFlow.collectAsState()
-    val scrollToTopValue = LocalScrollToTop.current.value
+    val scrollToTopState = LocalScrollToTop.current
+    val scrollToTopValue = scrollToTopState.value
     LaunchedEffect(scrollToTopValue) {
-        if (scrollToTopValue > 0) { gridState.scrollToItem(0); onRefresh() }
+        if (scrollToTopValue > 0) {
+            gridState.scrollToItem(0)
+            onRefresh()
+            scrollToTopState.value = 0
+        }
     }
     val shouldLoadMore by remember {
         derivedStateOf {

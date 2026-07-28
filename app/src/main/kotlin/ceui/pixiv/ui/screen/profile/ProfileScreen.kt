@@ -67,11 +67,13 @@ class ProfileScreen : Screen {
         var selectedTab by remember { mutableStateOf(0) }
 
         val listState = rememberLazyListState()
-        val scrollToTopValue = LocalScrollToTop.current.value
+        val scrollToTopState = LocalScrollToTop.current
+        val scrollToTopValue = scrollToTopState.value
         LaunchedEffect(scrollToTopValue) {
             if (scrollToTopValue > 0) {
                 listState.scrollToItem(0)
                 screenModel.refresh()
+                scrollToTopState.value = 0
             }
         }
 
