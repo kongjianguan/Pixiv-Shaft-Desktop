@@ -21,7 +21,6 @@ import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.CurrentScreen
 import ceui.pixiv.di.AppContainer
-import ceui.pixiv.platform.MacApplicationMenuBridge
 import ceui.pixiv.platform.TrayManager
 import ceui.pixiv.platform.WindowBackgroundBridge
 import ceui.pixiv.ui.auth.AuthState
@@ -127,6 +126,18 @@ fun main() {
                         )
                     }
 
+                    Menu("账户", mnemonic = 'U') {
+                        Item(
+                            "我的",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.PROFILE },
+                            shortcut = KeyShortcut(Key.Four, meta = true),
+                        )
+                        Item(
+                            "设置",
+                            onClick = { mainSettingsRequest.value++ },
+                        )
+                    }
+
                     Menu("操作", mnemonic = 'A') {
                         Item(
                             "刷新当前页面",
@@ -139,25 +150,6 @@ fun main() {
                             onClick = { mainDownloadsRequest.value++ },
                         )
                     }
-                }
-            }
-
-            LaunchedEffect(authState) {
-                if (authState is AuthState.LoggedIn) {
-                    repeat(20) {
-                        if (MacApplicationMenuBridge.installProfileItem {
-                                mainNavigationRequest.value = MainNavigationTarget.PROFILE
-                            } && MacApplicationMenuBridge.installSettingsItem {
-                                mainSettingsRequest.value++
-                            }
-                        ) {
-                            return@LaunchedEffect
-                        }
-                        delay(50)
-                    }
-                } else {
-                    MacApplicationMenuBridge.removeProfileItem()
-                    MacApplicationMenuBridge.removeSettingsItem()
                 }
             }
 
