@@ -27,7 +27,7 @@ import ceui.loxia.Tag
 @Composable
 fun TagChip(tag: Tag, onClick: (String) -> Unit) {
     AssistChip(
-        onClick = { tag.name?.let { onClick(it) } },
+        onClick = { (tag.name ?: tag.translated_name)?.let(onClick) },
         label = {
             Text(
                 text = tag.tagName ?: "",

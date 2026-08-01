@@ -33,29 +33,21 @@ class RecommendScreenModel : ScreenModel {
     private val illustPager = Pager<HomeIllustResponse, Illust>(client, HomeIllustResponse::class.java)
     private val _illustState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val illustState: StateFlow<UiState<List<Illust>>> = _illustState.asStateFlow()
-    private val _illustRefreshing = MutableStateFlow(false)
-    val illustRefreshing: StateFlow<Boolean> = _illustRefreshing.asStateFlow()
 
     // --- Manga (漫画) ---
     private val mangaPager = Pager<HomeIllustResponse, Illust>(client, HomeIllustResponse::class.java)
     private val _mangaState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val mangaState: StateFlow<UiState<List<Illust>>> = _mangaState.asStateFlow()
-    private val _mangaRefreshing = MutableStateFlow(false)
-    val mangaRefreshing: StateFlow<Boolean> = _mangaRefreshing.asStateFlow()
 
     // --- Novel (小说) ---
     private val novelPager = Pager<NovelResponse, Novel>(client, NovelResponse::class.java)
     private val _novelState = MutableStateFlow<UiState<List<Novel>>>(UiState.Loading)
     val novelState: StateFlow<UiState<List<Novel>>> = _novelState.asStateFlow()
-    private val _novelRefreshing = MutableStateFlow(false)
-    val novelRefreshing: StateFlow<Boolean> = _novelRefreshing.asStateFlow()
 
     // --- Walkthrough (最新) ---
     private val walkPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
     private val _walkState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val walkState: StateFlow<UiState<List<Illust>>> = _walkState.asStateFlow()
-    private val _walkRefreshing = MutableStateFlow(false)
-    val walkRefreshing: StateFlow<Boolean> = _walkRefreshing.asStateFlow()
 
     private val illustLoadingMore = AtomicBoolean(false)
     private val mangaLoadingMore = AtomicBoolean(false)
@@ -130,35 +122,19 @@ class RecommendScreenModel : ScreenModel {
     // --- Refresh ---
 
     fun refreshIllust() {
-        screenModelScope.launch {
-            _illustRefreshing.value = true
-            loadIllust()
-            _illustRefreshing.value = false
-        }
+        screenModelScope.launch { loadIllust() }
     }
 
     fun refreshManga() {
-        screenModelScope.launch {
-            _mangaRefreshing.value = true
-            loadManga()
-            _mangaRefreshing.value = false
-        }
+        screenModelScope.launch { loadManga() }
     }
 
     fun refreshNovel() {
-        screenModelScope.launch {
-            _novelRefreshing.value = true
-            loadNovel()
-            _novelRefreshing.value = false
-        }
+        screenModelScope.launch { loadNovel() }
     }
 
     fun refreshWalk() {
-        screenModelScope.launch {
-            _walkRefreshing.value = true
-            loadWalk()
-            _walkRefreshing.value = false
-        }
+        screenModelScope.launch { loadWalk() }
     }
 
     // --- Load more ---

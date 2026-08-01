@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,10 +33,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +49,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,7 +97,6 @@ class NovelReaderScreen(
         var settingsVisible by remember { mutableStateOf(false) }
         var chromeVisible by remember { mutableStateOf(true) }
         var progress by remember { mutableFloatStateOf(0f) }
-        var pendingSeek by remember { mutableFloatStateOf(-1f) }
         var scrollCommand by remember { mutableIntStateOf(0) }
         var restoredProgress by remember { mutableStateOf(false) }
         val focusRequester = remember { FocusRequester() }
@@ -199,12 +194,13 @@ class NovelReaderScreen(
                             targetSource = targetSource,
                             scrollCommand = scrollCommand,
                             onTargetConsumed = { targetSource = null },
-                            onProgressChanged = { if (pendingSeek < 0f) progress = it },
+                            onProgressChanged = { progress = it },
                             onScrollDirectionChanged = { scrollingDown ->
                                 chromeVisible = !scrollingDown
                             },
-                            topContentPadding = if (chromeVisible) 78.dp else 20.dp,
-                            bottomContentPadding = if (chromeVisible) 116.dp else 24.dp,
+                            // Keep scroll geometry stable while the top bar animates.
+                            topContentPadding = 78.dp,
+                            bottomContentPadding = 24.dp,
                         )
                     }
                 }
@@ -238,28 +234,15 @@ class NovelReaderScreen(
             }
 
             if (readerData != null && readerData.tokens.isNotEmpty()) {
-                AnimatedVisibility(
-                    visible = chromeVisible,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-                ) {
-                    ReaderBottomBar(
-                        progress = progress,
-                        sliderValue = pendingSeek.takeIf { it >= 0f } ?: progress,
-                        styleBackground = style.background,
-                        styleText = style.text,
-                        styleSecondaryText = style.secondaryText,
-                        onSliderChange = { pendingSeek = it },
-                        onSliderFinished = {
-                            val value = pendingSeek.takeIf { it >= 0f } ?: progress
-                            val index = (value * (readerData.tokens.lastIndex.coerceAtLeast(0))).roundToInt()
-                            targetSource = readerData.tokens.getOrNull(index)?.sourceStart
-                            pendingSeek = -1f
-                        },
-                        onOpenSettings = { settingsVisible = true },
-                    )
-                }
+                LinearProgressIndicator(
+                    progress = { progress.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(2.dp),
+                    color = style.text.copy(alpha = 0.72f),
+                    trackColor = style.text.copy(alpha = 0.12f),
+                )
             }
 
             if (settingsVisible) {
@@ -360,50 +343,6 @@ private fun ReaderTopBar(
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Default.Settings, contentDescription = "阅读设置", tint = styleText)
             }
-        }
-    }
-}
-
-@Composable
-private fun ReaderBottomBar(
-    progress: Float,
-    sliderValue: Float,
-    styleBackground: Color,
-    styleText: Color,
-    styleSecondaryText: Color,
-    onSliderChange: (Float) -> Unit,
-    onSliderFinished: () -> Unit,
-    onOpenSettings: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = styleBackground.copy(alpha = 0.96f),
-        tonalElevation = 5.dp,
-        shadowElevation = 2.dp,
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "已读 ${(progress * 100).roundToInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = styleSecondaryText,
-                )
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onOpenSettings) { Text("设置") }
-            }
-            Slider(
-                value = sliderValue,
-                onValueChange = onSliderChange,
-                onValueChangeFinished = onSliderFinished,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(2.dp)),
-                color = styleText.copy(alpha = 0.72f),
-                trackColor = styleText.copy(alpha = 0.12f),
-            )
         }
     }
 }

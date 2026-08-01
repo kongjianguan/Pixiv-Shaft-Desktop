@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,6 +27,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextIndent
@@ -57,6 +57,7 @@ fun NovelContent(
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val topContentPaddingPx = with(LocalDensity.current) { topContentPadding.toPx() }
 
     LaunchedEffect(targetSource, tokens) {
         val source = targetSource ?: return@LaunchedEffect
@@ -90,7 +91,10 @@ fun NovelContent(
             if (previous.first >= 0 && current != previous) {
                 val scrollingDown = current.first > previous.first ||
                     (current.first == previous.first && current.second > previous.second)
-                onScrollDirectionChanged(scrollingDown)
+                val topPaddingCleared = current.first > 0 || current.second.toFloat() >= topContentPaddingPx
+                if (!scrollingDown || topPaddingCleared) {
+                    onScrollDirectionChanged(scrollingDown)
+                }
             }
             previous = current
         }
@@ -100,7 +104,6 @@ fun NovelContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = style.maxContentWidth)
                 .align(Alignment.Center),
             state = listState,
             contentPadding = PaddingValues(
@@ -172,6 +175,7 @@ private fun ParagraphItem(token: ContentToken.Paragraph, style: NovelReaderStyle
     }
     ClickableText(
         text = annotated,
+        modifier = Modifier.fillMaxWidth(),
         style = MaterialTheme.typography.bodyLarge.copy(
             color = style.text,
             fontSize = style.fontSizeSp.sp,

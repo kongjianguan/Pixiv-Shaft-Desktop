@@ -21,10 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -87,7 +85,7 @@ private enum class ScrollIntent { UNDECIDED, HORIZONTAL, VERTICAL }
 
 class RecommendScreen : Screen {
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Content() {
         val screenModel = rememberScreenModel { RecommendScreenModel() }
@@ -99,11 +97,6 @@ class RecommendScreen : Screen {
         val mangaState by screenModel.mangaState.collectAsState()
         val novelState by screenModel.novelState.collectAsState()
         val walkState by screenModel.walkState.collectAsState()
-
-        val illustRefreshing by screenModel.illustRefreshing.collectAsState()
-        val mangaRefreshing by screenModel.mangaRefreshing.collectAsState()
-        val novelRefreshing by screenModel.novelRefreshing.collectAsState()
-        val walkRefreshing by screenModel.walkRefreshing.collectAsState()
 
         val navigator = LocalNavigator.currentOrThrow
         val scrollHandlerToken = remember { Any() }
@@ -283,19 +276,19 @@ class RecommendScreen : Screen {
             ) { page ->
                     when (page) {
                         0 -> IllustTabContent(
-                            state = illustState, isRefreshing = illustRefreshing,
+                            state = illustState,
                             onRefresh = screenModel::refreshIllust,
                             onLoadMore = screenModel::loadMoreIllust,
                             onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
                         )
                         1 -> IllustTabContent(
-                            state = mangaState, isRefreshing = mangaRefreshing,
+                            state = mangaState,
                             onRefresh = screenModel::refreshManga,
                             onLoadMore = screenModel::loadMoreManga,
                             onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
                         )
                         2 -> NovelTabContent(
-                            state = novelState, isRefreshing = novelRefreshing,
+                            state = novelState,
                             onRefresh = screenModel::refreshNovel,
                             onLoadMore = screenModel::loadMoreNovel,
                             onNovelClick = { id -> navigator.push(NovelDetailScreen(id)) },
@@ -304,7 +297,7 @@ class RecommendScreen : Screen {
                             onToggleBookmark = screenModel::toggleNovelBookmark
                         )
                         3 -> IllustTabContent(
-                            state = walkState, isRefreshing = walkRefreshing,
+                            state = walkState,
                             onRefresh = screenModel::refreshWalk,
                             onLoadMore = screenModel::loadMoreWalk,
                             onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) }
@@ -404,10 +397,9 @@ class RecommendScreen : Screen {
 
 // ----- Illust Grid (shared by 推荐/漫画/最新) -----
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun IllustTabContent(
-    state: UiState<List<Illust>>, isRefreshing: Boolean, onRefresh: () -> Unit,
+    state: UiState<List<Illust>>, onRefresh: () -> Unit,
     onLoadMore: () -> Unit, onIllustClick: (Long) -> Unit
 ) {
     val gridState = rememberLazyStaggeredGridState()
@@ -428,24 +420,22 @@ private fun IllustTabContent(
         }
     }
     LaunchedEffect(shouldLoadMore) { if (shouldLoadMore) onLoadMore() }
-    PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
-        when (state) {
-            is UiState.Loading -> LoadingView()
-            is UiState.Error -> ErrorView(state.message, onRefresh)
-            is UiState.Success -> if (state.data.isEmpty()) EmptyView("No works")
-            else WorkFeedGrid(state = gridState) { _, _ ->
-                items(state.data, key = { it.id }) { illust ->
-                    IllustCard(illust = illust, onClick = onIllustClick)
-                }
+
+    when (state) {
+        is UiState.Loading -> LoadingView()
+        is UiState.Error -> ErrorView(state.message, onRefresh)
+        is UiState.Success -> if (state.data.isEmpty()) EmptyView("No works")
+        else WorkFeedGrid(state = gridState) { _, _ ->
+            items(state.data, key = { it.id }) { illust ->
+                IllustCard(illust = illust, onClick = onIllustClick)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NovelTabContent(
-    state: UiState<List<Novel>>, isRefreshing: Boolean, onRefresh: () -> Unit,
+    state: UiState<List<Novel>>, onRefresh: () -> Unit,
     onLoadMore: () -> Unit, onNovelClick: (Long) -> Unit,
     onUserClick: (Long) -> Unit, onSeriesClick: (Long) -> Unit,
     onToggleBookmark: (Novel) -> Unit,
@@ -471,38 +461,37 @@ private fun NovelTabContent(
         }
     }
     LaunchedEffect(shouldLoadMore) { if (shouldLoadMore) onLoadMore() }
-    PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
-        when (state) {
-            is UiState.Loading -> LoadingView()
-            is UiState.Error -> ErrorView(state.message, onRefresh)
-            is UiState.Success -> if (state.data.isEmpty()) EmptyView("No novels")
-            else BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val spacing = 10.dp
-                val maxColumnWidth = maxColumnWidthDp.dp
-                val desiredColumns = ceil(
-                    (maxWidth.value + spacing.value) / (maxColumnWidth.value + spacing.value)
-                ).toInt()
-                val columnsAllowedByMinimum = (
-                    (maxWidth.value + spacing.value) / (minColumnWidthDp.dp.value + spacing.value)
-                ).toInt()
-                val columns = minOf(desiredColumns, maxColumns, columnsAllowedByMinimum).coerceAtLeast(1)
-                LazyVerticalStaggeredGrid(
-                    columns = StaggeredGridCells.Fixed(columns),
-                    state = gridState,
-                    contentPadding = PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(spacing),
-                    verticalItemSpacing = spacing,
-                    modifier = Modifier.fillMaxSize(),
-                ) { items(state.data, key = { it.id }) { novel ->
-                    NovelCard(
-                        novel = novel,
-                        onClick = onNovelClick,
-                        onUserClick = onUserClick,
-                        onSeriesClick = onSeriesClick,
-                        onToggleBookmark = onToggleBookmark,
-                    )
-                }}
-            }
+
+    when (state) {
+        is UiState.Loading -> LoadingView()
+        is UiState.Error -> ErrorView(state.message, onRefresh)
+        is UiState.Success -> if (state.data.isEmpty()) EmptyView("No novels")
+        else BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val spacing = 10.dp
+            val maxColumnWidth = maxColumnWidthDp.dp
+            val desiredColumns = ceil(
+                (maxWidth.value + spacing.value) / (maxColumnWidth.value + spacing.value)
+            ).toInt()
+            val columnsAllowedByMinimum = (
+                (maxWidth.value + spacing.value) / (minColumnWidthDp.dp.value + spacing.value)
+            ).toInt()
+            val columns = minOf(desiredColumns, maxColumns, columnsAllowedByMinimum).coerceAtLeast(1)
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(columns),
+                state = gridState,
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing),
+                verticalItemSpacing = spacing,
+                modifier = Modifier.fillMaxSize(),
+            ) { items(state.data, key = { it.id }) { novel ->
+                NovelCard(
+                    novel = novel,
+                    onClick = onNovelClick,
+                    onUserClick = onUserClick,
+                    onSeriesClick = onSeriesClick,
+                    onToggleBookmark = onToggleBookmark,
+                )
+            }}
         }
     }
 }

@@ -15,7 +15,6 @@ data class NovelReaderStyle(
     val secondaryText: Color,
     val accent: Color,
     val divider: Color,
-    val maxContentWidth: Dp = 720.dp,
 )
 
 enum class NovelReaderThemePreset(

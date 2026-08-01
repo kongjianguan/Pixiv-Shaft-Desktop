@@ -66,6 +66,7 @@ compose.desktop {
             macOS {
                 bundleID = "ceui.pixiv.Shaft"
                 minimumSystemVersion = "12.0"
+                iconFile.set(project.file("src/main/resources/icons/PixivShaft.icns"))
                 infoPlist {
                     extraKeysRawXml = """
                         <key>NSRequiresAquaSystemAppearance</key>
