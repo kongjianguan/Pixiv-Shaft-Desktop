@@ -75,6 +75,7 @@ import ceui.loxia.Illust
 import ceui.loxia.UgoiraMetaData
 import ceui.pixiv.platform.TrackpadGestureBridge
 import ceui.pixiv.ui.component.CaptionText
+import ceui.pixiv.ui.component.CommentsSection
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.UgoiraPlayer
@@ -438,6 +439,12 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val screenModel = rememberScreenModel { IllustDetailScreenModel(illustId) }
         val illustState by screenModel.illustState.collectAsState()
         val relatedState by screenModel.relatedState.collectAsState()
+        val commentsState by screenModel.commentsState.collectAsState()
+        val commentsHasMore by screenModel.commentsHasMore.collectAsState()
+        val commentsLoadingMore by screenModel.commentsLoadingMore.collectAsState()
+        val commentDraft by screenModel.commentDraft.collectAsState()
+        val commentSubmitting by screenModel.commentSubmitting.collectAsState()
+        val commentError by screenModel.commentError.collectAsState()
         val ugoiraState by screenModel.ugoiraState.collectAsState()
         val isFollowing by screenModel.isFollowing.collectAsState()
         val isBookmarked by screenModel.isBookmarked.collectAsState()
@@ -648,8 +655,19 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                     is UiState.Success -> IllustDetailContent(
                         illust = s.data,
                         relatedState = relatedState,
+                        commentsState = commentsState,
+                        commentsHasMore = commentsHasMore,
+                        commentsLoadingMore = commentsLoadingMore,
+                        commentDraft = commentDraft,
+                        commentSubmitting = commentSubmitting,
+                        commentError = commentError,
                         onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
                         onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
+                        onCommentDraftChange = screenModel::updateCommentDraft,
+                        onSubmitComment = screenModel::submitComment,
+                        onLoadMoreComments = screenModel::loadMoreComments,
+                        onRetryComments = screenModel::retryComments,
+                        onCommentUserClick = { id -> navigator.push(UserDetailScreen(id)) },
                         ugoiraState = ugoiraState,
                         isFullscreen = isFullscreen,
                         onToggleFullscreen = { isFullscreen = !isFullscreen },
@@ -665,8 +683,19 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
 private fun IllustDetailContent(
     illust: Illust,
     relatedState: UiState<List<Illust>>,
+    commentsState: UiState<List<ceui.loxia.Comment>>,
+    commentsHasMore: Boolean,
+    commentsLoadingMore: Boolean,
+    commentDraft: String,
+    commentSubmitting: Boolean,
+    commentError: String?,
     onIllustClick: (Long) -> Unit,
     onTagClick: (String) -> Unit,
+    onCommentDraftChange: (String) -> Unit,
+    onSubmitComment: () -> Unit,
+    onLoadMoreComments: () -> Unit,
+    onRetryComments: () -> Unit,
+    onCommentUserClick: (Long) -> Unit,
     ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading,
     isFullscreen: Boolean = false,
     onToggleFullscreen: () -> Unit = {},
@@ -947,6 +976,22 @@ private fun IllustDetailContent(
                     }
                 }
             }
+        }
+
+        item(key = "comments", span = StaggeredGridItemSpan.FullLine) {
+            CommentsSection(
+                state = commentsState,
+                draft = commentDraft,
+                hasMore = commentsHasMore,
+                isLoadingMore = commentsLoadingMore,
+                isSubmitting = commentSubmitting,
+                errorMessage = commentError,
+                onDraftChange = onCommentDraftChange,
+                onSubmit = onSubmitComment,
+                onLoadMore = onLoadMoreComments,
+                onRetry = onRetryComments,
+                onUserClick = onCommentUserClick,
+            )
         }
 
         // Related works header

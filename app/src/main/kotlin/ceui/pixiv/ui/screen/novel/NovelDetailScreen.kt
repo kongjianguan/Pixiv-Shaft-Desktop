@@ -59,6 +59,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.loxia.Novel
 import ceui.pixiv.ui.component.CaptionText
+import ceui.pixiv.ui.component.CommentsSection
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
@@ -76,6 +77,12 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
     override fun Content() {
         val screenModel = rememberScreenModel { NovelDetailScreenModel(novelId) }
         val state by screenModel.state.collectAsState()
+        val commentsState by screenModel.commentsState.collectAsState()
+        val commentsHasMore by screenModel.commentsHasMore.collectAsState()
+        val commentsLoadingMore by screenModel.commentsLoadingMore.collectAsState()
+        val commentDraft by screenModel.commentDraft.collectAsState()
+        val commentSubmitting by screenModel.commentSubmitting.collectAsState()
+        val commentError by screenModel.commentError.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val novel = (state as? UiState.Success)?.data
 
@@ -123,6 +130,17 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                     onSeriesClick = { seriesId -> navigator.push(NovelSeriesScreen(seriesId)) },
                     onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
                     onToggleFollow = screenModel::toggleFollow,
+                    commentsState = commentsState,
+                    commentsHasMore = commentsHasMore,
+                    commentsLoadingMore = commentsLoadingMore,
+                    commentDraft = commentDraft,
+                    commentSubmitting = commentSubmitting,
+                    commentError = commentError,
+                    onCommentDraftChange = screenModel::updateCommentDraft,
+                    onSubmitComment = screenModel::submitComment,
+                    onLoadMoreComments = screenModel::loadMoreComments,
+                    onRetryComments = screenModel::retryComments,
+                    onCommentUserClick = { id -> navigator.push(UserDetailScreen(id)) },
                 )
             }
         }
@@ -139,6 +157,17 @@ private fun NovelDetailContent(
     onSeriesClick: (Long) -> Unit,
     onTagClick: (String) -> Unit,
     onToggleFollow: () -> Unit,
+    commentsState: UiState<List<ceui.loxia.Comment>>,
+    commentsHasMore: Boolean,
+    commentsLoadingMore: Boolean,
+    commentDraft: String,
+    commentSubmitting: Boolean,
+    commentError: String?,
+    onCommentDraftChange: (String) -> Unit,
+    onSubmitComment: () -> Unit,
+    onLoadMoreComments: () -> Unit,
+    onRetryComments: () -> Unit,
+    onCommentUserClick: (Long) -> Unit,
 ) {
     val numberFormat = remember { NumberFormat.getIntegerInstance() }
     val detailModifier = Modifier.fillMaxWidth().widthIn(max = 1040.dp)
@@ -182,6 +211,24 @@ private fun NovelDetailContent(
                     }
                 }
             }
+        }
+
+        item {
+            CommentsSection(
+                state = commentsState,
+                draft = commentDraft,
+                hasMore = commentsHasMore,
+                isLoadingMore = commentsLoadingMore,
+                isSubmitting = commentSubmitting,
+                errorMessage = commentError,
+                onDraftChange = onCommentDraftChange,
+                onSubmit = onSubmitComment,
+                onLoadMore = onLoadMoreComments,
+                onRetry = onRetryComments,
+                onUserClick = onCommentUserClick,
+                modifier = detailModifier,
+                title = "评论（${novel.total_comments ?: 0}）",
+            )
         }
     }
 }
