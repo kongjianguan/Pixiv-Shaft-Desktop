@@ -2,10 +2,7 @@ package ceui.pixiv.ui.screen.discover
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import ceui.loxia.Illust
-import ceui.loxia.IllustResponse
 import ceui.loxia.TrendingTag
-import ceui.loxia.TrendingTagsResponse
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,34 +18,20 @@ class DiscoverScreenModel : ScreenModel {
     private val _tagsState = MutableStateFlow<UiState<List<TrendingTag>>>(UiState.Loading)
     val tagsState: StateFlow<UiState<List<TrendingTag>>> = _tagsState.asStateFlow()
 
-    private val _rankingState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
-    val rankingState: StateFlow<UiState<List<Illust>>> = _rankingState.asStateFlow()
+    // 当前选择的排行 mode；RankingFeed 内部按 mode 各自加载并维护状态
+    private val _currentMode = MutableStateFlow("day")
+    val currentMode: StateFlow<String> = _currentMode.asStateFlow()
 
-    private var _currentMode = "day"
-    private val _currentModeFlow = MutableStateFlow("day")
-    val currentMode: StateFlow<String> = _currentModeFlow.asStateFlow()
+    init {
+        screenModelScope.launch { fetchTags() }
+    }
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    init { loadInitial() }
-
-    private fun loadInitial() {
-        screenModelScope.launch {
-            _tagsState.value = UiState.Loading
-            _rankingState.value = UiState.Loading
-            fetchTags()
-            fetchRanking(_currentMode)
-        }
+    fun selectMode(mode: String) {
+        _currentMode.value = mode
     }
 
     fun refresh() {
-        screenModelScope.launch {
-            _isRefreshing.value = true
-            fetchTags()
-            fetchRanking(_currentMode)
-            _isRefreshing.value = false
-        }
+        screenModelScope.launch { fetchTags() }
     }
 
     private suspend fun fetchTags() {
@@ -59,30 +42,6 @@ class DiscoverScreenModel : ScreenModel {
             throw e
         } catch (e: Exception) {
             _tagsState.value = UiState.Error(e.message ?: "Failed to load trending tags")
-        }
-    }
-
-    fun loadRanking(mode: String) {
-        _currentMode = mode
-        _currentModeFlow.value = mode
-        screenModelScope.launch {
-            _rankingState.value = UiState.Loading
-            fetchRanking(mode)
-        }
-    }
-
-    private suspend fun fetchRanking(mode: String) {
-        try {
-            val resp = client.appApi.getRankingIllusts(mode)
-            if (_currentMode == mode) {
-                _rankingState.value = UiState.Success(resp.illusts)
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            if (_currentMode == mode) {
-                _rankingState.value = UiState.Error(e.message ?: "Failed to load ranking")
-            }
         }
     }
 }

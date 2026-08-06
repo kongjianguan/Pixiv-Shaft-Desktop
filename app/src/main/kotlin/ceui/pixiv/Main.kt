@@ -28,6 +28,7 @@ import ceui.pixiv.ui.navigation.MainScreen
 import ceui.pixiv.ui.screen.login.LoginScreen
 import ceui.pixiv.ui.screen.download.DownloadScreen
 import ceui.pixiv.ui.history.BrowseHistoryScreen
+import ceui.pixiv.ui.screen.r18.R18Screen
 import ceui.pixiv.ui.screen.settings.SettingsScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
@@ -50,6 +51,7 @@ internal val mainRefreshRequest = mutableStateOf(0)
 internal val mainSettingsRequest = mutableStateOf(0)
 internal val mainDownloadsRequest = mutableStateOf(0)
 internal val mainHistoryRequest = mutableStateOf(0)
+internal val mainR18Request = mutableStateOf(0)
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -123,6 +125,10 @@ fun main() {
                             "浏览记录",
                             onClick = { mainHistoryRequest.value++ },
                             shortcut = KeyShortcut(Key.Five, meta = true),
+                        )
+                        Item(
+                            "R18 排行",
+                            onClick = { mainR18Request.value++ },
                         )
                     }
 
@@ -207,6 +213,15 @@ fun main() {
                                         rootNavigator.push(BrowseHistoryScreen())
                                     }
                                     mainHistoryRequest.value = 0
+                                }
+                            }
+                            val r18Request = mainR18Request.value
+                            LaunchedEffect(r18Request) {
+                                if (r18Request > 0) {
+                                    if (rootNavigator.lastItem !is R18Screen) {
+                                        rootNavigator.push(R18Screen())
+                                    }
+                                    mainR18Request.value = 0
                                 }
                             }
                             CurrentScreen()
