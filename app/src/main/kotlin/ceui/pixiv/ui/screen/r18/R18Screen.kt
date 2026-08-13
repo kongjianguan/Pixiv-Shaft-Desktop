@@ -16,6 +16,9 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -24,6 +27,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.component.RankingFeed
 import kotlinx.coroutines.launch
 
@@ -45,6 +49,13 @@ class R18Screen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val pagerState = rememberPagerState(pageCount = { screenModel.modes.size })
+
+        // R18 全局开关关闭时本页必须立刻退出：开关未开启前用户不应看到任何 R18 相关界面。
+        // 场景：在本页时经 AppMenu「设置」/快捷键进入设置页关闭开关，返回后本页仍在栈中。
+        val showR18 by AppContainer.settingsStore.isShowR18Flow.collectAsState()
+        LaunchedEffect(showR18) {
+            if (!showR18) navigator.pop()
+        }
 
         Scaffold(
             topBar = {

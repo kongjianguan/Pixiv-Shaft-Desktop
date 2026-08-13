@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MenuBook
@@ -50,8 +53,11 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import ceui.pixiv.download.DownloadTemplate
+import ceui.pixiv.download.DownloadTemplateValues
 import ceui.pixiv.ui.theme.ShaftThemeMode
 import ceui.pixiv.ui.theme.ShaftThemePreset
+import javax.swing.JFileChooser
 
 class SettingsScreen : Screen {
 
@@ -96,6 +102,7 @@ private enum class SettingsCategory(
     IMAGES("图片", "图片源与自定义图片代理", Icons.Default.Image),
     FEEDS("信息流布局", "作品流与小说流的列宽、列数和标题显示", Icons.Default.MenuBook),
     HISTORY("历史记录", "控制本地浏览历史的保存方式", Icons.Default.History),
+    DOWNLOAD("下载", "下载路径与文件名模板", Icons.Default.FileDownload),
     APPEARANCE("外观", "主题色与浅色、深色模式", Icons.Default.Palette),
     ACCOUNT("账号", "退出当前 Pixiv 账号", Icons.Default.Person),
 }
@@ -145,6 +152,7 @@ private class SettingsCategoryScreen(private val category: SettingsCategory) : S
                     SettingsCategory.IMAGES -> ImageSettings(screenModel)
                     SettingsCategory.FEEDS -> FeedLayoutSettings(screenModel)
                     SettingsCategory.HISTORY -> HistorySettings(screenModel)
+                    SettingsCategory.DOWNLOAD -> DownloadSettings(screenModel)
                     SettingsCategory.APPEARANCE -> AppearanceSettings(screenModel)
                     SettingsCategory.ACCOUNT -> AccountSettings(screenModel)
                 }
@@ -270,6 +278,117 @@ private fun ImageSettings(screenModel: SettingsScreenModel) {
 }
 
 @Composable
+private fun DownloadSettings(screenModel: SettingsScreenModel) {
+    val downloadRootPath by screenModel.downloadRootPathFlow.collectAsState()
+    val illustTemplate by screenModel.illustFileNameTemplateFlow.collectAsState()
+    val ugoiraTemplate by screenModel.ugoiraFileNameTemplateFlow.collectAsState()
+    val novelTemplate by screenModel.novelFileNameTemplateFlow.collectAsState()
+
+    Text("下载路径", style = MaterialTheme.typography.titleMedium)
+    Text(
+        "所有下载文件默认保存在该目录下，模板中的路径相对此目录",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = downloadRootPath,
+            onValueChange = screenModel::setDownloadRootPath,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+        )
+        Spacer(Modifier.width(8.dp))
+        Button(onClick = {
+            chooseDownloadDirectory(downloadRootPath, screenModel::setDownloadRootPath)
+        }) {
+            Text("选择…")
+        }
+    }
+
+    TemplateSetting(
+        title = "插画文件名模板",
+        template = illustTemplate,
+        onTemplateChange = screenModel::setIllustFileNameTemplate,
+        preview = renderTemplatePreview(illustTemplate, page = " p2", ext = ".jpg"),
+    )
+    TemplateSetting(
+        title = "动图文件名模板",
+        template = ugoiraTemplate,
+        onTemplateChange = screenModel::setUgoiraFileNameTemplate,
+        preview = renderTemplatePreview(ugoiraTemplate, page = "", ext = ".gif"),
+    )
+    TemplateSetting(
+        title = "小说文件名模板",
+        template = novelTemplate,
+        onTemplateChange = screenModel::setNovelFileNameTemplate,
+        preview = renderTemplatePreview(novelTemplate, page = "", ext = ".txt"),
+    )
+}
+
+@Composable
+private fun TemplateSetting(
+    title: String,
+    template: String,
+    onTemplateChange: (String) -> Unit,
+    preview: String,
+) {
+    Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+    Text(
+        "相对下载根目录，不要以 / 开头",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    OutlinedTextField(
+        value = template,
+        onValueChange = onTemplateChange,
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+    )
+    Text(
+        "可用变量：{title} {id} {author} {author_id} {page} {ext} {series} {series_order} {chapters}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        "预览：$preview",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+/** 用示例值渲染模板，供设置页实时预览文件名 */
+private fun renderTemplatePreview(template: String, page: String, ext: String): String {
+    val values = DownloadTemplateValues(
+        title = "示例标题",
+        id = 12345678L,
+        author = "示例作者",
+        authorId = 1000L,
+        page = page,
+        ext = ext,
+        series = "示例系列",
+        seriesOrder = "3",
+        chapters = "12",
+    )
+    return DownloadTemplate.renderPath(
+        template = template,
+        values = values,
+        autoPageSuffix = page,
+        ext = ext,
+    )
+}
+
+private fun chooseDownloadDirectory(initialPath: String, onChosen: (String) -> Unit) {
+    val chooser = JFileChooser(initialPath).apply {
+        fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+        dialogTitle = "选择下载目录"
+        isAcceptAllFileFilterUsed = false
+    }
+    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+        chooser.selectedFile?.absolutePath?.let(onChosen)
+    }
+}
+
+@Composable
 private fun FeedLayoutSettings(screenModel: SettingsScreenModel) {
     Text("作品流", style = MaterialTheme.typography.titleMedium)
     Text("推荐、漫画、最新三页共用这一组参数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -350,6 +469,7 @@ private fun SettingChips(
 
 @Composable
 private fun AccountSettings(screenModel: SettingsScreenModel) {
+    val isShowR18 by screenModel.isShowR18Flow.collectAsState()
     Text("账号", style = MaterialTheme.typography.titleMedium)
     Text("退出后需要重新通过 Pixiv OAuth（授权登录）登录。", style = MaterialTheme.typography.bodyMedium)
     Button(
@@ -358,6 +478,12 @@ private fun AccountSettings(screenModel: SettingsScreenModel) {
     ) {
         Text("退出登录")
     }
+    SettingSwitch(
+        title = "显示 R18 内容",
+        subtitle = "",
+        checked = isShowR18,
+        onCheckedChange = screenModel::setIsShowR18,
+    )
 }
 
 @Composable

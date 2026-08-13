@@ -10,6 +10,10 @@ import ceui.loxia.NovelResponse
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.util.isR18
+import ceui.pixiv.ui.util.observeR18Toggle
+import ceui.pixiv.ui.util.visibleNovels
+import ceui.pixiv.ui.util.visibleItems
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +67,7 @@ class RecommendScreenModel : ScreenModel {
             launch { loadNovel(showLoading = true) }
             launch { loadWalk(showLoading = true) }
         }
+        observeR18Toggle(::republishIfLoaded)
     }
 
     // --- Load functions ---
@@ -72,7 +77,7 @@ class RecommendScreenModel : ScreenModel {
         try {
             val resp = client.appApi.getHomeData("illust")
             illustPager.refresh(resp)
-            _illustState.value = UiState.Success(illustPager.items.value)
+            _illustState.value = UiState.Success(visibleItems(illustPager.items.value))
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (_illustState.value !is UiState.Success)
@@ -85,7 +90,7 @@ class RecommendScreenModel : ScreenModel {
         try {
             val resp = client.appApi.getHomeData("manga")
             mangaPager.refresh(resp)
-            _mangaState.value = UiState.Success(mangaPager.items.value)
+            _mangaState.value = UiState.Success(visibleItems(mangaPager.items.value))
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (_mangaState.value !is UiState.Success)
@@ -111,7 +116,7 @@ class RecommendScreenModel : ScreenModel {
         try {
             val resp = client.appApi.getWalkthroughWorks()
             walkPager.refresh(resp)
-            _walkState.value = UiState.Success(walkPager.items.value)
+            _walkState.value = UiState.Success(visibleItems(walkPager.items.value))
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (_walkState.value !is UiState.Success)
@@ -155,30 +160,16 @@ class RecommendScreenModel : ScreenModel {
     fun loadMoreWalk() = loadMore(walkPager, _walkState, walkLoadingMore)
 
     fun toggleNovelBookmark(novel: Novel) {
-        if (!novelBookmarksInFlight.add(novel.id)) return
-
-        val wasBookmarked = novel.is_bookmarked == true
-        updateNovelBookmark(novel.id, !wasBookmarked)
-        screenModelScope.launch {
-            try {
-                if (wasBookmarked) {
-                    client.appApi.removeNovelBookmark(novel.id)
-                } else {
-                    client.appApi.addNovelBookmark(novel.id, "public")
-                }
-            } catch (e: CancellationException) {
-                updateNovelBookmark(novel.id, wasBookmarked)
-                throw e
-            } catch (_: Exception) {
-                // Restore the visible state if the server rejected the operation.
-                updateNovelBookmark(novel.id, wasBookmarked)
-            } finally {
-                novelBookmarksInFlight.remove(novel.id)
-            }
-        }
+        ceui.pixiv.ui.util.toggleNovelBookmark(
+            scope = screenModelScope,
+            client = client,
+            novel = novel,
+            inFlight = novelBookmarksInFlight,
+            updateLocal = ::updateNovelBookmark,
+        )
     }
 
-    private fun visibleNovels(): List<Novel> = novelPager.items.value.filter { it.visible != false }
+    private fun visibleNovels(): List<Novel> = visibleNovels(novelPager.items.value)
 
     private fun updateNovelBookmark(novelId: Long, isBookmarked: Boolean) {
         novelPager.updateItems { novels ->
@@ -187,6 +178,22 @@ class RecommendScreenModel : ScreenModel {
             }
         }
         _novelState.value = UiState.Success(visibleNovels())
+    }
+
+    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    private fun republishIfLoaded() {
+        if (_illustState.value is UiState.Success) {
+            _illustState.value = UiState.Success(visibleItems(illustPager.items.value))
+        }
+        if (_mangaState.value is UiState.Success) {
+            _mangaState.value = UiState.Success(visibleItems(mangaPager.items.value))
+        }
+        if (_novelState.value is UiState.Success) {
+            _novelState.value = UiState.Success(visibleNovels())
+        }
+        if (_walkState.value is UiState.Success) {
+            _walkState.value = UiState.Success(visibleItems(walkPager.items.value))
+        }
     }
 
     private fun <T : ceui.loxia.KListShow<Item>, Item : Any> loadMore(
@@ -198,7 +205,7 @@ class RecommendScreenModel : ScreenModel {
         screenModelScope.launch {
             try {
                 pager.loadMore()
-                state.value = UiState.Success(pager.items.value)
+                state.value = UiState.Success(visibleItems(pager.items.value))
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* keep existing items */ }
             finally { loadingLock.set(false) }

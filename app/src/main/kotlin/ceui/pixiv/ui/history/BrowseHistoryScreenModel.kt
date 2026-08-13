@@ -8,6 +8,9 @@ import ceui.loxia.Novel
 import ceui.loxia.User
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.store.BrowseHistoryItem
+import ceui.pixiv.store.Database
+import ceui.pixiv.store.SettingsStore
+import ceui.pixiv.ui.util.isR18
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,9 +52,11 @@ data class BrowseHistoryBackupEntry(
     val viewedAt: Long,
 )
 
-class BrowseHistoryScreenModel : ScreenModel {
+class BrowseHistoryScreenModel(
+    private val database: Database = AppContainer.database,
+    private val settingsStore: SettingsStore = AppContainer.settingsStore,
+) : ScreenModel {
 
-    private val database = AppContainer.database
     private val store = database.browseHistory
     private val gson = Gson()
 
@@ -81,6 +86,10 @@ class BrowseHistoryScreenModel : ScreenModel {
 
     init {
         loadFirst()
+        // R18 开关在设置页切换后，已加载的历史条目需要即时重新过滤
+        screenModelScope.launch {
+            settingsStore.isShowR18Flow.collect { loadFirst() }
+        }
     }
 
     fun selectTab(tab: BrowseHistoryTab) {
@@ -100,18 +109,28 @@ class BrowseHistoryScreenModel : ScreenModel {
         val generation = ++loadGeneration
         screenModelScope.launch {
             _isLoading.value = true
-            val loaded = withContext(Dispatchers.IO) {
-                store.list(
-                    contentType = _tab.value.contentType,
-                    query = _query.value,
-                    limit = PAGE_SIZE,
-                    offset = 0L,
-                )
+            // R18 开关关闭时过滤可能使整页条目都不可见：跳过全空页直到有可见条目
+            // 或没有更多，否则空列表 + hasMore=true 会因没有内容可滚动而永远翻不到下一页
+            var currentOffset = 0L
+            while (true) {
+                val loaded = withContext(Dispatchers.IO) {
+                    store.list(
+                        contentType = _tab.value.contentType,
+                        query = _query.value,
+                        limit = PAGE_SIZE,
+                        offset = currentOffset,
+                    )
+                }
+                if (generation != loadGeneration) return@launch
+                val visible = loaded.mapNotNull(::toDisplay)
+                currentOffset += loaded.size
+                if (visible.isNotEmpty() || loaded.size < PAGE_SIZE.toInt()) {
+                    offset = currentOffset
+                    _hasMore.value = loaded.size == PAGE_SIZE.toInt()
+                    _items.value = visible
+                    break
+                }
             }
-            if (generation != loadGeneration) return@launch
-            offset = loaded.size.toLong()
-            _hasMore.value = loaded.size == PAGE_SIZE.toInt()
-            _items.value = loaded.mapNotNull(::toDisplay)
             _selectedKeys.value = emptySet()
             _isLoading.value = false
         }
@@ -122,18 +141,27 @@ class BrowseHistoryScreenModel : ScreenModel {
         val generation = loadGeneration
         screenModelScope.launch {
             _isLoading.value = true
-            val loaded = withContext(Dispatchers.IO) {
-                store.list(
-                    contentType = _tab.value.contentType,
-                    query = _query.value,
-                    limit = PAGE_SIZE,
-                    offset = offset,
-                )
+            var currentOffset = offset
+            // 同 loadFirst：整页被 R18 过滤时继续拉下一页，直到有可见条目或没有更多
+            while (true) {
+                val loaded = withContext(Dispatchers.IO) {
+                    store.list(
+                        contentType = _tab.value.contentType,
+                        query = _query.value,
+                        limit = PAGE_SIZE,
+                        offset = currentOffset,
+                    )
+                }
+                if (generation != loadGeneration) return@launch
+                val visible = loaded.mapNotNull(::toDisplay)
+                currentOffset += loaded.size
+                _items.value = _items.value + visible
+                if (visible.isNotEmpty() || loaded.size < PAGE_SIZE.toInt()) {
+                    offset = currentOffset
+                    _hasMore.value = loaded.size == PAGE_SIZE.toInt()
+                    break
+                }
             }
-            if (generation != loadGeneration) return@launch
-            offset += loaded.size
-            _hasMore.value = loaded.size == PAGE_SIZE.toInt()
-            _items.value = _items.value + loaded.mapNotNull(::toDisplay)
             _isLoading.value = false
         }
     }
@@ -237,10 +265,21 @@ class BrowseHistoryScreenModel : ScreenModel {
 
     private fun toDisplay(item: BrowseHistoryItem): BrowseHistoryDisplay? = when (item.contentType) {
         BrowseHistoryTab.ILLUST.contentType -> runCatching {
-            BrowseHistoryDisplay(item = item, illust = gson.fromJson(item.payloadJson, Illust::class.java))
+            val illust = gson.fromJson(item.payloadJson, Illust::class.java)
+            // 与「我的」页历史 tab 一致：开关打开时展示 R18，关闭时过滤
+            if (!settingsStore.isShowR18 && isR18(illust)) {
+                null
+            } else {
+                BrowseHistoryDisplay(item = item, illust = illust)
+            }
         }.getOrNull()
         BrowseHistoryTab.NOVEL.contentType -> runCatching {
-            BrowseHistoryDisplay(item = item, novel = gson.fromJson(item.payloadJson, Novel::class.java))
+            val novel = gson.fromJson(item.payloadJson, Novel::class.java)
+            if (!settingsStore.isShowR18 && isR18(novel)) {
+                null
+            } else {
+                BrowseHistoryDisplay(item = item, novel = novel)
+            }
         }.getOrNull()
         BrowseHistoryTab.USER.contentType -> runCatching {
             BrowseHistoryDisplay(item = item, user = gson.fromJson(item.payloadJson, User::class.java))

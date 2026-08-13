@@ -14,6 +14,7 @@ import ceui.pixiv.store.Search_table
 import ceui.pixiv.ui.search.v3.SearchOptionsResponse
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.util.observeR18Toggle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -120,6 +121,7 @@ class SearchScreenModel(
         } else {
             readClipboardSuggestion()
         }
+        observeR18Toggle(::republishIfLoaded)
     }
 
     fun selectTab(tab: SearchTab) {
@@ -305,25 +307,13 @@ class SearchScreenModel(
     }
 
     fun toggleNovelBookmark(novel: Novel) {
-        if (!novelBookmarksInFlight.add(novel.id)) return
-        val wasBookmarked = novel.is_bookmarked == true
-        updateNovelBookmark(novel.id, !wasBookmarked)
-        screenModelScope.launch {
-            try {
-                if (wasBookmarked) {
-                    client.appApi.removeNovelBookmark(novel.id)
-                } else {
-                    client.appApi.addNovelBookmark(novel.id, "public")
-                }
-            } catch (e: CancellationException) {
-                updateNovelBookmark(novel.id, wasBookmarked)
-                throw e
-            } catch (_: Exception) {
-                updateNovelBookmark(novel.id, wasBookmarked)
-            } finally {
-                novelBookmarksInFlight.remove(novel.id)
-            }
-        }
+        ceui.pixiv.ui.util.toggleNovelBookmark(
+            scope = screenModelScope,
+            client = client,
+            novel = novel,
+            inFlight = novelBookmarksInFlight,
+            updateLocal = ::updateNovelBookmark,
+        )
     }
 
     fun dismissClipboardSuggestion() {
@@ -485,7 +475,8 @@ class SearchScreenModel(
     }
 
     private fun visibleIllusts(items: List<Illust>, filter: SearchFilter): List<Illust> = items.filter { illust ->
-        when (filter.r18Mode) {
+        val r18Mode = effectiveR18Mode(filter)
+        when (r18Mode) {
             SearchR18Mode.All -> true
             SearchR18Mode.SafeOnly -> (illust.x_restrict ?: 0) <= 0
             SearchR18Mode.R18Only -> (illust.x_restrict ?: 0) > 0
@@ -497,7 +488,7 @@ class SearchScreenModel(
     }
 
     private fun visibleNovels(items: List<Novel>, filter: SearchFilter): List<Novel> = items.filter { novel ->
-        (novel.visible != false) && when (filter.r18Mode) {
+        (novel.visible != false) && when (effectiveR18Mode(filter)) {
             SearchR18Mode.All -> true
             SearchR18Mode.SafeOnly -> (novel.x_restrict ?: 0) <= 0
             SearchR18Mode.R18Only -> (novel.x_restrict ?: 0) > 0
@@ -507,6 +498,10 @@ class SearchScreenModel(
             SearchAiMode.OnlyAi -> novel.novel_ai_type == 2
         }
     }
+
+    /** R18 全局开关关闭时强制按全年龄过滤（用户在界面上看不到也选不到 R18） */
+    private fun effectiveR18Mode(filter: SearchFilter): SearchR18Mode =
+        if (AppContainer.settingsStore.isShowR18) filter.r18Mode else SearchR18Mode.SafeOnly
 
     private suspend fun loadSearchOptions(
         word: String,
@@ -668,6 +663,16 @@ class SearchScreenModel(
             }
         }
         setState(SearchTab.Novel, UiState.Success(visibleNovels(novelPager.items.value, _novelFilter.value)))
+    }
+
+    /** R18 开关变化时重新过滤已加载的搜索结果；effectiveR18Mode 会按当前开关重算 */
+    private fun republishIfLoaded() {
+        if (_illustState.value is UiState.Success) {
+            setState(SearchTab.Illust, UiState.Success(visibleIllusts(illustPager.items.value, _illustFilter.value)))
+        }
+        if (_novelState.value is UiState.Success) {
+            setState(SearchTab.Novel, UiState.Success(visibleNovels(novelPager.items.value, _novelFilter.value)))
+        }
     }
 
     private suspend fun saveSearchHistory(word: String) {

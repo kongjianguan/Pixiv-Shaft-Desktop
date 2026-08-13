@@ -21,6 +21,7 @@ import java.awt.event.KeyEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.CurrentScreen
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.platform.AppMenu
 import ceui.pixiv.platform.TrayManager
 import ceui.pixiv.platform.WindowBackgroundBridge
 import ceui.pixiv.ui.auth.AuthState
@@ -30,6 +31,7 @@ import ceui.pixiv.ui.screen.download.DownloadScreen
 import ceui.pixiv.ui.history.BrowseHistoryScreen
 import ceui.pixiv.ui.screen.r18.R18Screen
 import ceui.pixiv.ui.screen.settings.SettingsScreen
+import ceui.pixiv.ui.screen.pixivision.PixivisionScreen
 import ceui.pixiv.ui.theme.ShaftTheme
 
 // Global ESC signal — incremented by an AWT KeyEventDispatcher. Compose UI observes
@@ -43,6 +45,7 @@ internal enum class MainNavigationTarget {
     DISCOVER,
     SEARCH,
     PROFILE,
+    DYNAMIC,
     HISTORY,
 }
 
@@ -52,6 +55,7 @@ internal val mainSettingsRequest = mutableStateOf(0)
 internal val mainDownloadsRequest = mutableStateOf(0)
 internal val mainHistoryRequest = mutableStateOf(0)
 internal val mainR18Request = mutableStateOf(0)
+internal val mainPixivisionRequest = mutableStateOf(0)
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -102,7 +106,43 @@ fun main() {
         ) {
             val authState by AppContainer.authState.collectAsState()
 
+            // 登出时清空所有悬挂请求：AppMenu 的「我的」「设置」菜单项在登出后仍留在
+            // 系统菜单栏（不随 Compose 组合销毁），点击会留下请求；不清空则下次登录时
+            // MainScreen 重新组合会意外消费（自动跳个人页/弹出覆盖页）
+            LaunchedEffect(authState) {
+                if (authState is AuthState.LoggedOut) {
+                    mainNavigationRequest.value = null
+                    mainSettingsRequest.value = 0
+                    mainDownloadsRequest.value = 0
+                    mainHistoryRequest.value = 0
+                    mainR18Request.value = 0
+                    mainPixivisionRequest.value = 0
+                }
+            }
+
             if (authState is AuthState.LoggedIn) {
+                // 「我的」「设置」已移入系统应用菜单（AppMenu），此处只负责安装。
+                // 首次安装可能赶上应用菜单尚未就绪（mainMenu 为 nil），失败后每秒重试，最多 10 次
+                LaunchedEffect(Unit) {
+                    repeat(10) {
+                        AppMenu.install(
+                            // AppMenu 在登出后仍保留在系统菜单栏；回调读取实时登录态，避免
+                            // 登出期间的点击成为下次登录后才被消费的悬挂导航请求。
+                            onProfile = {
+                                if (AppContainer.authState.value is AuthState.LoggedIn) {
+                                    mainNavigationRequest.value = MainNavigationTarget.PROFILE
+                                }
+                            },
+                            onSettings = {
+                                if (AppContainer.authState.value is AuthState.LoggedIn) {
+                                    mainSettingsRequest.value++
+                                }
+                            },
+                        )
+                        if (AppMenu.isInstalled) return@LaunchedEffect
+                        delay(1_000L)
+                    }
+                }
                 // MenuBar（菜单栏）必须位于 Window 的窗口作用域中，才能注册到 macOS 菜单栏。
                 MenuBar {
                     Menu("前往", mnemonic = 'G') {
@@ -122,25 +162,25 @@ fun main() {
                             shortcut = KeyShortcut(Key.Three, meta = true),
                         )
                         Item(
-                            "浏览记录",
-                            onClick = { mainHistoryRequest.value++ },
+                            "动态",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.DYNAMIC },
                             shortcut = KeyShortcut(Key.Five, meta = true),
                         )
                         Item(
-                            "R18 排行",
-                            onClick = { mainR18Request.value++ },
+                            "浏览记录",
+                            onClick = { mainHistoryRequest.value++ },
+                            shortcut = KeyShortcut(Key.Six, meta = true),
                         )
-                    }
-
-                    Menu("账户", mnemonic = 'U') {
+                        val showR18 by AppContainer.settingsStore.isShowR18Flow.collectAsState()
+                        if (showR18) {
+                            Item(
+                                "R18 排行",
+                                onClick = { mainR18Request.value++ },
+                            )
+                        }
                         Item(
-                            "我的",
-                            onClick = { mainNavigationRequest.value = MainNavigationTarget.PROFILE },
-                            shortcut = KeyShortcut(Key.Four, meta = true),
-                        )
-                        Item(
-                            "设置",
-                            onClick = { mainSettingsRequest.value++ },
+                            "Pixivision",
+                            onClick = { mainPixivisionRequest.value++ },
                         )
                     }
 
@@ -224,7 +264,28 @@ fun main() {
                                     mainR18Request.value = 0
                                 }
                             }
+                            val pixivisionRequest = mainPixivisionRequest.value
+                            LaunchedEffect(pixivisionRequest) {
+                                if (pixivisionRequest > 0) {
+                                    if (rootNavigator.lastItem !is PixivisionScreen) {
+                                        rootNavigator.push(PixivisionScreen())
+                                    }
+                                    mainPixivisionRequest.value = 0
+                                }
+                            }
                             CurrentScreen()
+                            // Tab 导航请求（推荐/发现/搜索/我的/动态）由 MainScreen 内部的
+                            // LaunchedEffect 消费；但 MainScreen 不在栈顶时（如设置页、详情页
+                            // 覆盖其上）该组合不活跃，请求会一直挂着，直到用户手动返回。
+                            // 这里先弹回 MainScreen，让其重新组合后消费该请求。
+                            // 有意权衡：这会丢弃当前覆盖页（详情页/设置页）的返回栈，按快捷键
+                            // 切 Tab 无法用 ESC 回到原页面；换取的是请求永不悬挂。
+                            val navRequest = mainNavigationRequest.value
+                            LaunchedEffect(navRequest) {
+                                if (navRequest != null && rootNavigator.canPop) {
+                                    rootNavigator.popUntilRoot()
+                                }
+                            }
                         }
                     }
                 }

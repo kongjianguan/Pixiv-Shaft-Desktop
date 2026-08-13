@@ -2,6 +2,7 @@ package ceui.pixiv.ui.screen.settings
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.ui.screen.comment.CommentsController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,16 @@ class SettingsScreenModel : ScreenModel {
     val themeModeFlow = settingsStore.themeModeFlow
     val saveBrowseHistory: Boolean get() = settingsStore.saveBrowseHistory
     val saveBrowseHistoryFlow = settingsStore.saveBrowseHistoryFlow
+    val isShowR18: Boolean get() = settingsStore.isShowR18
+    val isShowR18Flow = settingsStore.isShowR18Flow
+    val downloadRootPath: String get() = settingsStore.downloadRootPath
+    val downloadRootPathFlow = settingsStore.downloadRootPathFlow
+    val illustFileNameTemplate: String get() = settingsStore.illustFileNameTemplate
+    val illustFileNameTemplateFlow = settingsStore.illustFileNameTemplateFlow
+    val ugoiraFileNameTemplate: String get() = settingsStore.ugoiraFileNameTemplate
+    val ugoiraFileNameTemplateFlow = settingsStore.ugoiraFileNameTemplateFlow
+    val novelFileNameTemplate: String get() = settingsStore.novelFileNameTemplate
+    val novelFileNameTemplateFlow = settingsStore.novelFileNameTemplateFlow
 
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
@@ -91,8 +102,29 @@ class SettingsScreenModel : ScreenModel {
         settingsStore.setSaveBrowseHistory(value)
     }
 
+    fun setIsShowR18(value: Boolean) {
+        settingsStore.setIsShowR18(value)
+    }
+
+    fun setDownloadRootPath(value: String) {
+        settingsStore.setDownloadRootPath(value)
+    }
+
+    fun setIllustFileNameTemplate(value: String) {
+        settingsStore.setIllustFileNameTemplate(value)
+    }
+
+    fun setUgoiraFileNameTemplate(value: String) {
+        settingsStore.setUgoiraFileNameTemplate(value)
+    }
+
+    fun setNovelFileNameTemplate(value: String) {
+        settingsStore.setNovelFileNameTemplate(value)
+    }
+
     fun logout() {
         tokenStore.clear()
+        CommentsController.clearCaches()
         AppContainer.updateAuthState()
     }
 }

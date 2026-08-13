@@ -1,6 +1,7 @@
 package ceui.pixiv.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DynamicFeed
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -23,6 +24,7 @@ import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import ceui.pixiv.ui.screen.discover.DiscoverScreen
+import ceui.pixiv.ui.screen.dynamic.DynamicScreen
 import ceui.pixiv.ui.screen.profile.ProfileScreen
 import ceui.pixiv.ui.screen.recommend.RecommendScreen
 import ceui.pixiv.ui.screen.search.SearchScreen
@@ -85,6 +87,7 @@ class MainScreen : Screen {
                         ceui.pixiv.MainNavigationTarget.DISCOVER -> selectTab(DiscoverTab)
                         ceui.pixiv.MainNavigationTarget.SEARCH -> selectTab(SearchTab)
                         ceui.pixiv.MainNavigationTarget.PROFILE -> selectTab(ProfileTab)
+                        ceui.pixiv.MainNavigationTarget.DYNAMIC -> selectTab(DynamicTab)
                         ceui.pixiv.MainNavigationTarget.HISTORY -> Unit
                         null -> Unit
                     }
@@ -144,5 +147,15 @@ object ProfileTab : Tab {
     @Composable
     override fun Content() {
         Navigator(ProfileScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
+    }
+}
+
+object DynamicTab : Tab {
+    override val options: TabOptions
+        @Composable get() = TabOptions(index = 4u, title = "动态", icon = rememberVectorPainter(Icons.Default.DynamicFeed))
+
+    @Composable
+    override fun Content() {
+        Navigator(DynamicScreen()) { nav -> EscBackNavigator(nav) { CurrentScreen() } }
     }
 }

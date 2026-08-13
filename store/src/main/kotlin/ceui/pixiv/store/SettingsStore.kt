@@ -4,6 +4,7 @@ import ceui.pixiv.net.abstractions.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.nio.file.Path
 
 class SettingsStore(
     private val kv: KvStore = PreferencesKv.forApp(),
@@ -53,6 +54,24 @@ class SettingsStore(
     private val _saveBrowseHistory = MutableStateFlow(
         kv.getBoolean("saveBrowseHistory", true)
     )
+    private val _isShowR18 = MutableStateFlow(
+        kv.getBoolean("isShowR18", false)
+    )
+    private val _downloadRootPath = MutableStateFlow(
+        kv.getString("downloadRootPath")?.takeIf { it.isNotBlank() } ?: defaultDownloadRootPath()
+    )
+    private val _illustFileNameTemplate = MutableStateFlow(
+        kv.getString("illustFileNameTemplate")?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_ILLUST_FILE_NAME_TEMPLATE
+    )
+    private val _ugoiraFileNameTemplate = MutableStateFlow(
+        kv.getString("ugoiraFileNameTemplate")?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_UGOIRA_FILE_NAME_TEMPLATE
+    )
+    private val _novelFileNameTemplate = MutableStateFlow(
+        kv.getString("novelFileNameTemplate")?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_NOVEL_FILE_NAME_TEMPLATE
+    )
 
     override val isDirectConnect: Boolean get() = kv.getBoolean("isDirectConnect", true)
     override val isUseSecureDns: Boolean get() = kv.getBoolean("isUseSecureDns", false)
@@ -90,6 +109,16 @@ class SettingsStore(
     val themeModeFlow: StateFlow<String> = _themeMode.asStateFlow()
     val saveBrowseHistory: Boolean get() = _saveBrowseHistory.value
     val saveBrowseHistoryFlow: StateFlow<Boolean> = _saveBrowseHistory.asStateFlow()
+    val isShowR18: Boolean get() = _isShowR18.value
+    val isShowR18Flow: StateFlow<Boolean> = _isShowR18.asStateFlow()
+    val downloadRootPath: String get() = _downloadRootPath.value
+    val downloadRootPathFlow: StateFlow<String> = _downloadRootPath.asStateFlow()
+    val illustFileNameTemplate: String get() = _illustFileNameTemplate.value
+    val illustFileNameTemplateFlow: StateFlow<String> = _illustFileNameTemplate.asStateFlow()
+    val ugoiraFileNameTemplate: String get() = _ugoiraFileNameTemplate.value
+    val ugoiraFileNameTemplateFlow: StateFlow<String> = _ugoiraFileNameTemplate.asStateFlow()
+    val novelFileNameTemplate: String get() = _novelFileNameTemplate.value
+    val novelFileNameTemplateFlow: StateFlow<String> = _novelFileNameTemplate.asStateFlow()
     val searchIllustTarget: String
         get() = validSearchTarget(kv.getString(SEARCH_ILLUST_TARGET_KEY))
     val searchNovelTarget: String
@@ -189,6 +218,35 @@ class SettingsStore(
         _saveBrowseHistory.value = value
     }
 
+    fun setIsShowR18(value: Boolean) {
+        kv.putBoolean("isShowR18", value)
+        _isShowR18.value = value
+    }
+
+    fun setDownloadRootPath(value: String) {
+        val cleaned = value.trim().ifBlank { defaultDownloadRootPath() }
+        kv.putString("downloadRootPath", cleaned)
+        _downloadRootPath.value = cleaned
+    }
+
+    fun setIllustFileNameTemplate(value: String) {
+        val cleaned = value.trim().ifBlank { DEFAULT_ILLUST_FILE_NAME_TEMPLATE }
+        kv.putString("illustFileNameTemplate", cleaned)
+        _illustFileNameTemplate.value = cleaned
+    }
+
+    fun setUgoiraFileNameTemplate(value: String) {
+        val cleaned = value.trim().ifBlank { DEFAULT_UGOIRA_FILE_NAME_TEMPLATE }
+        kv.putString("ugoiraFileNameTemplate", cleaned)
+        _ugoiraFileNameTemplate.value = cleaned
+    }
+
+    fun setNovelFileNameTemplate(value: String) {
+        val cleaned = value.trim().ifBlank { DEFAULT_NOVEL_FILE_NAME_TEMPLATE }
+        kv.putString("novelFileNameTemplate", cleaned)
+        _novelFileNameTemplate.value = cleaned
+    }
+
     fun setSearchIllustTarget(value: String) {
         kv.putString(SEARCH_ILLUST_TARGET_KEY, validSearchTarget(value))
     }
@@ -216,6 +274,12 @@ class SettingsStore(
         )
         const val SEARCH_ILLUST_TARGET_KEY = "searchIllustTarget"
         const val SEARCH_NOVEL_TARGET_KEY = "searchNovelTarget"
+        const val DEFAULT_ILLUST_FILE_NAME_TEMPLATE = "Illusts/{author}/{title} {id}{page}"
+        const val DEFAULT_UGOIRA_FILE_NAME_TEMPLATE = "Ugoira/{author}/{title} {id}"
+        const val DEFAULT_NOVEL_FILE_NAME_TEMPLATE = "Novels/{series}/{series_order}_{title}_{id}"
+
+        fun defaultDownloadRootPath(): String =
+            Path.of(System.getProperty("user.home"), "Pictures", "PixivShaft").toString()
 
         fun validSearchTarget(value: String?): String =
             value?.takeIf { it in SEARCH_TARGETS } ?: "partial_match_for_tags"

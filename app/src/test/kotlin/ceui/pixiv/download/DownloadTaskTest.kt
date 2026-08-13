@@ -19,6 +19,8 @@ class DownloadTaskTest {
         assertEquals("单页作品", task().displayPage)
         assertEquals("第 2 / 3 页", task(pageIndex = 1, pageCount = 3).displayPage)
         assertEquals("动图 GIF", task(kind = DownloadTaskKind.UGOIRA, pageCount = 9).displayPage)
+        assertEquals("小说", task(kind = DownloadTaskKind.NOVEL).displayPage)
+        assertEquals("系列合并", task(kind = DownloadTaskKind.NOVEL_SERIES).displayPage)
     }
 
     @Test

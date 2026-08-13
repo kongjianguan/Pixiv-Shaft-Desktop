@@ -44,9 +44,9 @@ import java.time.OffsetDateTime
 fun NovelCard(
     novel: Novel,
     onClick: (Long) -> Unit,
-    onUserClick: (Long) -> Unit,
+    onUserClick: ((Long) -> Unit)? = null,
     onSeriesClick: ((Long) -> Unit)? = null,
-    onToggleBookmark: (Novel) -> Unit,
+    onToggleBookmark: ((Novel) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val titleMaxLines by AppContainer.settingsStore.novelTitleMaxLinesFlow.collectAsState()
@@ -121,7 +121,7 @@ fun NovelCard(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f).then(
-                            if (userId > 0) Modifier.clickable { onUserClick(userId) } else Modifier
+                            if (onUserClick != null && userId > 0) Modifier.clickable { onUserClick(userId) } else Modifier
                         )
                     ) {
                         UserAvatar(
@@ -138,12 +138,14 @@ fun NovelCard(
                             modifier = Modifier.padding(start = 6.dp)
                         )
                     }
-                    IconButton(onClick = { onToggleBookmark(novel) }, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = if (novel.is_bookmarked == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = "Bookmark novel",
-                            tint = if (novel.is_bookmarked == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    if (onToggleBookmark != null) {
+                        IconButton(onClick = { onToggleBookmark(novel) }, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                imageVector = if (novel.is_bookmarked == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "Bookmark novel",
+                                tint = if (novel.is_bookmarked == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 Text(

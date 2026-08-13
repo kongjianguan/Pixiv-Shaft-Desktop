@@ -2,23 +2,22 @@ package ceui.pixiv.ui.screen.detail
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import ceui.loxia.GifInfoResponse
-import ceui.loxia.Comment
-import ceui.loxia.CommentResponse
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
+import ceui.loxia.ObjectType
 import ceui.loxia.UgoiraMetaData
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.download.DownloadManager
 import ceui.pixiv.ui.history.BrowseHistoryRecorder
+import ceui.pixiv.ui.screen.comment.CommentsController
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.util.observeR18Toggle
+import ceui.pixiv.ui.util.visibleItems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
 
 class IllustDetailScreenModel(
@@ -28,33 +27,20 @@ class IllustDetailScreenModel(
     private val client = AppContainer.client
     private val downloadManager: DownloadManager = AppContainer.downloadManager
     private val relatedPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
-    private val commentsPager = Pager<CommentResponse, Comment>(client, CommentResponse::class.java)
-    private val commentsOperationMutex = Mutex()
-    private val locallyAddedComments = mutableListOf<Comment>()
+
+    /** 评论逻辑全部收口在 CommentsController（插画/小说/全屏页三处复用） */
+    val commentsController = CommentsController(
+        client = client,
+        workType = ObjectType.ILLUST,
+        workId = illustId,
+        scope = screenModelScope,
+    )
 
     private val _illustState = MutableStateFlow<UiState<Illust>>(UiState.Loading)
     val illustState: StateFlow<UiState<Illust>> = _illustState.asStateFlow()
 
     private val _relatedState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
     val relatedState: StateFlow<UiState<List<Illust>>> = _relatedState.asStateFlow()
-
-    private val _commentsState = MutableStateFlow<UiState<List<Comment>>>(UiState.Loading)
-    val commentsState: StateFlow<UiState<List<Comment>>> = _commentsState.asStateFlow()
-
-    private val _commentsHasMore = MutableStateFlow(false)
-    val commentsHasMore: StateFlow<Boolean> = _commentsHasMore.asStateFlow()
-
-    private val _commentsLoadingMore = MutableStateFlow(false)
-    val commentsLoadingMore: StateFlow<Boolean> = _commentsLoadingMore.asStateFlow()
-
-    private val _commentDraft = MutableStateFlow("")
-    val commentDraft: StateFlow<String> = _commentDraft.asStateFlow()
-
-    private val _commentSubmitting = MutableStateFlow(false)
-    val commentSubmitting: StateFlow<Boolean> = _commentSubmitting.asStateFlow()
-
-    private val _commentError = MutableStateFlow<String?>(null)
-    val commentError: StateFlow<String?> = _commentError.asStateFlow()
 
     private val _ugoiraState = MutableStateFlow<UiState<UgoiraMetaData?>>(UiState.Loading)
     val ugoiraState: StateFlow<UiState<UgoiraMetaData?>> = _ugoiraState.asStateFlow()
@@ -69,7 +55,8 @@ class IllustDetailScreenModel(
     init {
         loadIllust()
         loadRelated()
-        loadComments()
+        commentsController.loadInitial()
+        observeR18Toggle(::republishIfLoaded)
     }
 
     private fun loadIllust() {
@@ -154,114 +141,25 @@ class IllustDetailScreenModel(
     fun enqueueUgoira(illust: Illust, metadata: UgoiraMetaData): Int =
         downloadManager.enqueueUgoira(illust, metadata)
 
-    fun updateCommentDraft(value: String) {
-        _commentDraft.value = value
-    }
-
-    fun retryComments() {
-        loadComments()
-    }
-
-    fun loadMoreComments() {
-        if (!_commentsHasMore.value || _commentsLoadingMore.value) return
-        screenModelScope.launch {
-            commentsOperationMutex.withLock {
-                if (!_commentsHasMore.value || _commentsLoadingMore.value) return@withLock
-                _commentsLoadingMore.value = true
-                _commentError.value = null
-                try {
-                    commentsPager.loadMore()
-                    commentsPager.updateItems { mergeComments(it) }
-                    _commentsHasMore.value = commentsPager.hasNext.value
-                    _commentsState.value = UiState.Success(commentsPager.items.value)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _commentError.value = e.message ?: "加载更多评论失败"
-                } finally {
-                    _commentsLoadingMore.value = false
-                }
-            }
-        }
-    }
-
-    fun submitComment() {
-        val draft = _commentDraft.value.trim()
-        if (draft.isEmpty() || _commentSubmitting.value) return
-
-        screenModelScope.launch {
-            commentsOperationMutex.withLock {
-                if (_commentsState.value is UiState.Loading || _commentSubmitting.value) return@withLock
-                _commentSubmitting.value = true
-                _commentError.value = null
-                try {
-                    val response = client.appApi.postIllustComment(illustId, draft)
-                    val comment = response.comment ?: throw IllegalStateException("服务器没有返回评论")
-                    locallyAddedComments.removeAll { it.id > 0L && it.id == comment.id }
-                    locallyAddedComments.add(comment)
-                    commentsPager.updateItems { mergeComments(it) }
-                    _commentsState.value = UiState.Success(commentsPager.items.value)
-                    _commentsHasMore.value = commentsPager.hasNext.value
-                    if (_commentDraft.value.trim() == draft) {
-                        _commentDraft.value = ""
-                    }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _commentError.value = e.message ?: "发表评论失败"
-                } finally {
-                    _commentSubmitting.value = false
-                }
-            }
-        }
-    }
-
-    private fun loadComments() {
-        screenModelScope.launch {
-            commentsOperationMutex.withLock {
-                _commentsState.value = UiState.Loading
-                _commentsHasMore.value = false
-                _commentError.value = null
-                try {
-                    val response = client.appApi.getIllustComments(illustId)
-                    commentsPager.refresh(response)
-                    commentsPager.updateItems { mergeComments(it) }
-                    _commentsHasMore.value = commentsPager.hasNext.value
-                    _commentsState.value = UiState.Success(commentsPager.items.value)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _commentsState.value = UiState.Error(e.message ?: "加载评论失败")
-                }
-            }
-        }
-    }
-
-    private fun mergeComments(items: List<Comment>): List<Comment> {
-        val seenIds = HashSet<Long>()
-        val deduplicated = items.filter { comment ->
-            comment.id <= 0L || seenIds.add(comment.id)
-        }
-        val existingIds = deduplicated.asSequence()
-            .map { it.id }
-            .filter { it > 0L }
-            .toSet()
-        val localOnly = locallyAddedComments.filter { it.id <= 0L || it.id !in existingIds }
-        return localOnly + deduplicated
-    }
-
     private fun loadRelated() {
         screenModelScope.launch {
             _relatedState.value = UiState.Loading
             try {
                 val resp = client.appApi.getRelatedIllusts(illustId)
                 relatedPager.refresh(resp)
-                _relatedState.value = UiState.Success(relatedPager.items.value)
+                _relatedState.value = UiState.Success(visibleItems(relatedPager.items.value))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _relatedState.value = UiState.Error(e.message ?: "Failed to load related")
             }
+        }
+    }
+
+    /** R18 开关变化时重新过滤「相关作品」（Pager 保留完整数据） */
+    private fun republishIfLoaded() {
+        if (_relatedState.value is UiState.Success) {
+            _relatedState.value = UiState.Success(visibleItems(relatedPager.items.value))
         }
     }
 }

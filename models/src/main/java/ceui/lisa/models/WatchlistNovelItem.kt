@@ -14,4 +14,5 @@ class WatchlistNovelItem : Serializable {
         }
     var latest_content_id: Int? = null
     var user: UserBean? = null
+    var x_restrict: Int? = null
 }

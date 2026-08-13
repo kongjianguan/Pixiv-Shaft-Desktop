@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -36,6 +37,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,9 +68,12 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.TagChip
 import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.screen.comment.CommentFullScreen
+import ceui.pixiv.ui.screen.comment.CommentsController
 import ceui.pixiv.ui.screen.search.SearchScreen
 import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.state.UiState
+import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import java.text.NumberFormat
 
@@ -77,16 +84,13 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
     override fun Content() {
         val screenModel = rememberScreenModel { NovelDetailScreenModel(novelId) }
         val state by screenModel.state.collectAsState()
-        val commentsState by screenModel.commentsState.collectAsState()
-        val commentsHasMore by screenModel.commentsHasMore.collectAsState()
-        val commentsLoadingMore by screenModel.commentsLoadingMore.collectAsState()
-        val commentDraft by screenModel.commentDraft.collectAsState()
-        val commentSubmitting by screenModel.commentSubmitting.collectAsState()
-        val commentError by screenModel.commentError.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val novel = (state as? UiState.Success)?.data
+        val snackbarHostState = remember { SnackbarHostState() }
+        val scope = rememberCoroutineScope()
 
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text("小说详情") },
@@ -96,6 +100,18 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                         }
                     },
                     actions = {
+                        if (novel != null) {
+                            IconButton(onClick = {
+                                if (screenModel.enqueueNovel(novel) > 0) {
+                                    scope.launch { snackbarHostState.showSnackbar("已加入下载队列") }
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.FileDownload,
+                                    contentDescription = "下载小说",
+                                )
+                            }
+                        }
                         if (novel?.is_bookmarked != null) {
                             IconButton(onClick = screenModel::toggleBookmark) {
                                 Icon(
@@ -130,17 +146,13 @@ class NovelDetailScreen(private val novelId: Long) : Screen {
                     onSeriesClick = { seriesId -> navigator.push(NovelSeriesScreen(seriesId)) },
                     onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
                     onToggleFollow = screenModel::toggleFollow,
-                    commentsState = commentsState,
-                    commentsHasMore = commentsHasMore,
-                    commentsLoadingMore = commentsLoadingMore,
-                    commentDraft = commentDraft,
-                    commentSubmitting = commentSubmitting,
-                    commentError = commentError,
-                    onCommentDraftChange = screenModel::updateCommentDraft,
-                    onSubmitComment = screenModel::submitComment,
-                    onLoadMoreComments = screenModel::loadMoreComments,
-                    onRetryComments = screenModel::retryComments,
+                    commentsController = screenModel.commentsController,
                     onCommentUserClick = { id -> navigator.push(UserDetailScreen(id)) },
+                    onOpenCommentFullScreen = {
+                        navigator.push(
+                            CommentFullScreen("novel", novelId, screenModel.commentsController)
+                        )
+                    },
                 )
             }
         }
@@ -157,17 +169,9 @@ private fun NovelDetailContent(
     onSeriesClick: (Long) -> Unit,
     onTagClick: (String) -> Unit,
     onToggleFollow: () -> Unit,
-    commentsState: UiState<List<ceui.loxia.Comment>>,
-    commentsHasMore: Boolean,
-    commentsLoadingMore: Boolean,
-    commentDraft: String,
-    commentSubmitting: Boolean,
-    commentError: String?,
-    onCommentDraftChange: (String) -> Unit,
-    onSubmitComment: () -> Unit,
-    onLoadMoreComments: () -> Unit,
-    onRetryComments: () -> Unit,
+    commentsController: CommentsController,
     onCommentUserClick: (Long) -> Unit,
+    onOpenCommentFullScreen: () -> Unit,
 ) {
     val numberFormat = remember { NumberFormat.getIntegerInstance() }
     val detailModifier = Modifier.fillMaxWidth().widthIn(max = 1040.dp)
@@ -215,17 +219,9 @@ private fun NovelDetailContent(
 
         item {
             CommentsSection(
-                state = commentsState,
-                draft = commentDraft,
-                hasMore = commentsHasMore,
-                isLoadingMore = commentsLoadingMore,
-                isSubmitting = commentSubmitting,
-                errorMessage = commentError,
-                onDraftChange = onCommentDraftChange,
-                onSubmit = onSubmitComment,
-                onLoadMore = onLoadMoreComments,
-                onRetry = onRetryComments,
+                controller = commentsController,
                 onUserClick = onCommentUserClick,
+                onOpenFullScreen = onOpenCommentFullScreen,
                 modifier = detailModifier,
                 title = "评论（${novel.total_comments ?: 0}）",
             )

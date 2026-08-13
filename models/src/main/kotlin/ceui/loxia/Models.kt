@@ -1,9 +1,12 @@
 package ceui.loxia
 
+import ceui.lisa.models.MarkedNovelItem
 import ceui.lisa.models.ModelObject
 import ceui.lisa.models.NovelBean
 import ceui.lisa.models.NovelDetail.NovelMarkerBean
 import ceui.lisa.models.ObjectSpec
+import ceui.lisa.models.WatchlistMangaItem
+import ceui.lisa.models.WatchlistNovelItem
 import java.io.Serializable
 
 
@@ -596,6 +599,10 @@ data class Stamp(
     val stamp_url: String? = null,
 )
 
+data class StampsResponse(
+    val stamps: List<Stamp> = listOf(),
+) : Serializable
+
 data class CommentResponse(
     val comments: List<Comment> = listOf(),
     val next_url: String? = null
@@ -911,3 +918,46 @@ data class UserDetailResponse(
     val profile_publicity: Map<String, Any>? = null,
     val workspace: Map<String, Any>? = null,
 ) : Serializable
+
+/** 收藏标签（/v1/user/bookmark-tags/illust|novel 的条目）。 */
+data class BookmarkTag(
+    val name: String = "",
+    val translated_name: String? = null,
+    val count: Long = 0,
+) : Serializable
+
+/** 收藏标签列表响应：bookmark_tags + next_url。 */
+data class BookmarkTagsResponse(
+    val bookmark_tags: List<BookmarkTag> = listOf(),
+    val next_url: String? = null,
+) : Serializable, KListShow<BookmarkTag> {
+    override val displayList: List<BookmarkTag> get() = bookmark_tags
+    override val nextPageUrl: String? get() = next_url
+}
+
+/** 小说标记（书签）列表响应：/v2/novel/markers → marked_novels + next_url。 */
+data class NovelMarkersResponse(
+    val marked_novels: List<MarkedNovelItem>? = null,
+    val next_url: String? = null,
+) : Serializable, KListShow<MarkedNovelItem> {
+    override val displayList: List<MarkedNovelItem> get() = marked_novels.orEmpty()
+    override val nextPageUrl: String? get() = next_url
+}
+
+/** 小说追更列表响应：/v1/watchlist/novel → series + next_url（字段名对照原 Shaft ListWatchlistNovel）。 */
+data class WatchlistNovelResponse(
+    val series: List<WatchlistNovelItem> = listOf(),
+    val next_url: String? = null,
+) : Serializable, KListShow<WatchlistNovelItem> {
+    override val displayList: List<WatchlistNovelItem> get() = series
+    override val nextPageUrl: String? get() = next_url
+}
+
+/** 漫画追更列表响应：/v1/watchlist/manga → series + next_url（字段名对照原 Shaft ListWatchlistManga）。 */
+data class WatchlistMangaResponse(
+    val series: List<WatchlistMangaItem> = listOf(),
+    val next_url: String? = null,
+) : Serializable, KListShow<WatchlistMangaItem> {
+    override val displayList: List<WatchlistMangaItem> get() = series
+    override val nextPageUrl: String? get() = next_url
+}

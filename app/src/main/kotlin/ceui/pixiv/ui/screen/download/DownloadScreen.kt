@@ -36,6 +36,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.download.DownloadStatus
 import ceui.pixiv.download.DownloadTask
+import ceui.pixiv.download.DownloadTaskKind
 import java.awt.Desktop
 import java.nio.file.Path
 
@@ -123,7 +124,7 @@ private fun DownloadTaskCard(task: DownloadTask) {
                 )
                 Spacer(Modifier.height(5.dp))
                 Text(
-                    text = "${formatBytes(task.bytesDownloaded)} / ${formatBytes(task.totalBytes)} · ${(progress * 100).toInt()}%",
+                    text = progressText(task, progress),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -207,6 +208,16 @@ private fun formatBytes(bytes: Long): String {
         index++
     }
     return if (index == 0) "${bytes} ${units[index]}" else "%.1f %s".format(value, units[index])
+}
+
+/** 系列合并的进度以「章」为单位（DownloadManager 按章节推进），其余任务按字节显示 */
+private fun progressText(task: DownloadTask, progress: Float): String {
+    val amount = if (task.kind == DownloadTaskKind.NOVEL_SERIES) {
+        "${task.bytesDownloaded} 章 / ${task.totalBytes} 章"
+    } else {
+        "${formatBytes(task.bytesDownloaded)} / ${formatBytes(task.totalBytes)}"
+    }
+    return "$amount · ${(progress * 100).toInt()}%"
 }
 
 private fun revealInFinder(task: DownloadTask) {

@@ -21,9 +21,8 @@ class RequestNonceTest {
     }
 
     @Test
-    fun `build default uses current time format`() {
+    fun `build output is consistent with forTime for the emitted time`() {
         val nonce = RequestNonce.build()
-        assertTrue(nonce.xClientTime.contains("T"))
-        assertTrue(nonce.xClientHash.length == 32)
+        assertEquals(RequestNonce.forTime(nonce.xClientTime).xClientHash, nonce.xClientHash)
     }
 }

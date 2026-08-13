@@ -79,6 +79,8 @@ object AppContainer {
         downloadManager = DownloadManager(
             client = imageClient,
             queue = DownloadQueueStore(database.queries.downloadQueueQueries),
+            appApi = client.appApi,
+            settingsStore = settingsStore,
         )
 
         updateAuthState()

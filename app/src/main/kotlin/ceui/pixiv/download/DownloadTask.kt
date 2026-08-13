@@ -5,6 +5,15 @@ import ceui.pixiv.store.DownloadTaskRecord
 enum class DownloadTaskKind {
     IMAGE,
     UGOIRA,
+    NOVEL,
+    /** 小说系列合并导出（TXT / MD） */
+    NOVEL_SERIES,
+}
+
+/** 小说系列合并导出的输出格式 */
+enum class NovelMergeFormat {
+    TXT,
+    MD,
 }
 
 enum class DownloadStatus {
@@ -40,10 +49,12 @@ data class DownloadTask(
         }
 
     val displayPage: String
-        get() = when {
-            kind == DownloadTaskKind.UGOIRA -> "动图 GIF"
-            pageCount > 1 -> "第 ${pageIndex + 1} / $pageCount 页"
-            else -> "单页作品"
+        get() = when (kind) {
+            DownloadTaskKind.UGOIRA -> "动图 GIF"
+            DownloadTaskKind.NOVEL -> "小说"
+            DownloadTaskKind.NOVEL_SERIES -> "系列合并"
+            DownloadTaskKind.IMAGE ->
+                if (pageCount > 1) "第 ${pageIndex + 1} / $pageCount 页" else "单页作品"
         }
 
     companion object {

@@ -40,6 +40,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -86,6 +88,8 @@ import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.component.WorkFeedGrid
 import ceui.pixiv.ui.component.ZoomableImage
 import ceui.pixiv.ui.screen.search.SearchScreen
+import ceui.pixiv.ui.screen.comment.CommentFullScreen
+import ceui.pixiv.ui.screen.comment.CommentsController
 import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.util.openInBrowser
@@ -439,17 +443,13 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         val screenModel = rememberScreenModel { IllustDetailScreenModel(illustId) }
         val illustState by screenModel.illustState.collectAsState()
         val relatedState by screenModel.relatedState.collectAsState()
-        val commentsState by screenModel.commentsState.collectAsState()
-        val commentsHasMore by screenModel.commentsHasMore.collectAsState()
-        val commentsLoadingMore by screenModel.commentsLoadingMore.collectAsState()
-        val commentDraft by screenModel.commentDraft.collectAsState()
-        val commentSubmitting by screenModel.commentSubmitting.collectAsState()
-        val commentError by screenModel.commentError.collectAsState()
         val ugoiraState by screenModel.ugoiraState.collectAsState()
         val isFollowing by screenModel.isFollowing.collectAsState()
         val isBookmarked by screenModel.isBookmarked.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val illust = (illustState as? UiState.Success)?.data
+        val snackbarHostState = remember { SnackbarHostState() }
+        val scope = rememberCoroutineScope()
 
         var isFullscreen by remember { mutableStateOf(false) }
         var isMoreMenuExpanded by remember { mutableStateOf(false) }
@@ -464,6 +464,7 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
         }
 
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 if (!isFullscreen) {
                     TopAppBar(
@@ -602,23 +603,31 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                                                 }
                                             )
                                         },
-                                        enabled = illust != null && if (illust.isGif()) {
-                                            (ugoiraState as? UiState.Success)?.data?.let { metadata ->
-                                                !metadata.zip_urls?.medium.isNullOrBlank() &&
-                                                    !metadata.frames.isNullOrEmpty()
-                                            } == true
-                                        } else {
-                                            true
-                                        },
+                                        enabled = illust != null,
                                         onClick = {
                                             isMoreMenuExpanded = false
                                             illust?.let { artwork ->
-                                                if (artwork.isGif()) {
-                                                    (ugoiraState as? UiState.Success)?.data?.let { metadata ->
-                                                        screenModel.enqueueUgoira(artwork, metadata)
+                                                val message = if (artwork.isGif()) {
+                                                    val metadata = (ugoiraState as? UiState.Success)?.data
+                                                    if (metadata == null ||
+                                                        metadata.zip_urls?.medium.isNullOrBlank() ||
+                                                        metadata.frames.isNullOrEmpty()
+                                                    ) {
+                                                        // 老作品动图元数据缺失（zip/frames 为空）或加载失败：
+                                                        // 给出反馈而不是静默失效
+                                                        "动图数据不可用，无法下载"
+                                                    } else if (screenModel.enqueueUgoira(artwork, metadata) > 0) {
+                                                        "已加入下载队列"
+                                                    } else {
+                                                        null
                                                     }
                                                 } else {
-                                                    screenModel.enqueueDownload(artwork)
+                                                    if (screenModel.enqueueDownload(artwork) > 0) "已加入下载队列" else null
+                                                }
+                                                if (message != null) {
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar(message)
+                                                    }
                                                 }
                                             }
                                         },
@@ -655,19 +664,15 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
                     is UiState.Success -> IllustDetailContent(
                         illust = s.data,
                         relatedState = relatedState,
-                        commentsState = commentsState,
-                        commentsHasMore = commentsHasMore,
-                        commentsLoadingMore = commentsLoadingMore,
-                        commentDraft = commentDraft,
-                        commentSubmitting = commentSubmitting,
-                        commentError = commentError,
+                        commentsController = screenModel.commentsController,
                         onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
                         onTagClick = { tag -> navigator.push(SearchScreen(initialQuery = tag)) },
-                        onCommentDraftChange = screenModel::updateCommentDraft,
-                        onSubmitComment = screenModel::submitComment,
-                        onLoadMoreComments = screenModel::loadMoreComments,
-                        onRetryComments = screenModel::retryComments,
                         onCommentUserClick = { id -> navigator.push(UserDetailScreen(id)) },
+                        onOpenCommentFullScreen = {
+                            navigator.push(
+                                CommentFullScreen("illust", illustId, screenModel.commentsController)
+                            )
+                        },
                         ugoiraState = ugoiraState,
                         isFullscreen = isFullscreen,
                         onToggleFullscreen = { isFullscreen = !isFullscreen },
@@ -683,19 +688,11 @@ class IllustDetailScreen(private val illustId: Long) : Screen {
 private fun IllustDetailContent(
     illust: Illust,
     relatedState: UiState<List<Illust>>,
-    commentsState: UiState<List<ceui.loxia.Comment>>,
-    commentsHasMore: Boolean,
-    commentsLoadingMore: Boolean,
-    commentDraft: String,
-    commentSubmitting: Boolean,
-    commentError: String?,
+    commentsController: CommentsController,
     onIllustClick: (Long) -> Unit,
     onTagClick: (String) -> Unit,
-    onCommentDraftChange: (String) -> Unit,
-    onSubmitComment: () -> Unit,
-    onLoadMoreComments: () -> Unit,
-    onRetryComments: () -> Unit,
     onCommentUserClick: (Long) -> Unit,
+    onOpenCommentFullScreen: () -> Unit,
     ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading,
     isFullscreen: Boolean = false,
     onToggleFullscreen: () -> Unit = {},
@@ -980,17 +977,9 @@ private fun IllustDetailContent(
 
         item(key = "comments", span = StaggeredGridItemSpan.FullLine) {
             CommentsSection(
-                state = commentsState,
-                draft = commentDraft,
-                hasMore = commentsHasMore,
-                isLoadingMore = commentsLoadingMore,
-                isSubmitting = commentSubmitting,
-                errorMessage = commentError,
-                onDraftChange = onCommentDraftChange,
-                onSubmit = onSubmitComment,
-                onLoadMore = onLoadMoreComments,
-                onRetry = onRetryComments,
+                controller = commentsController,
                 onUserClick = onCommentUserClick,
+                onOpenFullScreen = onOpenCommentFullScreen,
             )
         }
 

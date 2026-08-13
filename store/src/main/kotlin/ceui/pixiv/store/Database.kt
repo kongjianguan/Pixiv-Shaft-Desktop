@@ -23,6 +23,7 @@ internal fun migrateDownloadQueue(driver: SqlDriver) {
     listOf(
         "ALTER TABLE download_queue ADD COLUMN kind TEXT NOT NULL DEFAULT 'IMAGE'",
         "ALTER TABLE download_queue ADD COLUMN metadataJson TEXT",
+        "ALTER TABLE download_queue ADD COLUMN reDownload INTEGER NOT NULL DEFAULT 0",
     ).forEach { statement ->
         try {
             driver.execute(null, statement, 0)

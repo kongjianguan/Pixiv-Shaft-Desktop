@@ -21,12 +21,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.search.v3.SearchOptionsResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +40,14 @@ fun SearchFilterSheet(
     onDismiss: () -> Unit,
     onApply: (SearchFilter) -> Unit,
 ) {
-    var draft by remember(initialFilter) { mutableStateOf(initialFilter) }
+    // R18 开关关闭时打开面板强制 R18 筛选为默认：旧选择（如「仅 R-18」）显示层已
+    // 隐藏，若不重置会保留在 draft 里，开关重新开启后旧选择直接复活
+    var draft by remember(initialFilter) {
+        mutableStateOf(
+            if (AppContainer.settingsStore.isShowR18) initialFilter
+            else initialFilter.copy(r18Mode = SearchR18Mode.SafeOnly)
+        )
+    }
     val scrollState = rememberScrollState()
     val targetOptions = if (isNovel) {
         listOf(SearchTarget.PartialTags, SearchTarget.ExactTags, SearchTarget.NovelText, SearchTarget.NovelKeyword)
@@ -115,17 +124,20 @@ fun SearchFilterSheet(
                 )
             }
 
-            FilterSection("AI 与 R-18")
+            val showR18 by AppContainer.settingsStore.isShowR18Flow.collectAsState()
+            FilterSection(if (showR18) "AI 与 R-18" else "AI")
             ChoiceRow(
                 options = SearchAiMode.values().map { it.name to it.label },
                 selected = draft.aiMode.name,
                 onSelected = { value -> draft = draft.copy(aiMode = SearchAiMode.valueOf(value)) },
             )
-            ChoiceRow(
-                options = SearchR18Mode.values().map { it.name to it.label },
-                selected = draft.r18Mode.name,
-                onSelected = { value -> draft = draft.copy(r18Mode = SearchR18Mode.valueOf(value)) },
-            )
+            if (showR18) {
+                ChoiceRow(
+                    options = SearchR18Mode.values().map { it.name to it.label },
+                    selected = draft.r18Mode.name,
+                    onSelected = { value -> draft = draft.copy(r18Mode = SearchR18Mode.valueOf(value)) },
+                )
+            }
 
             if (isNovel) {
                 FilterSection("小说类型")

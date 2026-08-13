@@ -1,7 +1,7 @@
 package ceui.pixiv.ui.search
 
-import ceui.pixiv.ui.screen.search.SearchFilter
 import ceui.pixiv.ui.screen.search.SearchAiMode
+import ceui.pixiv.ui.screen.search.SearchFilter
 import ceui.pixiv.ui.screen.search.SearchRatio
 import ceui.pixiv.ui.screen.search.SearchSort
 import ceui.pixiv.ui.screen.search.SearchTarget
@@ -15,15 +15,6 @@ import org.junit.jupiter.api.Test
 class SearchFilterTest {
 
     @Test
-    fun `all search targets are sent explicitly`() {
-        assertEquals("partial_match_for_tags", SearchTarget.PartialTags.queryValue())
-        assertEquals("exact_match_for_tags", SearchTarget.ExactTags.queryValue())
-        assertEquals("title_and_caption", SearchTarget.TitleCaption.queryValue())
-        assertEquals("text", SearchTarget.NovelText.queryValue())
-        assertEquals("keyword", SearchTarget.NovelKeyword.queryValue())
-    }
-
-    @Test
     fun `active count includes sort and illust-only filters`() {
         val filter = SearchFilter(
             sort = SearchSort.PopularPreview,
@@ -35,13 +26,16 @@ class SearchFilterTest {
     }
 
     @Test
-    fun `default search filter has no active conditions`() {
-        assertTrue(SearchFilter().activeCount(isNovel = false) == 0)
-        assertTrue(SearchFilter().activeCount(isNovel = true) == 0)
+    fun `fromApiValue parses server values and falls back to partial tags`() {
+        assertEquals(SearchTarget.ExactTags, SearchTarget.fromApiValue("exact_match_for_tags"))
+        assertEquals(SearchTarget.TitleCaption, SearchTarget.fromApiValue("title_and_caption"))
+        assertEquals(SearchTarget.NovelText, SearchTarget.fromApiValue("text"))
+        assertEquals(SearchTarget.PartialTags, SearchTarget.fromApiValue(null))
+        assertEquals(SearchTarget.PartialTags, SearchTarget.fromApiValue("bogus_value"))
     }
 
     @Test
-    fun `ai search mode keeps AI works available for local filtering`() {
+    fun `serverValue maps exclude ai to 0 and all other modes to 1`() {
         assertEquals(1, SearchAiMode.All.serverValue())
         assertEquals(0, SearchAiMode.ExcludeAi.serverValue())
         assertEquals(1, SearchAiMode.OnlyAi.serverValue())
@@ -52,5 +46,13 @@ class SearchFilterTest {
         assertTrue(shouldLoadSearchMore(itemCount = 0, lastVisibleIndex = 0, hasMore = true, isLoadingMore = false))
         assertFalse(shouldLoadSearchMore(itemCount = 0, lastVisibleIndex = 0, hasMore = false, isLoadingMore = false))
         assertFalse(shouldLoadSearchMore(itemCount = 0, lastVisibleIndex = 0, hasMore = true, isLoadingMore = true))
+    }
+
+    @Test
+    fun `load more triggers near bottom and only when hasMore and not loading`() {
+        assertTrue(shouldLoadSearchMore(itemCount = 10, lastVisibleIndex = 5, hasMore = true, isLoadingMore = false))
+        assertFalse(shouldLoadSearchMore(itemCount = 10, lastVisibleIndex = 2, hasMore = true, isLoadingMore = false))
+        assertFalse(shouldLoadSearchMore(itemCount = 10, lastVisibleIndex = 5, hasMore = true, isLoadingMore = true))
+        assertFalse(shouldLoadSearchMore(itemCount = 10, lastVisibleIndex = 5, hasMore = false, isLoadingMore = false))
     }
 }

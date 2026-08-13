@@ -45,6 +45,8 @@ dependencies {
     runtimeOnly("io.netty:netty-codec-native-quic:4.2.2.Final:osx-aarch_64")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }
 
 tasks.test { useJUnitPlatform() }

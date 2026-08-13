@@ -11,6 +11,8 @@ import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.history.BrowseHistoryRecorder
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.util.observeR18Toggle
+import ceui.pixiv.ui.util.visibleItems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +39,10 @@ class UserDetailScreenModel(
     private val _isFollowing = MutableStateFlow<Boolean?>(null)
     val isFollowing: StateFlow<Boolean?> = _isFollowing.asStateFlow()
 
-    init { loadAll() }
+    init {
+        loadAll()
+        observeR18Toggle(::republishIfLoaded)
+    }
 
     private fun loadAll() {
         loadUserDetail()
@@ -69,7 +74,7 @@ class UserDetailScreenModel(
             try {
                 val resp = client.appApi.getUserCreatedIllusts(userId, "illust")
                 illustPager.refresh(resp)
-                _illustsState.value = UiState.Success(illustPager.items.value)
+                _illustsState.value = UiState.Success(visibleItems(illustPager.items.value))
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 _illustsState.value = UiState.Error(e.message ?: "Failed to load illusts")
@@ -83,7 +88,7 @@ class UserDetailScreenModel(
             try {
                 val resp = client.appApi.getUserBookmarkedIllusts(userId, "public")
                 bookmarkPager.refresh(resp)
-                _bookmarksState.value = UiState.Success(bookmarkPager.items.value)
+                _bookmarksState.value = UiState.Success(visibleItems(bookmarkPager.items.value))
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 _bookmarksState.value = UiState.Error(e.message ?: "Failed to load bookmarks")
@@ -105,6 +110,16 @@ class UserDetailScreenModel(
             catch (e: Exception) {
                 _isFollowing.value = current
             }
+        }
+    }
+
+    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    private fun republishIfLoaded() {
+        if (_illustsState.value is UiState.Success) {
+            _illustsState.value = UiState.Success(visibleItems(illustPager.items.value))
+        }
+        if (_bookmarksState.value is UiState.Success) {
+            _bookmarksState.value = UiState.Success(visibleItems(bookmarkPager.items.value))
         }
     }
 }

@@ -90,6 +90,13 @@ interface API {
         @Query("last_order") last_order: Int? = null,
     ): NovelSeriesResp
 
+    /** Call 版本：下载管理器用它注册 runningCalls，pause/cancel 时 call.cancel() 立即中断阻塞读 */
+    @GET("/v2/novel/series")
+    fun getNovelSeriesCall(
+        @Query("series_id") series_id: Long,
+        @Query("last_order") last_order: Int? = null,
+    ): Call<NovelSeriesResp>
+
     @GET("/v1/illust/series")
     suspend fun getIllustSeries(
         @Query("illust_series_id") series_id: Long,
@@ -127,6 +134,10 @@ interface API {
     @GET("/webview/v2/novel")
     suspend fun getNovelText(@Query("id") id: Long): ResponseBody
 
+    /** Call 版本：下载管理器用它注册 runningCalls，pause/cancel 时 call.cancel() 立即中断阻塞读 */
+    @GET("/webview/v2/novel")
+    fun getNovelTextCall(@Query("id") id: Long): Call<ResponseBody>
+
     @GET("/v1/user/illusts?filter=for_ios")
     suspend fun getUserCreatedIllusts(
         @Query("user_id") user_id: Long,
@@ -137,6 +148,7 @@ interface API {
     suspend fun getUserBookmarkedIllusts(
         @Query("user_id") user_id: Long,
         @Query("restrict") restrict: String,
+        @Query("tag") tag: String? = null,
     ): IllustResponse
 
 
@@ -144,6 +156,7 @@ interface API {
     suspend fun getUserBookmarkedNovels(
         @Query("user_id") user_id: Long,
         @Query("restrict") restrict: String,
+        @Query("tag") tag: String? = null,
     ): NovelResponse
 
     @GET("/v1/user/novels")
@@ -184,6 +197,10 @@ interface API {
         @Query("restrict") restrict: String,
     ): IllustResponse
 
+    /** 好P友(mypixiv,互关好友)的插画/漫画作品流。翻页走 nextUrl,与其它 feeds 一致。 */
+    @GET("/v2/illust/mypixiv")
+    suspend fun getNiceFriendIllust(): IllustResponse
+
     @GET("/v1/user/recommended?filter=for_ios")
     suspend fun recommendedUsers(): UserPreviewResponse
 
@@ -191,7 +208,15 @@ interface API {
     @GET("/v1/illust/ranking?filter=for_ios")
     suspend fun getRankingIllusts(
         @Query("mode") mode: String,
+        @Query("date") date: String? = null,
     ): IllustResponse
+
+    // /v1/novel/ranking?mode=day&filter=for_ios
+    @GET("/v1/novel/ranking?filter=for_ios")
+    suspend fun getRankingNovels(
+        @Query("mode") mode: String,
+        @Query("date") date: String? = null,
+    ): NovelResponse
 
     // 对齐 pixiv iOS app 8.6.5 实际调用——
     //   - 不再带 ?filter=for_ios（app-os: ios header 已经表态；image_urls 实测一致）
@@ -337,6 +362,7 @@ interface API {
         @Field("illust_id") illust_id: Long,
         @Field("comment") comment: String,
         @Field("parent_comment_id") parent_comment_id: Long? = null,
+        @Field("stamp_id") stamp_id: Long? = null,
     ): PostCommentResponse
 
     @FormUrlEncoded
@@ -345,6 +371,7 @@ interface API {
         @Field("novel_id") novel_id: Long,
         @Field("comment") comment: String,
         @Field("parent_comment_id") parent_comment_id: Long? = null,
+        @Field("stamp_id") stamp_id: Long? = null,
     ): PostCommentResponse
 
     @FormUrlEncoded
@@ -353,6 +380,10 @@ interface API {
         @Path("type") type: String,
         @Field("comment_id") comment_id: Long,
     )
+
+    // 评论「表情贴图」目录：官方常驻贴纸（stamp_id + stamp_url），发评论时 comment 留空、只带 stamp_id
+    @GET("/v1/stamps")
+    suspend fun getStamps(): StampsResponse
 
     @GET
     suspend fun generalGet(@Url url: String): ResponseBody
@@ -381,4 +412,27 @@ interface API {
 
     @GET("/v1/ugoira/metadata")
     suspend fun getUgoiraMetadata(@Query("illust_id") illust_id: Long): ceui.loxia.GifInfoResponse
+
+    // ===== 我的页面补全：收藏标签 / 小说标记 / 追更 =====
+
+    @GET("/v1/user/bookmark-tags/illust?filter=for_ios")
+    suspend fun getIllustBookmarkTags(
+        @Query("user_id") user_id: Long,
+        @Query("restrict") restrict: String,
+    ): BookmarkTagsResponse
+
+    @GET("/v1/user/bookmark-tags/novel?filter=for_ios")
+    suspend fun getNovelBookmarkTags(
+        @Query("user_id") user_id: Long,
+        @Query("restrict") restrict: String,
+    ): BookmarkTagsResponse
+
+    @GET("/v2/novel/markers")
+    suspend fun getNovelMarkers(): NovelMarkersResponse
+
+    @GET("/v1/watchlist/novel")
+    suspend fun getWatchlistNovels(): WatchlistNovelResponse
+
+    @GET("/v1/watchlist/manga")
+    suspend fun getWatchlistMangas(): WatchlistMangaResponse
 }

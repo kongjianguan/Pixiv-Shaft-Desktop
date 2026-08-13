@@ -22,6 +22,8 @@ class Client(
     refresher: TokenRefresher,
     lang: LanguageProvider,
     private val logger: Logger,
+    // 测试注入点：不传时用 Retrofit 构建真实 API；传了则完全替换
+    api: API? = null,
 ) {
 
     private val quicInterceptor = NettyQuicInterceptor()
@@ -39,7 +41,7 @@ class Client(
         .apply { if (settings.isDirectConnect) addInterceptor(quicInterceptor) }
         .build()
 
-    val appApi: API = Retrofit.Builder()
+    val appApi: API = api ?: Retrofit.Builder()
         .baseUrl(PixivConstants.APP_API_HOST)
         .addConverterFactory(GsonConverterFactory.create())
         .client(okhttpClient)

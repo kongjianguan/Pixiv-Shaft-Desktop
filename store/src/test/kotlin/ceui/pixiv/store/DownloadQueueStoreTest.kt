@@ -28,6 +28,60 @@ class DownloadQueueStoreTest {
         assertEquals("FAILED", saved.status)
         assertEquals("network", saved.errorMessage)
         assertEquals(30L, saved.updatedAt)
+        assertEquals(0L, saved.reDownload)
+    }
+
+    @Test
+    fun `markReDownload flags task and updates timestamp`(@TempDir directory: Path) {
+        val store = createStore(directory)
+        store.insert(task(id = "first"))
+
+        store.markReDownload("first", updatedAt = 15L)
+
+        val saved = store.all().single()
+        assertEquals(1L, saved.reDownload)
+        assertEquals(15L, saved.updatedAt)
+    }
+
+    @Test
+    fun `updateMetadata refreshes title author source URL and metadata`(@TempDir directory: Path) {
+        val store = createStore(directory)
+        store.insert(task(id = "first"))
+
+        store.updateMetadata(
+            id = "first",
+            title = "renamed",
+            authorName = "new author",
+            sourceUrl = "https://example.invalid/fresh.zip",
+            metadataJson = "new metadata",
+            updatedAt = 25L,
+        )
+
+        val saved = store.all().single()
+        assertEquals("renamed", saved.title)
+        assertEquals("new author", saved.authorName)
+        assertEquals("https://example.invalid/fresh.zip", saved.sourceUrl)
+        assertEquals("new metadata", saved.metadataJson)
+        assertEquals(25L, saved.updatedAt)
+        assertEquals(0L, saved.reDownload)
+    }
+
+    @Test
+    fun `updateOutputPaths refreshes output and temp paths`(@TempDir directory: Path) {
+        val store = createStore(directory)
+        store.insert(task(id = "first"))
+
+        store.updateOutputPaths(
+            id = "first",
+            outputPath = "/new/output.txt",
+            tempPath = "/new/output.txt.part",
+            updatedAt = 35L,
+        )
+
+        val saved = store.all().single()
+        assertEquals("/new/output.txt", saved.outputPath)
+        assertEquals("/new/output.txt.part", saved.tempPath)
+        assertEquals(35L, saved.updatedAt)
     }
 
     @Test

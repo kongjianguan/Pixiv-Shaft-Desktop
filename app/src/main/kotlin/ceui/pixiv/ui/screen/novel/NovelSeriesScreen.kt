@@ -18,17 +18,25 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -36,7 +44,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +58,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.loxia.Novel
 import ceui.loxia.NovelSeriesDetail
 import ceui.pixiv.di.AppContainer
+import ceui.pixiv.download.NovelMergeFormat
 import ceui.pixiv.ui.component.CaptionText
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
@@ -68,6 +79,10 @@ class NovelSeriesScreen(private val seriesId: Long) : Screen {
         val novelsState by screenModel.novelsState.collectAsState()
         val latestNovel by screenModel.latestNovel.collectAsState()
         val isRefreshing by screenModel.isRefreshing.collectAsState()
+        val selectionMode by screenModel.selectionMode.collectAsState()
+        val selectedIds by screenModel.selectedIds.collectAsState()
+        val allSelected by screenModel.allSelected.collectAsState()
+        val resolvingChapters by screenModel.resolvingChapters.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
         Scaffold(
@@ -86,18 +101,67 @@ class NovelSeriesScreen(private val seriesId: Long) : Screen {
                         }
                     },
                     actions = {
-                        val detail = (seriesState as? UiState.Success)?.data
-                        if (detail != null) {
-                            IconButton(onClick = screenModel::toggleWatchlist) {
-                                Icon(
-                                    imageVector = if (detail.watchlist_added == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    contentDescription = if (detail.watchlist_added == true) "Remove from watchlist" else "Add to watchlist",
-                                    tint = if (detail.watchlist_added == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                                )
+                        if (selectionMode) {
+                            TextButton(onClick = screenModel::exitSelectionMode) {
+                                Text("取消")
+                            }
+                        } else {
+                            val detail = (seriesState as? UiState.Success)?.data
+                            SeriesDownloadMenu(
+                                resolvingChapters = resolvingChapters,
+                                onPickChapters = screenModel::enterSelectionMode,
+                                onDownloadAll = screenModel::downloadAllSeparate,
+                                onMergeTxt = { screenModel.downloadMerge(NovelMergeFormat.TXT) },
+                                onMergeMd = { screenModel.downloadMerge(NovelMergeFormat.MD) },
+                            )
+                            if (detail != null) {
+                                IconButton(onClick = screenModel::toggleWatchlist) {
+                                    Icon(
+                                        imageVector = if (detail.watchlist_added == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = if (detail.watchlist_added == true) "Remove from watchlist" else "Add to watchlist",
+                                        tint = if (detail.watchlist_added == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
                             }
                         }
                     }
                 )
+            },
+            bottomBar = {
+                if (selectionMode) {
+                    Surface(tonalElevation = 3.dp) {
+                        Column {
+                            if (resolvingChapters) {
+                                LinearProgressIndicator(Modifier.fillMaxWidth())
+                                Text(
+                                    text = "正在获取章节列表…",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                TextButton(
+                                    enabled = !resolvingChapters,
+                                    onClick = screenModel::selectAllToggle,
+                                ) {
+                                    Text(if (allSelected) "取消全选" else "全选")
+                                }
+                                Box(Modifier.weight(1f))
+                                Button(
+                                    // 拉取章节列表期间禁点，避免与全选拉取并发重复分页
+                                    enabled = selectedIds.isNotEmpty() && !resolvingChapters,
+                                    onClick = screenModel::downloadSelected,
+                                ) {
+                                    Text("下载选中 ${selectedIds.size} 篇")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         ) { padding ->
             when (val state = seriesState) {
@@ -110,6 +174,9 @@ class NovelSeriesScreen(private val seriesId: Long) : Screen {
                     latestNovel = latestNovel,
                     novelsState = novelsState,
                     isRefreshing = isRefreshing,
+                    selectionMode = selectionMode,
+                    selectedIds = selectedIds,
+                    onToggleSelect = screenModel::toggleSelect,
                     onRefresh = screenModel::refresh,
                     onLoadMore = screenModel::loadMore,
                     onUserClick = { navigator.push(UserDetailScreen(it)) },
@@ -124,6 +191,58 @@ class NovelSeriesScreen(private val seriesId: Long) : Screen {
     }
 }
 
+/** 系列页顶栏「下载」菜单：章节多选 / 全部逐篇 / 合并导出 TXT·MD */
+@Composable
+private fun SeriesDownloadMenu(
+    resolvingChapters: Boolean,
+    onPickChapters: () -> Unit,
+    onDownloadAll: () -> Unit,
+    onMergeTxt: () -> Unit,
+    onMergeMd: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.Download, contentDescription = "下载")
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("章节多选") },
+                onClick = {
+                    expanded = false
+                    onPickChapters()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(if (resolvingChapters) "正在获取章节列表…" else "全部逐篇下载") },
+                enabled = !resolvingChapters,
+                onClick = {
+                    expanded = false
+                    onDownloadAll()
+                },
+            )
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("合并导出为 TXT") },
+                onClick = {
+                    expanded = false
+                    onMergeTxt()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("合并导出为 MD") },
+                onClick = {
+                    expanded = false
+                    onMergeMd()
+                },
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SeriesContent(
@@ -131,6 +250,9 @@ private fun SeriesContent(
     latestNovel: Novel?,
     novelsState: UiState<List<Novel>>,
     isRefreshing: Boolean,
+    selectionMode: Boolean,
+    selectedIds: Set<Long>,
+    onToggleSelect: (Long) -> Unit,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onUserClick: (Long) -> Unit,
@@ -192,12 +314,31 @@ private fun SeriesContent(
                         ErrorView(novelsState.message, onRefresh, Modifier.fillMaxWidth().height(160.dp))
                     }
                     is UiState.Success -> items(novelsState.data, key = { it.id }) { novel ->
-                        NovelCard(
-                            novel = novel,
-                            onClick = { onNovelClick(novel) },
-                            onUserClick = onUserClick,
-                            onToggleBookmark = onToggleBookmark,
-                        )
+                        if (selectionMode) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Checkbox(
+                                    checked = novel.id in selectedIds,
+                                    onCheckedChange = { onToggleSelect(novel.id) },
+                                )
+                                Box(Modifier.weight(1f)) {
+                                    // 选择模式下隐藏用户跳转与收藏按钮，避免误触
+                                    NovelCard(
+                                        novel = novel,
+                                        onClick = { onToggleSelect(novel.id) },
+                                    )
+                                }
+                            }
+                        } else {
+                            NovelCard(
+                                novel = novel,
+                                onClick = { onNovelClick(novel) },
+                                onUserClick = onUserClick,
+                                onToggleBookmark = onToggleBookmark,
+                            )
+                        }
                     }
                 }
             }
