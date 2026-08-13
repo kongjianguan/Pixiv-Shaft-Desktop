@@ -22,3 +22,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
 tasks.test { useJUnitPlatform() }
+
+// ECH 冒烟测试需要原生库路径（dylib 不存在时 EchClient.available=false，测试自动跳过）
+tasks.test {
+    systemProperty(
+        "ech.library.path",
+        rootProject.file("rust/ech/target/release/libech.dylib").absolutePath,
+    )
+}

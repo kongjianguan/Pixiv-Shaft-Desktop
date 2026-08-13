@@ -13,3 +13,7 @@ docs/
 *.log
 .mcp.json
 CLAUDE.md
+
+# Rust ECH 库构建产物
+rust/ech/target/
+app/build/app-resources/

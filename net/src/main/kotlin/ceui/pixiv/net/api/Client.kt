@@ -7,6 +7,7 @@ import ceui.pixiv.net.abstractions.Settings
 import ceui.pixiv.net.abstractions.TokenRefresher
 import ceui.pixiv.net.abstractions.TokenStore
 import ceui.pixiv.net.config.PixivConstants
+import ceui.pixiv.net.ech.EchInterceptor
 import ceui.pixiv.net.interceptor.HeaderInterceptor
 import ceui.pixiv.net.interceptor.TokenFetcherInterceptor
 import ceui.pixiv.net.interceptor.WebHeaderInterceptor
@@ -41,7 +42,13 @@ class Client(
         .addInterceptor(HttpLoggingInterceptor().apply {
             setLevel(HttpLoggingInterceptor.Level.BODY)
         })
-        .apply { if (settings.isDirectConnect) addInterceptor(quicInterceptor) }
+        // ECH 优先（加密 SNI 的 TCP 直连），失败自动回退 QUIC
+        .apply {
+            if (settings.isDirectConnect) {
+                addInterceptor(EchInterceptor())
+                addInterceptor(quicInterceptor)
+            }
+        }
         .build()
 
     private val webOkhttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -53,7 +60,12 @@ class Client(
         .addInterceptor(HttpLoggingInterceptor().apply {
             setLevel(HttpLoggingInterceptor.Level.BASIC)
         })
-        .apply { if (settings.isDirectConnect) addInterceptor(quicInterceptor) }
+        .apply {
+            if (settings.isDirectConnect) {
+                addInterceptor(EchInterceptor())
+                addInterceptor(quicInterceptor)
+            }
+        }
         .build()
 
     val appApi: API = api ?: Retrofit.Builder()

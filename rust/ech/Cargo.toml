@@ -1,0 +1,38 @@
+[package]
+name = "ech"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = "0.22"
+jni = "0.21"
+rustls = "0.23"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+webpki-root-certs = "1.0"
+
+[dependencies.reqwest]
+version = "0.13.4"
+default-features = false
+features = [
+    "rustls",
+    "http2",
+    "query",
+    "charset",
+    "gzip",
+    "json",
+]
+
+[profile.release]
+opt-level = 3
+# 必须保留 debuginfo：Rust 1.96 + macOS 新版 ld 在不带 debuginfo 的 release dylib 上
+# 会产生 "mis-aligned LINKEDIT string pool"（dlopen 失败），详见 rust-lang issue。
+# 代价是 dylib 体积增大（约 3.9MB -> 约 12MB），换取可加载。
+debug = true
+[profile.dev]
+debug-assertions = false
+opt-level = 3

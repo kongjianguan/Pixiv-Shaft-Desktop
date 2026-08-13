@@ -7,6 +7,7 @@ import ceui.pixiv.net.NettyQuicInterceptor
 import ceui.pixiv.net.api.Client
 import ceui.pixiv.net.auth.RealTokenRefresher
 import ceui.pixiv.net.auth.TokenExchange
+import ceui.pixiv.net.ech.EchInterceptor
 import ceui.pixiv.net.impl.DefaultLanguageProvider
 import ceui.pixiv.net.impl.StdoutLogger
 import ceui.pixiv.net.imagehost.ImageHostManager
@@ -56,12 +57,14 @@ object AppContainer {
         settingsStore = SettingsStore()
         tokenStore = KeychainTokenStore()
 
-        // QUIC-enabled OkHttpClient for OAuth (no HeaderInterceptor, no TokenFetcherInterceptor)
+        // ECH + QUIC enabled OkHttpClient for OAuth (no HeaderInterceptor, no TokenFetcherInterceptor)
         val oauthClient = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .apply {
                 if (settingsStore.isDirectConnect) {
+                    // ECH 优先（OAuth 刷新/登录走加密 SNI 的 TCP 直连），失败回退 QUIC
+                    addInterceptor(EchInterceptor())
                     oauthQuicInterceptor = NettyQuicInterceptor()
                     addInterceptor(oauthQuicInterceptor!!)
                 }

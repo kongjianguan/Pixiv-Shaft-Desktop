@@ -59,6 +59,8 @@ compose.desktop {
             "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
+            // ECH 原生库（开发模式直接指向 cargo 产物；打包后走 Contents/Resources 探测）
+            "-Declibrary.path=${rootProject.file("rust/ech/target/release/libech.dylib")}",
         )
         nativeDistributions {
             modules("java.sql", "jdk.unsupported")
@@ -79,3 +81,33 @@ compose.desktop {
         }
     }
 }
+
+// ---- ECH 原生库接入（rust/ech）----
+
+/** 构建 Rust ECH dylib 并复制到 appResourcesRootDir（进 Contents/Resources）。 */
+val copyEchLib = tasks.register<Copy>("copyEchLib") {
+    dependsOn(rootProject.tasks.named("buildEchLib"))
+    from(rootProject.file("rust/ech/target/release/libech.dylib"))
+    into(project.file("build/app-resources"))
+}
+
+tasks.matching { it.name == "run" }.configureEach {
+    dependsOn(rootProject.tasks.named("buildEchLib"))
+}
+
+// Compose 插件不保证 appResourcesRootDir 落进 DMG，直接往 app image 里复制：
+// createDistributable 生成 PixivShaft.app 后，把 dylib 放进 Contents/Resources，
+// packageDmg 再用这个 app image 打 DMG（EchClient 启动时按 java.home 探测该路径）。
+tasks.matching { it.name == "createDistributable" }.configureEach {
+    dependsOn(copyEchLib)
+    doLast {
+        val appResources = project.file("build/compose/binaries/main/app/PixivShaft.app/Contents/Resources")
+        copy {
+            from(project.file("build/app-resources/libech.dylib"))
+            into(appResources)
+        }
+    }
+}
+
+// 测试不需要原生库：EchClient.available=false 时拦截器自动回退 QUIC
+
