@@ -49,10 +49,11 @@ object EchClient {
                 File(System.getProperty("java.home"))
                     .resolve("../../../Resources/libech.dylib").absolutePath,
             )
-            // 3) 开发模式：从 user.dir 向上找 cargo 产物（不依赖 Gradle 传参机制）。
-            //    显式 --target 后产物在 target/aarch64-apple-darwin/release，旧路径兜底。
+            // 3) 开发模式：从 user.dir 向上找 dylib（不依赖 Gradle 传参机制）。
+            //    prebuilt 为提交入库的产物；target/ 两个路径兜底手动重编后的构建。
             var dir: File? = File(System.getProperty("user.dir"))
             while (dir != null) {
+                add(File(dir, "rust/ech/prebuilt/libech.dylib").absolutePath)
                 add(File(dir, "rust/ech/target/aarch64-apple-darwin/release/libech.dylib").absolutePath)
                 add(File(dir, "rust/ech/target/release/libech.dylib").absolutePath)
                 dir = dir.parentFile
@@ -116,8 +117,13 @@ object EchClient {
         // interceptor 之后运行），这里必须手动补上，否则 Rust 侧发出的 POST 没有
         // content-type，服务器无法解析 form body（OAuth 报 invalid_client）。
         val headerPairs = mutableListOf<String>()
+        val existing = request.headers.names().mapTo(mutableSetOf()) { it.lowercase() }
+        // FormBody 的 Content-Type 由 OkHttp BridgeInterceptor 添加（在 application
+        // interceptor 之后运行），这里必须手动补上，否则 Rust 侧发出的 POST 没有
+        // content-type，服务器无法解析 form body（OAuth 报 invalid_client）。
+        // 请求头已显式带 content-type 时不重复添加。
         request.body?.contentType()?.let { ct ->
-            headerPairs.add("content-type\u0001${ct}")
+            if ("content-type" !in existing) headerPairs.add("content-type\u0001${ct}")
         }
         request.headers.forEach { (name, value) ->
             headerPairs.add("$name\u0001$value")
@@ -130,7 +136,7 @@ object EchClient {
         }
         val json = try {
             nativeRequest(request.method, request.url.toString(), headerPairs.toTypedArray(), body)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             throw IOException("ECH native call failed: ${e.message}", e)
         }
         val resp = gson.fromJson<EchResponse>(json, responseType)

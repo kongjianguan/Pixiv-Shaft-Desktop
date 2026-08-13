@@ -9,8 +9,9 @@
 //! Design notes:
 //! - The client is built lazily once per process (OnceLock + Mutex), with
 //!   failures NOT cached so a transient AliDNS outage retries next request.
-//! - All entry points return Result; panic = "abort" is set in Cargo.toml,
-//!   so no panic may ever cross the JNI boundary.
+//! - JNI entry points in lib.rs wrap calls in `catch_unwind`: unwinding across
+//!   the JNI boundary is UB, so a panic becomes an error result and the Kotlin
+//!   side falls back to QUIC.
 //! - Successfully-built clients keep their reqwest connection pool alive.
 
 use base64::Engine;
@@ -152,7 +153,7 @@ pub fn ensure_client() -> Result<Arc<EchClient>, String> {
 }
 
 /// Send one request over the ECH client. `headers` is a flat list of
-/// "name\0value" pairs produced by the Kotlin side.
+/// "name\u{1}value" pairs produced by the Kotlin side.
 pub fn request(
     method: &str,
     url: &str,

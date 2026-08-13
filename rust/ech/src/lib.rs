@@ -4,7 +4,7 @@
 //!
 //! Methods:
 //! - `nativeInit(): Boolean` — warm up the ECH client (fetch ECH config).
-//! - `nativeRequest(method, url, headers: Array<String> "name\0value", body):
+//! - `nativeRequest(method, url, headers: Array<String> "name\u{1}value", body):
 //!   String` — JSON `{"status":..,"headers":[[name,value]..],"body":"<b64>"}`
 //!   or `{"error":"..."}`.
 //!

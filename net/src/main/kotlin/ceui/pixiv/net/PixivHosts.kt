@@ -10,9 +10,6 @@ object PixivHosts {
     // 源自 CronetInterceptor.java:42-43
     val CF_IPS = listOf("104.18.42.239", "172.64.145.17")
 
-    // ECH 直连用的 Cloudflare anycast IP（与 PixEz 同款；见 rust/ech/src/ech.rs）
-    val ECH_IPS = listOf("104.18.10.118", "104.18.11.118")
-
     // 源自 HeaderInterceptor.kt:13-16（iOS 人设）
     const val IOS_UA = "PixivIOSApp/8.6.10 (iOS 26.5; iPhone16,2)"
     const val APP_OS = "ios"

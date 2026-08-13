@@ -30,8 +30,9 @@ jobs:
           # Intel runner 交叉编译到 Apple Silicon 必需；arm64 runner 上也是幂等操作
           targets: aarch64-apple-darwin
 
-      - name: Build Rust ECH library
-        run: ./gradlew buildEchLib
+      # 重编并同步 prebuilt（与提交版本不一致时测试即失败），再跑测试
+      - name: Build & sync Rust ECH library
+        run: ./gradlew updateEchPrebuilt
 
       - name: Compile & Test
         run: ./gradlew test --stacktrace
