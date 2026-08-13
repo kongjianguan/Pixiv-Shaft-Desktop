@@ -3,6 +3,8 @@ package ceui.pixiv.net
 object PixivHosts {
     const val APP_API_HOST = "app-api.pixiv.net"
     const val OAUTH_HOST = "oauth.secure.pixiv.net"
+    const val WEB_API_HOST = "www.pixiv.net"
+    const val COMIC_HOST = "comic.pixiv.net"
     const val WALKTHROUGH_PATH = "/v1/walkthrough/illusts"
 
     // 源自 CronetInterceptor.java:42-43
@@ -15,5 +17,5 @@ object PixivHosts {
     const val APP_VERSION = "8.6.10"
 
     fun shouldQuic(host: String): Boolean =
-        host == APP_API_HOST || host == OAUTH_HOST
+        host == APP_API_HOST || host == OAUTH_HOST || host == WEB_API_HOST || host == COMIC_HOST
 }

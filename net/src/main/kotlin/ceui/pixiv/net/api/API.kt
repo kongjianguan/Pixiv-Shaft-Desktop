@@ -436,3 +436,26 @@ interface API {
     @GET("/v1/watchlist/manga")
     suspend fun getWatchlistMangas(): WatchlistMangaResponse
 }
+
+/** Web-only endpoints used when the app API returns a restricted placeholder. */
+interface PixivWebApi {
+
+    @retrofit2.http.GET("/ajax/illust/{illust_id}")
+    suspend fun getWebIllust(
+        @retrofit2.http.Path("illust_id") illustId: Long,
+        @retrofit2.http.Query("lang") lang: String = "zh",
+    ): ceui.loxia.WebResponse<ceui.loxia.WebIllustBody>
+
+    @retrofit2.http.GET("/ajax/illust/{illust_id}/pages")
+    suspend fun getIllustPages(
+        @retrofit2.http.Path("illust_id") illustId: Long,
+        @retrofit2.http.Query("lang") lang: String = "zh",
+    ): ceui.loxia.WebResponse<List<ceui.loxia.WebIllustPage>>
+}
+
+/** Minimal Pixiv COMIC surface validated from the original Shaft client. */
+interface ComicApi {
+
+    @retrofit2.http.GET("api/app/top/v8")
+    suspend fun getComicTop(): ceui.loxia.ComicTopResponse
+}

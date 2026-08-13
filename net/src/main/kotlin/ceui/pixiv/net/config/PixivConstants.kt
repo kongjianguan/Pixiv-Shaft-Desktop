@@ -2,7 +2,8 @@ package ceui.pixiv.net.config
 
 object PixivConstants {
     const val APP_API_HOST = "https://app-api.pixiv.net"
-    const val WEB_API_HOST = "https://www.pixiv.net"
+    const val WEB_API_HOST = "https://www.pixiv.net/"
+    const val COMIC_API_HOST = "https://comic.pixiv.net/"
     const val WEB_USER_AGENT =
         "Mozilla/5.0 (Linux; Android 14; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.39 Mobile Safari/537.36"
     const val TOKEN_HEAD = "Bearer "

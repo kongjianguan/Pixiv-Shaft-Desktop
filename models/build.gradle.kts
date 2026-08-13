@@ -6,4 +6,9 @@ repositories {
     maven { url = uri("https://maven.aliyun.com/repository/central") }
     mavenCentral()
 }
-dependencies { implementation("com.google.code.gson:gson:2.11.0") }
+dependencies {
+    implementation("com.google.code.gson:gson:2.11.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+}
+
+tasks.test { useJUnitPlatform() }

@@ -32,7 +32,9 @@ import ceui.pixiv.ui.history.BrowseHistoryScreen
 import ceui.pixiv.ui.screen.r18.R18Screen
 import ceui.pixiv.ui.screen.settings.SettingsScreen
 import ceui.pixiv.ui.screen.pixivision.PixivisionScreen
+import ceui.pixiv.ui.screen.comic.ComicScreen
 import ceui.pixiv.ui.theme.ShaftTheme
+import ceui.pixiv.util.openInBrowser
 
 // Global ESC signal — incremented by an AWT KeyEventDispatcher. Compose UI observes
 // this and decides what to do (pop navigator / exit fullscreen). Bypasses Compose's
@@ -56,6 +58,7 @@ internal val mainDownloadsRequest = mutableStateOf(0)
 internal val mainHistoryRequest = mutableStateOf(0)
 internal val mainR18Request = mutableStateOf(0)
 internal val mainPixivisionRequest = mutableStateOf(0)
+internal val mainComicRequest = mutableStateOf(0)
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -117,6 +120,7 @@ fun main() {
                     mainHistoryRequest.value = 0
                     mainR18Request.value = 0
                     mainPixivisionRequest.value = 0
+                    mainComicRequest.value = 0
                 }
             }
 
@@ -181,6 +185,14 @@ fun main() {
                         Item(
                             "Pixivision",
                             onClick = { mainPixivisionRequest.value++ },
+                        )
+                        Item(
+                            "Pixiv Comic",
+                            onClick = { mainComicRequest.value++ },
+                        )
+                        Item(
+                            "FANBOX（浏览器）",
+                            onClick = { openInBrowser("https://www.fanbox.cc/") },
                         )
                     }
 
@@ -271,6 +283,15 @@ fun main() {
                                         rootNavigator.push(PixivisionScreen())
                                     }
                                     mainPixivisionRequest.value = 0
+                                }
+                            }
+                            val comicRequest = mainComicRequest.value
+                            LaunchedEffect(comicRequest) {
+                                if (comicRequest > 0) {
+                                    if (rootNavigator.lastItem !is ComicScreen) {
+                                        rootNavigator.push(ComicScreen())
+                                    }
+                                    mainComicRequest.value = 0
                                 }
                             }
                             CurrentScreen()

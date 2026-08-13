@@ -6,6 +6,7 @@ import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
 import ceui.loxia.ObjectType
 import ceui.loxia.UgoiraMetaData
+import ceui.loxia.toIllust
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.download.DownloadManager
 import ceui.pixiv.ui.history.BrowseHistoryRecorder
@@ -62,24 +63,63 @@ class IllustDetailScreenModel(
     private fun loadIllust() {
         screenModelScope.launch {
             _illustState.value = UiState.Loading
-            try {
-                val resp = client.appApi.getIllust(illustId)
-                val illust = resp.illust
-                if (illust == null) {
-                    _illustState.value = UiState.Error("Illust not found")
-                } else {
-                    if (illust.isGif()) loadUgoira(illust.id)
-                    _isBookmarked.value = illust.is_bookmarked
-                    _isFollowing.value = illust.user?.is_followed
-                    _userId = illust.user?.id ?: 0
-                    BrowseHistoryRecorder.recordIllust(illust)
-                    _illustState.value = UiState.Success(illust)
-                }
+            var appError: Throwable? = null
+            // Pixiv may return a visible=false placeholder instead of an error.
+            // The web Ajax endpoint is a deliberate second source, not a general
+            // retry: it is only used when the app response is absent or hidden.
+            val appIllust = try {
+                client.appApi.getIllust(illustId).illust
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
-                _illustState.value = UiState.Error(e.message ?: "Failed to load illust")
+            } catch (e: Throwable) {
+                appError = e
+                null
             }
+            val illust = when {
+                appIllust == null -> fetchWebIllustFallback()
+                appIllust.visible == false -> fetchWebIllustFallback()
+                else -> appIllust
+            }
+
+            if (illust == null) {
+                _illustState.value = UiState.Error(
+                    appError?.message ?: "Illust not found"
+                )
+            } else {
+                if (illust.isGif()) loadUgoira(illust.id)
+                _isBookmarked.value = illust.is_bookmarked
+                _isFollowing.value = illust.user?.is_followed
+                _userId = illust.user?.id ?: 0
+                BrowseHistoryRecorder.recordIllust(illust)
+                _illustState.value = UiState.Success(illust)
+            }
+        }
+    }
+
+    private suspend fun fetchWebIllustFallback(): Illust? {
+        return try {
+            val response = client.webApi.getWebIllust(illustId)
+            val body = response.body
+            if (response.error == true || body == null || body.urls?.original.isNullOrBlank()) {
+                null
+            } else {
+                val pages = if (body.pageCount > 1) {
+                    try {
+                        client.webApi.getIllustPages(illustId).body
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
+                    null
+                }
+                body.toIllust(illustId, pages)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
         }
     }
 

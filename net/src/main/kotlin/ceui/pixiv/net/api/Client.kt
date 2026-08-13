@@ -9,6 +9,7 @@ import ceui.pixiv.net.abstractions.TokenStore
 import ceui.pixiv.net.config.PixivConstants
 import ceui.pixiv.net.interceptor.HeaderInterceptor
 import ceui.pixiv.net.interceptor.TokenFetcherInterceptor
+import ceui.pixiv.net.interceptor.WebHeaderInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.logging.HttpLoggingInterceptor
@@ -24,11 +25,13 @@ class Client(
     private val logger: Logger,
     // 测试注入点：不传时用 Retrofit 构建真实 API；传了则完全替换
     api: API? = null,
+    webApi: PixivWebApi? = null,
+    comicApi: ComicApi? = null,
 ) {
 
     private val quicInterceptor = NettyQuicInterceptor()
 
-    private val okhttpClient: OkHttpClient = OkHttpClient.Builder()
+    private val appOkhttpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
@@ -41,12 +44,38 @@ class Client(
         .apply { if (settings.isDirectConnect) addInterceptor(quicInterceptor) }
         .build()
 
+    private val webOkhttpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+        .addInterceptor(WebHeaderInterceptor())
+        .addInterceptor(HttpLoggingInterceptor().apply {
+            setLevel(HttpLoggingInterceptor.Level.BASIC)
+        })
+        .apply { if (settings.isDirectConnect) addInterceptor(quicInterceptor) }
+        .build()
+
     val appApi: API = api ?: Retrofit.Builder()
         .baseUrl(PixivConstants.APP_API_HOST)
         .addConverterFactory(GsonConverterFactory.create())
-        .client(okhttpClient)
+        .client(appOkhttpClient)
         .build()
         .create(API::class.java)
+
+    val webApi: PixivWebApi = webApi ?: Retrofit.Builder()
+        .baseUrl(PixivConstants.WEB_API_HOST)
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(webOkhttpClient)
+        .build()
+        .create(PixivWebApi::class.java)
+
+    val comicApi: ComicApi = comicApi ?: Retrofit.Builder()
+        .baseUrl(PixivConstants.COMIC_API_HOST)
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(appOkhttpClient)
+        .build()
+        .create(ComicApi::class.java)
 
     fun close() {
         quicInterceptor.close()

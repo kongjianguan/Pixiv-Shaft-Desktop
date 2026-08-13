@@ -1,5 +1,6 @@
 package ceui.pixiv.net
 
+import ceui.pixiv.net.config.PixivConstants
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -52,7 +53,7 @@ class NettyQuicInterceptor : Interceptor {
         val port = request.url.port.takeIf { it != 443 } ?: 443
         val cfIp = PixivHosts.CF_IPS.first()
 
-        // 反墙关键：连 CF IP，但 SNI=app-api.pixiv.net。
+        // 反墙关键：连接 Cloudflare IP，但 SNI（服务器名称）仍使用原请求域名。
         // netty QUIC 的 QuicheQuicSslEngine 从 peerHost 自动设 SNI（须为有效主机名非 IP），
         // 故用 InetAddress.getByAddress(hostname, ipBytes) 把主机名附到 IP 上，解耦 SNI 与连接目标。
         val ipBytes = cfIp.split('.').let { p ->
@@ -124,7 +125,6 @@ class NettyQuicInterceptor : Interceptor {
 
             val path = request.url.encodedPath +
                 (request.url.encodedQuery?.let { "?$it" } ?: "")
-            val nonce = RequestNonce.build()
             val headersFrame = DefaultHttp3HeadersFrame()
             val h = headersFrame.headers()
                 .method(request.method)
@@ -150,12 +150,17 @@ class NettyQuicInterceptor : Interceptor {
             request.body?.contentType()?.let { ct ->
                 h.set("content-type", ct.toString())
             }
-            h.add("user-agent", PixivHosts.IOS_UA)
-                .add("app-os", PixivHosts.APP_OS)
-                .add("app-os-version", PixivHosts.APP_OS_VERSION)
-                .add("app-version", PixivHosts.APP_VERSION)
-                .add("x-client-time", nonce.xClientTime)
-                .add("x-client-hash", nonce.xClientHash)
+            if (host == PixivHosts.WEB_API_HOST) {
+                h.add("user-agent", PixivConstants.WEB_USER_AGENT)
+            } else {
+                val nonce = RequestNonce.build()
+                h.add("user-agent", PixivHosts.IOS_UA)
+                    .add("app-os", PixivHosts.APP_OS)
+                    .add("app-os-version", PixivHosts.APP_OS_VERSION)
+                    .add("app-version", PixivHosts.APP_VERSION)
+                    .add("x-client-time", nonce.xClientTime)
+                    .add("x-client-hash", nonce.xClientHash)
+            }
 
             // POST body: write data frame after headers, before SHUTDOWN_OUTPUT
             val bodyBytes = request.body?.let { rb ->

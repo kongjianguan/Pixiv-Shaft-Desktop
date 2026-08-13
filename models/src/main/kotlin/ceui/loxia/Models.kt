@@ -8,6 +8,10 @@ import ceui.lisa.models.ObjectSpec
 import ceui.lisa.models.WatchlistMangaItem
 import ceui.lisa.models.WatchlistNovelItem
 import java.io.Serializable
+import java.net.URLDecoder
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 
 
@@ -622,6 +626,189 @@ data class WebResponse<T> (
     val message: String? = null,
     val body: T? = null,
 ) : Serializable
+
+data class ComicTopResponse(
+    val data: ComicTopData? = null,
+) : Serializable
+
+data class ComicTopData(
+    val banners: List<ComicBanner>? = null,
+    val recent_updated_official_works: List<ComicWork>? = null,
+) : Serializable
+
+data class ComicBanner(
+    val id: Long = 0L,
+    val image_url: String? = null,
+    val url: String? = null,
+    val width: Int = 0,
+    val height: Int = 0,
+    val in_app: Boolean = false,
+) : Serializable
+
+data class ComicWork(
+    val id: Long = 0L,
+    val title: String? = null,
+    val author: String? = null,
+    val like_count: Long = 0L,
+    val is_new_work: Boolean = false,
+    val pixiv_comic_badge: Boolean = false,
+    val last_story_read_start_at: Long = 0L,
+    val thumbnail_image_url: String? = null,
+    val main_image_url: String? = null,
+    val stories_count: Int = 0,
+) : Serializable
+
+/**
+ * The body returned by Pixiv's web Ajax illust endpoint.
+ *
+ * The app API sometimes returns a visible=false placeholder for a work that
+ * the web site can still display. Keep these models in :models so the mapping
+ * is independently testable and the UI does not know about web JSON details.
+ */
+data class WebIllustBody(
+    val illustTitle: String? = null,
+    val description: String? = null,
+    val illustType: Int = 0,
+    val createDate: String? = null,
+    val restrict: Int = 0,
+    val xRestrict: Int = 0,
+    val sl: Int = 0,
+    val urls: WebIllustUrls? = null,
+    val tags: WebIllustTags? = null,
+    val userId: String? = null,
+    val userName: String? = null,
+    val userAccount: String? = null,
+    val width: Int = 0,
+    val height: Int = 0,
+    val pageCount: Int = 0,
+    val bookmarkCount: Int = 0,
+    val viewCount: Int = 0,
+    val aiType: Int = 0,
+    val bookmarkData: Any? = null,
+) : Serializable
+
+data class WebIllustPage(
+    val width: Int = 0,
+    val height: Int = 0,
+    val urls: WebIllustUrls? = null,
+) : Serializable
+
+data class WebIllustUrls(
+    val mini: String? = null,
+    val thumb: String? = null,
+    val thumb_mini: String? = null,
+    val small: String? = null,
+    val regular: String? = null,
+    val original: String? = null,
+) : Serializable
+
+data class WebIllustTags(
+    val tags: List<WebIllustTag>? = null,
+) : Serializable
+
+data class WebIllustTag(
+    val tag: String? = null,
+    val translation: Map<String, String>? = null,
+) : Serializable
+
+/**
+ * Convert a web Ajax work into the same model used by the app API.
+ *
+ * [pages] is optional because `/pages` can be rejected for R18 or restricted
+ * works. In that case Pixiv's stable `_p0` naming convention gives us a useful
+ * image list without making the whole detail page fail.
+ */
+fun WebIllustBody.toIllust(illustId: Long, pages: List<WebIllustPage>? = null): Illust {
+    val count = pageCount.coerceAtLeast(1)
+    val imageUrls = urls?.toImageUrls()
+    val pageUrls = if (count > 1) {
+        if (pages != null && pages.size >= count &&
+            pages.take(count).all { !it.urls?.original.isNullOrBlank() }
+        ) {
+            pages.take(count).map { it.urls!!.toImageUrls() }
+        } else {
+            List(count) { index -> imageUrls.withPageSuffix(index) }
+        }
+    } else {
+        emptyList()
+    }
+
+    return Illust(
+        id = illustId,
+        caption = decodeWebDescription(description),
+        create_date = normalizeWebDate(createDate),
+        height = height,
+        image_urls = imageUrls,
+        is_bookmarked = bookmarkData != null,
+        illust_ai_type = aiType,
+        meta_pages = pageUrls.map { MetaPage(it) },
+        meta_single_page = if (count == 1) {
+            MetaSinglePage(imageUrls?.original)
+        } else {
+            MetaSinglePage()
+        },
+        page_count = count,
+        restrict = restrict,
+        sanity_level = sl,
+        tags = tags?.tags.orEmpty().mapNotNull { tag ->
+            tag.tag?.takeIf { it.isNotBlank() }?.let {
+                Tag(it, tag.translation?.values?.firstOrNull())
+            }
+        },
+        title = illustTitle,
+        total_bookmarks = bookmarkCount,
+        total_view = viewCount,
+        type = when (illustType) {
+            2 -> ObjectType.GIF
+            1 -> ObjectType.MANGA
+            else -> ObjectType.ILLUST
+        },
+        user = User(
+            account = userAccount,
+            id = userId?.toLongOrNull() ?: 0L,
+            name = userName,
+        ),
+        visible = true,
+        width = width,
+        x_restrict = xRestrict,
+    )
+}
+
+private fun WebIllustUrls.toImageUrls(): ImageUrls = ImageUrls(
+    original = original,
+    large = regular ?: original,
+    medium = small ?: regular ?: original,
+    square_medium = thumb ?: thumb_mini ?: mini,
+)
+
+private fun ImageUrls?.withPageSuffix(page: Int): ImageUrls {
+    fun String?.replacePageSuffix(): String? = this?.let { url ->
+        if (page == 0) url else url.replace("_p0", "_p$page")
+    }
+    return ImageUrls(
+        original = this?.original.replacePageSuffix(),
+        large = this?.large.replacePageSuffix(),
+        medium = this?.medium.replacePageSuffix(),
+        square_medium = this?.square_medium.replacePageSuffix(),
+    )
+}
+
+// 只捕获 url= 参数的值：jump.php 的 query 里只有 url 一个参数，整段解码会残留 "url=" 前缀
+// （CaptionText 会把 href 渲染成可点击链接，前缀残留会导致点击打开无效地址）。
+private val webJumpLink = Regex("(?<=href=\")/jump\\.php\\?url=([^\"]+)(?=\")")
+
+private fun decodeWebDescription(description: String?): String? = description?.replace(webJumpLink) { match ->
+    runCatching { URLDecoder.decode(match.groupValues[1], Charsets.UTF_8.name()) }
+        .getOrDefault(match.value)
+}
+
+private fun normalizeWebDate(date: String?): String? = date?.let {
+    runCatching {
+        OffsetDateTime.parse(it)
+            .withOffsetSameInstant(ZoneOffset.ofHours(9))
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"))
+    }.getOrDefault(it)
+}
 
 // issue #569: 网页版「按 Tag 筛选画师作品」接口 /ajax/user/{id}/illusts/tag 的响应体。
 // works 里是精简 work 对象(方图 url + 字符串 tags + 宽高),由 UserIllustTagRepo 映射成 IllustsBean。
