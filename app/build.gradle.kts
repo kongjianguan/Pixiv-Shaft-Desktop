@@ -60,7 +60,7 @@ compose.desktop {
             "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
             // ECH 原生库（开发模式直接指向 cargo 产物；打包后走 Contents/Resources 探测）
-            "-Declibrary.path=${rootProject.file("rust/ech/target/aarch64-apple-darwin/release/libech.dylib")}",
+            "-Declibrary.path=${project.file("build/app-resources/libech.dylib")}",
         )
         nativeDistributions {
             modules("java.sql", "jdk.unsupported")
@@ -85,14 +85,14 @@ compose.desktop {
 // ---- ECH 原生库接入（rust/ech）----
 
 /** 构建 Rust ECH dylib 并复制到 appResourcesRootDir（进 Contents/Resources）。 */
+// 预编译 dylib（rust/ech/prebuilt，已提交）→ build/app-resources（run 与打包共用）
 val copyEchLib = tasks.register<Copy>("copyEchLib") {
-    dependsOn(rootProject.tasks.named("buildEchLib"))
-    from(rootProject.file("rust/ech/target/aarch64-apple-darwin/release/libech.dylib"))
+    from(rootProject.file("rust/ech/prebuilt/libech.dylib"))
     into(project.file("build/app-resources"))
 }
 
 tasks.matching { it.name == "run" }.configureEach {
-    dependsOn(rootProject.tasks.named("buildEchLib"))
+    dependsOn(copyEchLib)
 }
 
 // Compose 插件不保证 appResourcesRootDir 落进 DMG，直接往 app image 里复制：
