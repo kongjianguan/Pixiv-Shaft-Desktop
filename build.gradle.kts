@@ -10,11 +10,12 @@ tasks.register<Exec>("buildEchLib") {
     group = "build"
     description = "Build the Rust ECH native library (rust/ech)"
     workingDir = rootProject.file("rust/ech")
-    commandLine("cargo", "build", "--release")
+    // 只支持 Apple Silicon：显式 arm64 target，CI（Intel runner）交叉编译产物一致
+    commandLine("cargo", "build", "--release", "--target", "aarch64-apple-darwin")
     inputs.files(
         fileTree("rust/ech/src"),
         file("rust/ech/Cargo.toml"),
         file("rust/ech/Cargo.lock"),
     )
-    outputs.file("rust/ech/target/release/libech.dylib")
+    outputs.file("rust/ech/target/aarch64-apple-darwin/release/libech.dylib")
 }

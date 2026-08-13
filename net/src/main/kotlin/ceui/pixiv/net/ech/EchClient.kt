@@ -47,13 +47,21 @@ object EchClient {
                     System.load(bundleLib.absolutePath)
                     loaded = true
                 } else {
-                    // 3) 开发模式：从 user.dir 向上找 cargo 产物（不依赖 Gradle 传参机制）
+                    // 3) 开发模式：从 user.dir 向上找 cargo 产物（不依赖 Gradle 传参机制）。
+                    //    显式 --target 后产物在 target/aarch64-apple-darwin/release，
+                    //    保留 target/release 兜底旧路径。
                     var dir: File? = File(System.getProperty("user.dir"))
                     while (dir != null && !loaded) {
-                        val candidate = File(dir, "rust/ech/target/release/libech.dylib")
-                        if (candidate.isFile) {
-                            System.load(candidate.absolutePath)
-                            loaded = true
+                        val candidates = listOf(
+                            File(dir, "rust/ech/target/aarch64-apple-darwin/release/libech.dylib"),
+                            File(dir, "rust/ech/target/release/libech.dylib"),
+                        )
+                        for (candidate in candidates) {
+                            if (candidate.isFile) {
+                                System.load(candidate.absolutePath)
+                                loaded = true
+                                break
+                            }
                         }
                         dir = dir.parentFile
                     }

@@ -27,6 +27,6 @@ tasks.test { useJUnitPlatform() }
 tasks.test {
     systemProperty(
         "ech.library.path",
-        rootProject.file("rust/ech/target/release/libech.dylib").absolutePath,
+        rootProject.file("rust/ech/target/aarch64-apple-darwin/release/libech.dylib").absolutePath,
     )
 }
