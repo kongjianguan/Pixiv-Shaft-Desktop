@@ -7,6 +7,7 @@ import ceui.pixiv.net.NettyQuicInterceptor
 import ceui.pixiv.net.api.Client
 import ceui.pixiv.net.auth.RealTokenRefresher
 import ceui.pixiv.net.auth.TokenExchange
+import ceui.pixiv.net.ech.EchClient
 import ceui.pixiv.net.ech.EchInterceptor
 import ceui.pixiv.net.impl.DefaultLanguageProvider
 import ceui.pixiv.net.impl.StdoutLogger
@@ -87,6 +88,10 @@ object AppContainer {
         )
 
         updateAuthState()
+        // ECH 预热：后台线程异步拉取 ECH 配置并构建连接池，避免首个 API 请求
+        // 同步等待 AliDNS 查询 + TLS 引导（几百 ms）。预热失败不缓存，
+        // 首个请求会自动重试（见 rust/ech/src/ech.rs 的 ensure_client）。
+        Thread { EchClient.warmUp() }.start()
     }
 
     fun close() {

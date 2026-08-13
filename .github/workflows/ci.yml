@@ -24,5 +24,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Setup Rust toolchain (for ECH library)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Intel runner 交叉编译到 Apple Silicon 必需；arm64 runner 上也是幂等操作
+          targets: aarch64-apple-darwin
+
+      - name: Build Rust ECH library
+        run: ./gradlew buildEchLib
+
       - name: Compile & Test
         run: ./gradlew test --stacktrace
