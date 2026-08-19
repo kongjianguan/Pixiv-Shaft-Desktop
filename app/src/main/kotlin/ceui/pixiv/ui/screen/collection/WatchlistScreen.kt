@@ -60,6 +60,7 @@ import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.novel.NovelSeriesScreen
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.util.openInBrowser
@@ -258,7 +259,6 @@ private fun WatchlistSeriesRow(
 // last_published_content_datetime 的 getter 会 substring(0, 10)：
 // MangaItem 对 null 安全（?.），NovelItem 用 !! 在字段缺失时直接在取属性处抛 NPE，
 // 所以 runCatching 必须在调用处包住属性访问，进函数后再包就拦不到了
-private fun WatchlistRowDate(value: String?): String = value.orEmpty()
 
 @Composable
 private fun WatchlistMangaRow(item: WatchlistMangaItem, onClick: () -> Unit) {
@@ -267,7 +267,7 @@ private fun WatchlistMangaRow(item: WatchlistMangaItem, onClick: () -> Unit) {
         coverUrl = item.url,
         authorName = item.user?.name,
         contentCount = item.published_content_count,
-        lastDate = WatchlistRowDate(runCatching { item.last_published_content_datetime }.getOrNull()),
+        lastDate = runCatching { item.last_published_content_datetime }.getOrNull().orEmpty(),
         onClick = onClick,
     )
 }
@@ -279,7 +279,7 @@ private fun WatchlistNovelRow(item: WatchlistNovelItem, onClick: () -> Unit) {
         coverUrl = item.url,
         authorName = item.user?.name,
         contentCount = item.published_content_count,
-        lastDate = WatchlistRowDate(runCatching { item.last_published_content_datetime }.getOrNull()),
+        lastDate = runCatching { item.last_published_content_datetime }.getOrNull().orEmpty(),
         onClick = onClick,
     )
 }
@@ -417,14 +417,14 @@ class WatchlistScreenModel(
     }
 
     private fun hasVisibleManga() =
-        (_mangaState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _mangaState.value.hasVisibleContent()
 
     private fun publishNovel() {
         _novelState.value = UiState.Success(visibleItems(novelPager.items.value, settingsStore.isShowR18))
     }
 
     private fun hasVisibleNovel() =
-        (_novelState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _novelState.value.hasVisibleContent()
 
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {

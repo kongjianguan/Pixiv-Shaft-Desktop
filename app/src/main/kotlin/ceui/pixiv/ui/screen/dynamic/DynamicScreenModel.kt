@@ -12,6 +12,7 @@ import ceui.pixiv.net.api.Client
 import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleNovels
 import ceui.pixiv.ui.util.visibleItems
@@ -123,9 +124,9 @@ class DynamicScreenModel(
     }
 
     private fun hasVisibleContent(): Boolean = if (type == "novel") {
-        (_novelState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _novelState.value.hasVisibleContent()
     } else {
-        (_illustState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _illustState.value.hasVisibleContent()
     }
 
     private fun setSuccess() {

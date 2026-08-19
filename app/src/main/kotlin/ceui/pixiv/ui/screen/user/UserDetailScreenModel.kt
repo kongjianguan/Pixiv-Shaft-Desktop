@@ -8,7 +8,7 @@ import ceui.loxia.ProfileBean
 import ceui.loxia.User
 import ceui.loxia.UserDetailResponse
 import ceui.pixiv.di.AppContainer
-import ceui.pixiv.ui.history.BrowseHistoryRecorder
+import ceui.pixiv.ui.history.normalized
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.observeR18Toggle
@@ -57,8 +57,8 @@ class UserDetailScreenModel(
                 val detail = client.appApi.getUserDetail(userId)
                 val user = detail.user ?: User()
                 val profile = detail.profile ?: ProfileBean()
-                val normalizedUser = if (user.id > 0L) user else user.copy(id = user.user_id)
-                if (normalizedUser.id > 0L) BrowseHistoryRecorder.recordUser(normalizedUser)
+                val normalizedUser = user.normalized()
+                if (normalizedUser.id > 0L) ceui.pixiv.ui.history.BrowseHistoryRecorder.recordUser(normalizedUser)
                 _userState.value = UiState.Success(normalizedUser to profile)
                 _isFollowing.value = user.is_followed
             } catch (e: CancellationException) { throw e }

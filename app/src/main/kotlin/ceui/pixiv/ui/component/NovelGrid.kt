@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ceui.loxia.Novel
 import ceui.pixiv.di.AppContainer
-import kotlin.math.ceil
+import ceui.pixiv.ui.component.calculateResponsiveColumns
 
 /** 响应式小说网格：列数跟随 novelFeed 布局设置（排行/动态页共用）。 */
 @Composable
@@ -29,13 +29,13 @@ fun NovelGrid(
     val minColumnWidthDp by AppContainer.settingsStore.novelFeedMinColumnWidthDpFlow.collectAsState()
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val spacing = 10.dp
-        val desiredColumns = ceil(
-            (maxWidth.value + spacing.value) / (maxColumnWidthDp + spacing.value)
-        ).toInt()
-        val columnsAllowedByMinimum = (
-            (maxWidth.value + spacing.value) / (minColumnWidthDp + spacing.value)
-        ).toInt()
-        val columns = minOf(desiredColumns, maxColumns, columnsAllowedByMinimum).coerceAtLeast(1)
+        val columns = calculateResponsiveColumns(
+            viewportWidth = maxWidth,
+            maxColumnWidthDp = maxColumnWidthDp,
+            maxColumns = maxColumns,
+            minColumnWidthDp = minColumnWidthDp,
+            spacing = spacing,
+        )
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Fixed(columns),
             state = gridState,

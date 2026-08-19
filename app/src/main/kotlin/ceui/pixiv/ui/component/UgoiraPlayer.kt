@@ -45,7 +45,7 @@ fun UgoiraPlayer(
                 val request = Request.Builder().url(zipUrl).build()
                 client.newCall(request).execute().use { resp ->
                     val bytes = resp.body?.bytes() ?: return@withContext emptyList()
-                    decodeUgoiraZip(bytes, frames)
+                    decodeUgoiraZip(bytes)
                 }
             }
             bitmaps = decoded
@@ -58,7 +58,7 @@ fun UgoiraPlayer(
 
     // Animate
     val currentBitmap = bitmaps.getOrNull(currentIndex)
-    if (currentBitmap != null && bitmaps.isNotEmpty()) {
+    if (currentBitmap != null) {
         LaunchedEffect(bitmaps) {
             var i = 0
             while (true) {
@@ -85,17 +85,7 @@ fun UgoiraPlayer(
     }
 }
 
-/**
- * Downloads and decodes a ugoira zip into a list of ImageBitmap frames.
- * Frames are sorted by filename (000000.jpg, 000001.jpg, ...).
- */
-private fun decodeUgoiraZip(
-    zipBytes: ByteArray,
-    frameMetadata: List<GifFrame>
-): List<ImageBitmap> {
-    val sortedFrames = frameMetadata.sortedBy { it.file ?: "" }
-    val frameMap = sortedFrames.associate { it.file to it.delay }
-
+private fun decodeUgoiraZip(zipBytes: ByteArray): List<ImageBitmap> {
     val entries = mutableListOf<Pair<String, ByteArray>>()
     ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
         var entry = zis.nextEntry
@@ -108,8 +98,6 @@ private fun decodeUgoiraZip(
             entry = zis.nextEntry
         }
     }
-
-    // Sort by filename to match frame order
     val sortedEntries = entries.sortedBy { it.first }
     return sortedEntries.map { (_, data) ->
         SkiaImage.makeFromEncoded(data).toComposeImageBitmap()

@@ -116,7 +116,8 @@ private fun <T : Any> RankingFeedScaffold(
         // 外部传入 refreshTick 时，回顶/刷新由外层页面统一递增计数（下面的 tick 分支处理）；
         // 这里再消费 LocalScrollToTop 会让同一事件触发两次刷新。独立页（refreshTick = null）
         // 仍沿用 LocalScrollToTop 机制。
-        if (refreshTick == null && scrollToTopValue > 0) {
+        if (refreshTick != null) return@LaunchedEffect
+        if (scrollToTopValue > 0) {
             gridState.scrollToItem(0)
             onRefresh()
             scrollToTopState.value = 0

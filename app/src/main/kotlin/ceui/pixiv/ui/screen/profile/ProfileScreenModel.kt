@@ -14,6 +14,7 @@ import ceui.pixiv.store.Database
 import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.ui.util.visibleNovels
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -242,28 +243,28 @@ class ProfileScreenModel(
     }
 
     private fun hasVisibleBookmarks() =
-        (_bookmarksState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _bookmarksState.value.hasVisibleContent()
 
     private fun publishNovelBookmarks() {
         _novelBookmarksState.value = UiState.Success(visibleNovels(novelBookmarkPager.items.value, settingsStore.isShowR18))
     }
 
     private fun hasVisibleNovelBookmarks() =
-        (_novelBookmarksState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _novelBookmarksState.value.hasVisibleContent()
 
     private fun publishCreatedIllusts() {
         _createdIllustsState.value = UiState.Success(visibleItems(createdIllustPager.items.value, settingsStore.isShowR18))
     }
 
     private fun hasVisibleCreatedIllusts() =
-        (_createdIllustsState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _createdIllustsState.value.hasVisibleContent()
 
     private fun publishCreatedNovels() {
         _createdNovelsState.value = UiState.Success(visibleNovels(createdNovelPager.items.value, settingsStore.isShowR18))
     }
 
     private fun hasVisibleCreatedNovels() =
-        (_createdNovelsState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _createdNovelsState.value.hasVisibleContent()
 
     /** 小说收藏乐观切换（与排行流同款：先更新本地再调 API，失败回滚）。 */
     fun toggleNovelBookmark(novel: Novel) {

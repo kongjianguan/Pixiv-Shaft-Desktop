@@ -52,6 +52,7 @@ import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.novel.NovelDetailScreen
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleMarkedNovels
 import coil3.compose.AsyncImage
@@ -105,9 +106,7 @@ class NovelMarkersScreen : Screen {
                     is UiState.Error -> ErrorView(s.message, { screenModel.refresh() })
                     is UiState.Success -> {
                         // lateinit 字段未初始化时跳过该条目（理论不会发生，防御而已）
-                        val items = s.data.filter {
-                            runCatching { it.novel; it.novel_marker }.isSuccess
-                        }
+                        val items = s.data
                         if (items.isEmpty()) {
                             // R18 开关关闭且数据被过滤时提示隐藏而非「没有数据」
                             EmptyView(
@@ -265,7 +264,7 @@ class NovelMarkersScreenModel(
     }
 
     private fun hasVisibleContent(): Boolean =
-        (_state.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _state.value.hasVisibleContent()
 
     private fun publishItems() {
         _state.value = UiState.Success(visibleMarkedNovels(pager.items.value, settingsStore.isShowR18))

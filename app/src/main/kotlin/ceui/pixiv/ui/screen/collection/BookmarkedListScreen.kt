@@ -42,6 +42,7 @@ import ceui.pixiv.ui.screen.novel.NovelSeriesScreen
 import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.ui.util.visibleNovels
@@ -258,9 +259,9 @@ class BookmarkedListScreenModel(
     }
 
     private fun hasVisibleContent(): Boolean = if (type == "illust") {
-        (_illustState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _illustState.value.hasVisibleContent()
     } else {
-        (_novelState.value as? UiState.Success)?.data?.isNotEmpty() == true
+        _novelState.value.hasVisibleContent()
     }
 
     private fun setSuccess() {

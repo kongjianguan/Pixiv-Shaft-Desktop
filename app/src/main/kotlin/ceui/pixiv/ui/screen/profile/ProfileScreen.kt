@@ -108,10 +108,7 @@ class ProfileScreen : Screen {
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         when (val s = profileState) {
-                            is UiState.Loading -> {
-                                UserAvatar(url = null, size = 64)
-                            }
-                            is UiState.Error -> {
+                            is UiState.Loading, is UiState.Error -> {
                                 UserAvatar(url = null, size = 64)
                             }
                             is UiState.Success -> {

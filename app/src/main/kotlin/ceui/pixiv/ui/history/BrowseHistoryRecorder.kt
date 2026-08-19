@@ -8,6 +8,8 @@ import ceui.pixiv.di.AppContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+fun User.normalized(): User = if (id > 0L) this else copy(id = user_id)
+
 object BrowseHistoryRecorder {
 
     private val gson = Gson()
@@ -21,7 +23,7 @@ object BrowseHistoryRecorder {
     }
 
     suspend fun recordUser(user: User) {
-        val normalized = if (user.id > 0L) user else user.copy(id = user.user_id)
+        val normalized = user.normalized()
         record("user", normalized.id, normalized)
     }
 

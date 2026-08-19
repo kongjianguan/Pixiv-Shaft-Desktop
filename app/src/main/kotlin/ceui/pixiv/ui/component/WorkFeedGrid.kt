@@ -56,6 +56,20 @@ internal fun calculateWorkFeedColumns(
     maxColumns: Int,
     minColumnWidthDp: Int,
     spacing: Dp,
+): Int = calculateResponsiveColumns(
+    viewportWidth = viewportWidth,
+    maxColumnWidthDp = maxColumnWidthDp,
+    maxColumns = maxColumns,
+    minColumnWidthDp = minColumnWidthDp,
+    spacing = spacing,
+)
+
+internal fun calculateResponsiveColumns(
+    viewportWidth: Dp,
+    maxColumnWidthDp: Int,
+    maxColumns: Int,
+    minColumnWidthDp: Int,
+    spacing: Dp,
 ): Int {
     val desiredColumns = ceil(
         (viewportWidth.value + spacing.value) / (maxColumnWidthDp + spacing.value)
