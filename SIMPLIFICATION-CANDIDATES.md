@@ -15,7 +15,7 @@
 |---|---|---|---|---|
 | P1 | search + 明确死 UI | B1.1、B1.3、F1.1-F1.4、F8（**仅删除 `isR18` import，保留 `visibleNovels`**） | `:app:compileKotlin` + `:app:test`；调用点复查 | **已完成**：`1cccdd8` |
 | P2a | search + novel detail 小收敛 | B1.2、B2.4、B2.6 | `:app:compileKotlin` + `:app:test`；函数引用和请求参数复查 | **已完成**：`3a84a16` |
-| P2b | detail / comment 小收敛 | C6-C8、C10-C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | 待执行 |
+| P2b | detail / comment 小收敛 | C7、C8、C10、C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | **已完成**：`d1eb350`（C6 调查后保留，不进入实施） |
 | P3 | component + profile 机械收敛 | D1、D3、D7、D9、E2、E3、E6、E9、E13、F2.3-F2.4 | 编译 + `:app:test`；UI 改动只做等价替换 | 待执行 |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | 待执行 |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | 待执行 |
@@ -127,18 +127,18 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | C2 | IllustDetailScreen.kt:744-784 vs 831-917 | 全屏与普通模式的图片区是同一三分支（gif/多页/单图）各写一遍，约 90 行近重复，仅 zoomActive、页码指示器位置、ugora 错误处理不同 | 提取共享 `ArtworkDisplay(...)`，差异参数化 | 中 | 无（手势路径无测试，需手工回归） |
 | C3 | CommentsController.kt:340-363 vs 433-443 | `ensurePagerLoaded()` 复制了 `loadComments()` 中「拉首页 + pager.refresh + merge + hasMore」中间段 | 提取 `fetchFirstPageIntoPager()` 供两处调用 | 低 | 部分 |
 | C4 | CommentsController.kt:72-77 / 459-469 / 270-274 | `replyNextUrls: Map<Long,String?>` 与 `_hasMoreReplies: Set<Long>` 是同一信息的两个并行结构，两处都要同步维护（deleteComment 已出现漏同步隐患类） | `replyNextUrls` 改 `MutableStateFlow`，hasMoreReplies 变派生值，只维护一份 | 中 | 部分 |
-| C6 | IllustDetailScreenModel.kt:54 / 92 / 161-162 | `_userId` 字段是 `illustState.user.id` 的冗余拷贝 | 从 state 直接取，删字段 | 低 | 无 |
-| C7 | CommentsSection.kt:377-381 / 404-407 | 打开表情面板（默认颜文字 tab）就调 `loadStamps()`，切贴纸 tab 再调一次——首次调用常为浪费 | 只在切到贴纸 tab 时调 | 低 | 无 |
-| C8 | CommentsController.kt:194/219/261 | 三处 `commentsPager.items.value...map{it.id}.toSet()` | 提取 `topLevelCommentIds()`（低价值，可选） | 低 | — |
+| C6 | IllustDetailScreenModel.kt:54 / 92 / 161-162 | `_userId` 字段是 `illustState.user.id` 的冗余拷贝 | **不实施**：已验证该字段为独立可变状态（toggleFollow 在详情加载完成前可被调用），与 state 不同步 | 低 | 无 |
+| C7 [已完成] | CommentsSection.kt:377-381 / 404-407 | 打开表情面板（默认颜文字 tab）就调 `loadStamps()`，切贴纸 tab 再调一次——首次调用常为浪费 | 只在切到贴纸 tab 时调 | 低 | 无 |
+| C8 [已完成] | CommentsController.kt:194/219/261 | 三处 `commentsPager.items.value...map{it.id}.toSet()` | 提取 `topLevelCommentIds()`（低价值，可选） | 低 | — |
 
 ### C 区补充（第二轮审查，互证 + 新增）
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | C9 | IllustDetailScreenModel.kt:30 / 184-204 | `relatedPager` 用完整 Pager 只用到 refresh/items（hasNext/loadMore/generation 全未用，非分页数据） | 换普通字段 `rawRelated: List<Illust>` + 现成 `visibleItems` 过滤；republishIfLoaded 同改 | 低（同 scope 单线程无竞态；R18 重过滤不变） |
-| C10 | CommentsController.kt:89-100（init）与 :325-336（retrySelfUserId） | init 的 launch+try/catch+resolveSelfUserId 与 retrySelfUserId 完全同构（init 时 _selfUserId 必为 null，守卫恒通过） | init 改为一行 `retrySelfUserId()` | 低 |
+| C10 [已完成] | CommentsController.kt:89-100（init）与 :325-336（retrySelfUserId） | init 的 launch+try/catch+resolveSelfUserId 与 retrySelfUserId 完全同构（init 时 _selfUserId 必为 null，守卫恒通过） | init 改为一行 `retrySelfUserId()` | 低 |
 | C11 | IllustDetailScreen.kt:839-843 / 871-875 / 902-906 | 普通模式三个分支各自写灰底 Box（0xFFE0E0E0），重复 3 次 | 灰底移入 ArtworkFrame 内层 Box，删 3 个包装 | 低（视觉等价） |
-| C12 | IllustDetailScreen.kt:696-698 | private 函数唯一调用点全参显式传入，3 个默认值从未被使用 | 删默认值 | 低 |
+| C12 [已完成] | IllustDetailScreen.kt:696-698 | private 函数唯一调用点全参显式传入，3 个默认值从未被使用 | 删默认值 | 低 |
 
 **C 区保留约束**：
 
