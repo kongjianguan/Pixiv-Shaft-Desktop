@@ -73,7 +73,7 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.NovelCard
-import ceui.pixiv.ui.navigation.LocalScrollToTop
+import ceui.pixiv.ui.component.ScrollToTopOnEvent
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
 import ceui.pixiv.ui.screen.novel.NovelDetailScreen
 import ceui.pixiv.ui.screen.user.UserDetailScreen
@@ -117,15 +117,7 @@ class SearchScreen(
         var numericInput by remember { mutableStateOf<String?>(null) }
 
         val illustGridState = rememberLazyStaggeredGridState()
-        val scrollToTopState = LocalScrollToTop.current
-        val scrollToTopValue = scrollToTopState.value
-        LaunchedEffect(scrollToTopValue) {
-            if (scrollToTopValue > 0) {
-                illustGridState.scrollToItem(0)
-                screenModel.refresh()
-                scrollToTopState.value = 0
-            }
-        }
+        ScrollToTopOnEvent(illustGridState, screenModel::refresh)
 
         fun submit(value: String = query) {
             val trimmed = value.trim()

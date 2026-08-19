@@ -626,11 +626,7 @@ class SearchScreenModel(
     }
 
     private fun setError(tab: SearchTab, message: String) {
-        when (tab) {
-            SearchTab.Illust -> _illustState.value = UiState.Error(message)
-            SearchTab.Novel -> _novelState.value = UiState.Error(message)
-            SearchTab.User -> _userState.value = UiState.Error(message)
-        }
+        setState(tab, UiState.Error(message))
     }
 
     private fun setErrorIfNeeded(tab: SearchTab, message: String) {

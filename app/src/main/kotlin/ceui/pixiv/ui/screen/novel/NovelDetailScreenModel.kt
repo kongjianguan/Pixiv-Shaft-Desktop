@@ -55,7 +55,7 @@ class NovelDetailScreenModel(
         }
     }
 
-    fun toggleBookmark(restrict: String = "public") {
+    fun toggleBookmark() {
         val novel = (_state.value as? UiState.Success)?.data ?: return
         val current = novel.is_bookmarked ?: return
         if (!bookmarkInFlight.compareAndSet(false, true)) return
@@ -67,7 +67,7 @@ class NovelDetailScreenModel(
                 if (current) {
                     client.appApi.removeNovelBookmark(novel.id)
                 } else {
-                    client.appApi.addNovelBookmark(novel.id, restrict)
+                    client.appApi.addNovelBookmark(novel.id, "public")
                 }
             } catch (e: CancellationException) {
                 _state.value = UiState.Success(novel)
@@ -80,7 +80,7 @@ class NovelDetailScreenModel(
         }
     }
 
-    fun toggleFollow(restrict: String = "public") {
+    fun toggleFollow() {
         val novel = (_state.value as? UiState.Success)?.data ?: return
         val user = novel.user ?: return
         val current = user.is_followed ?: return
@@ -93,7 +93,7 @@ class NovelDetailScreenModel(
                 if (current) {
                     client.appApi.postUnFollow(user.id)
                 } else {
-                    client.appApi.postFollow(user.id, restrict)
+                    client.appApi.postFollow(user.id, "public")
                 }
             } catch (e: CancellationException) {
                 _state.value = UiState.Success(novel)
