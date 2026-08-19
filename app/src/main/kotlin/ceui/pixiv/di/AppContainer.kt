@@ -50,7 +50,7 @@ object AppContainer {
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     fun updateAuthState() {
-        _authState.value = if (tokenStore.isLoggedIn) AuthState.LoggedIn()
+        _authState.value = if (tokenStore.isLoggedIn) AuthState.LoggedIn
                            else AuthState.LoggedOut
     }
 

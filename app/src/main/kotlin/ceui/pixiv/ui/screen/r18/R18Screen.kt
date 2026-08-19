@@ -22,8 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -45,10 +43,10 @@ class R18Screen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
-        val screenModel = rememberScreenModel { R18ScreenModel() }
+        val modes = R18RankingMode.entries
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
-        val pagerState = rememberPagerState(pageCount = { screenModel.modes.size })
+        val pagerState = rememberPagerState(pageCount = { modes.size })
 
         // R18 全局开关关闭时本页必须立刻退出：开关未开启前用户不应看到任何 R18 相关界面。
         // 场景：在本页时经 AppMenu「设置」/快捷键进入设置页关闭开关，返回后本页仍在栈中。
@@ -71,7 +69,7 @@ class R18Screen : Screen {
         ) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 TabRow(selectedTabIndex = pagerState.currentPage) {
-                    screenModel.modes.forEachIndexed { index, mode ->
+                    modes.forEachIndexed { index, mode ->
                         Tab(
                             selected = pagerState.currentPage == index,
                             onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
@@ -83,7 +81,7 @@ class R18Screen : Screen {
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
-                    val mode = screenModel.modes[page].apiMode
+                    val mode = modes[page].apiMode
                     // key 保证每页按各自 mode 独立加载和翻页
                     key(mode) {
                         RankingFeed(mode = mode)
@@ -92,8 +90,4 @@ class R18Screen : Screen {
             }
         }
     }
-}
-
-class R18ScreenModel : ScreenModel {
-    val modes: List<R18RankingMode> = R18RankingMode.entries
 }

@@ -10,7 +10,6 @@ import ceui.loxia.NovelResponse
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.util.isR18
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleNovels
 import ceui.pixiv.ui.util.visibleItems

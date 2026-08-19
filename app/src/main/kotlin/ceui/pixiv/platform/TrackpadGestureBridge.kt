@@ -176,20 +176,6 @@ object TrackpadGestureBridge {
         }
     }
 
-    // Kept public for the existing magnify bridge tests/callers.
-    fun onMagnify(block: Pointer, event: Pointer): Pointer {
-        val h = magnifyHandler.get()
-        if (h != null) {
-            try {
-                val mag = objcLib.getFunction("objc_msgSend")
-                    .invokeDouble(arrayOf<Any>(event, selRegister("magnification")))
-                h.invoke(mag)
-            } catch (_: Throwable) {
-            }
-        }
-        return event
-    }
-
     // ---- libobjc helpers ----
 
     private val objcLib by lazy { NativeLibrary.getInstance("objc") }

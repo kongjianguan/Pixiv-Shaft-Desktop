@@ -146,14 +146,6 @@ class SearchScreenModel(
         requestSuggestions(_input.value)
     }
 
-    fun commitInput() {
-        val value = _input.value.trim()
-        if (value.isNotBlank()) addTags(value.split(Regex("\\s+")).filter(String::isNotBlank))
-        _input.value = ""
-        updateQueryValue()
-        clearSuggestions()
-    }
-
     fun acceptSuggestion(suggestion: SearchSuggestion) {
         addTags(listOf(suggestion.tag))
         _input.value = ""
@@ -255,10 +247,6 @@ class SearchScreenModel(
         }
     }
 
-    fun resetActiveFilter() {
-        updateActiveFilter(SearchFilter())
-    }
-
     fun loadMore() {
         if (_isLoadingMore.value) return
         val tab = _activeTab.value
@@ -329,8 +317,6 @@ class SearchScreenModel(
         }
     }
 
-    fun suggestionsForCurrentInput(): List<SearchSuggestion> = _suggestions.value
-
     fun clearHistory() {
         screenModelScope.launch {
             db.queries.searchHistoryQueries.clearAllSearches()
@@ -376,7 +362,7 @@ class SearchScreenModel(
                     client.appApi.popularPreview(
                         word = word,
                         sort = filter.sort.apiValue,
-                        search_target = filter.target.queryValue(),
+                        search_target = filter.target.apiValue,
                         merge_plain_keyword_results = true,
                         include_translated_tag_results = true,
                         search_ai_type = filter.aiMode.serverValue(),
@@ -396,7 +382,7 @@ class SearchScreenModel(
                     client.appApi.searchIllustManga(
                         word = word,
                         sort = filter.sort.apiValue,
-                        search_target = filter.target.queryValue(),
+                        search_target = filter.target.apiValue,
                         merge_plain_keyword_results = true,
                         include_translated_tag_results = true,
                         search_ai_type = filter.aiMode.serverValue(),
@@ -422,7 +408,7 @@ class SearchScreenModel(
                     client.appApi.popularPreviewNovel(
                         word = word,
                         sort = filter.sort.apiValue,
-                        search_target = filter.target.queryValue(),
+                        search_target = filter.target.apiValue,
                         merge_plain_keyword_results = true,
                         include_translated_tag_results = true,
                         search_ai_type = filter.aiMode.serverValue(),
@@ -444,7 +430,7 @@ class SearchScreenModel(
                     client.appApi.searchNovel(
                         word = word,
                         sort = filter.sort.apiValue,
-                        search_target = filter.target.queryValue(),
+                        search_target = filter.target.apiValue,
                         merge_plain_keyword_results = true,
                         include_translated_tag_results = true,
                         search_ai_type = filter.aiMode.serverValue(),

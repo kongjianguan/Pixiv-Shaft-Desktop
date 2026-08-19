@@ -48,7 +48,6 @@ internal enum class MainNavigationTarget {
     SEARCH,
     PROFILE,
     DYNAMIC,
-    HISTORY,
 }
 
 internal val mainNavigationRequest = mutableStateOf<MainNavigationTarget?>(null)
