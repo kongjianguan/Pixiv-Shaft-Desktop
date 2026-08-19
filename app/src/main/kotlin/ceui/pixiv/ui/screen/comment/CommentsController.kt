@@ -88,15 +88,7 @@ class CommentsController(
 
     init {
         // 后台尽早拉一次当前用户 id，让「删除」按钮能正确显隐
-        scope.launch {
-            try {
-                resolveSelfUserId()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // 失败静默，deleteComment 时还会再解析
-            }
-        }
+        retrySelfUserId()
     }
 
     fun loadInitial() {
@@ -191,7 +183,7 @@ class CommentsController(
                 try {
                     val response = client.appApi.getIllustReplyComments(workType, commentId)
                     // 顶层评论已被删除时丢弃过期响应
-                    if (commentId !in commentsPager.items.value.asSequence().map { it.id }.toSet()) {
+                    if (commentId !in topLevelCommentIds()) {
                         return@withLock
                     }
                     mergeRepliesPage(commentId, response)
@@ -216,7 +208,7 @@ class CommentsController(
                     val body = client.appApi.generalGet(nextUrl)
                     val response = gson.fromJson(body.string(), CommentResponse::class.java)
                     // 顶层评论已被删除时丢弃过期响应
-                    if (commentId in commentsPager.items.value.asSequence().map { it.id }.toSet()) {
+                    if (commentId in topLevelCommentIds()) {
                         mergeRepliesPage(commentId, response)
                     }
                 } catch (e: CancellationException) {
@@ -258,7 +250,7 @@ class CommentsController(
                     // 本会话刚发布的评论也存在于 locallyAddedComments；不删的话下次
                     // mergeComments（loadMore/submit 触发）会把已删除的评论当本地新评论重新插回列表
                     locallyAddedComments.removeAll { it.id == comment.id }
-                    val topLevelIds = commentsPager.items.value.asSequence().map { it.id }.toSet()
+                    val topLevelIds = topLevelCommentIds()
                     if (comment.id in topLevelIds) {
                         commentsPager.updateItems { list -> list.filterNot { it.id == comment.id } }
                         _commentsState.value = UiState.Success(commentsPager.items.value)
@@ -336,6 +328,9 @@ class CommentsController(
     }
 
     // ---------- 内部实现 ----------
+
+    private fun topLevelCommentIds(): Set<Long> =
+        commentsPager.items.value.asSequence().map { it.id }.toSet()
 
     private fun loadComments() {
         scope.launch {

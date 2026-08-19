@@ -377,7 +377,6 @@ private fun EmojiPickerButton(controller: CommentsController, enabled: Boolean) 
             onClick = {
                 selectedTab = 0
                 panelOpen = true
-                controller.loadStamps()
             },
             enabled = enabled,
         ) {

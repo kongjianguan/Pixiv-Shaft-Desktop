@@ -693,9 +693,9 @@ private fun IllustDetailContent(
     onTagClick: (String) -> Unit,
     onCommentUserClick: (Long) -> Unit,
     onOpenCommentFullScreen: () -> Unit,
-    ugoiraState: UiState<UgoiraMetaData?> = UiState.Loading,
-    isFullscreen: Boolean = false,
-    onToggleFullscreen: () -> Unit = {},
+    ugoiraState: UiState<UgoiraMetaData?>,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
 ) {
     val imageUrls = buildList {
         if (illust.page_count <= 1) {
