@@ -14,10 +14,11 @@
 | 批次 | 范围 | 提交内容 | 验收门槛 | 状态 |
 |---|---|---|---|---|
 | P1 | search + 明确死 UI | B1.1、B1.3、F1.1-F1.4、F8（**仅删除 `isR18` import，保留 `visibleNovels`**） | `:app:compileKotlin` + `:app:test`；调用点复查 | **已完成**：`1cccdd8` |
-| P2 | search / detail / comment 小收敛 | B2.4、B2.6、C6-C8、C10-C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | 待执行 |
+| P2a | search + novel detail 小收敛 | B1.2、B2.4、B2.6 | `:app:compileKotlin` + `:app:test`；函数引用和请求参数复查 | **已完成**：`3a84a16` |
+| P2b | detail / comment 小收敛 | C6-C8、C10-C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | 待执行 |
 | P3 | component + profile 机械收敛 | D1、D3、D7、D9、E2、E3、E6、E9、E13、F2.3-F2.4 | 编译 + `:app:test`；UI 改动只做等价替换 | 待执行 |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | 待执行 |
-| P5 | models / net / store 的低风险清理 | B1.2、G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | 待执行 |
+| P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | 待执行 |
 | P6 | 中风险重复收敛 | A1.1、B2.1、B2.3、B3.1、C1、C3、C4、C9、D2、D5-D6、E1、E4-E5、E7-E8、E10-E11、E14、F5、G2.3 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | 待执行 |
 
 ### 不进入实施
@@ -88,7 +89,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | B1.1 [已完成] | SearchScreenModel.kt:149-155 / :258-260 / :332 | `commitInput` / `resetActiveFilter` / `suggestionsForCurrentInput` 全仓库无调用点（V2） | 直接删 | 低 |
-| B1.2 | NovelDetailScreenModel.kt:58,83 | `toggleBookmark/toggleFollow` 的 restrict 参数从未被非默认值调用（V3） | 删参数硬编码 "public"（与 toggleNovelBookmark util 一致） | 低 |
+| B1.2 [已完成] | NovelDetailScreenModel.kt:58,83 | `toggleBookmark/toggleFollow` 的 restrict 参数从未被非默认值调用（V3） | 删参数硬编码 "public"（与 toggleNovelBookmark util 一致） | 低 |
 | B1.3 [已完成] | SearchFilter.kt:18-22 | `queryValue()` 与 `apiValue` 完全同值，4 处调用混用两个名字 | 全部改用 `apiValue`，删 `queryValue()` | 低 |
 
 ### B2 收敛 · 中价值
@@ -97,8 +98,8 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 |---|------|------|------|------|
 | B2.1 | SearchScreenModel.kt:375-414 / :421-464 | `popularPreview`/`searchIllustManga` 与 `popularPreviewNovel`/`searchNovel` 两两参数列表逐字相同（17~19 个命名参数），约 80 行重复 | 函数引用收敛：`val api = if (sort==PopularPreview) appApi::popularPreview else appApi::searchIllustManga` | 低-中 |
 | B2.3 | NovelSeriesScreenModel.kt:231,271,321 | `chaptersForDownload(seriesTotal) ?: loadAllChapters()` 写两遍（含缓存写回），`downloadAllSeparate` 第三处直接用 `loadAllChapters()` 不写缓存 | 提取 `fetchAllChapters(total)` 统一三选一策略 | 低-中 |
-| B2.4 | SearchScreenModel.kt:619-657 | `setState`/`setError`/`setErrorIfNeeded` 等六个函数做同一份 tab 路由；`setError` 恒等于 `setState(tab, Error(msg))` | setError 收敛为一行，setErrorIfNeeded 复用 setState | 低 |
-| B2.6 | SearchScreen.kt:119-128 | 手写回顶 LaunchedEffect 与共享 `ScrollToTopOnEvent`（FeedScaffold.kt:81-94）逐行等价 | 替换为共享组件 | 低 |
+| B2.4 [已完成] | SearchScreenModel.kt:619-657 | `setState`/`setError`/`setErrorIfNeeded` 等六个函数做同一份 tab 路由；`setError` 恒等于 `setState(tab, Error(msg))` | setError 收敛为一行，setErrorIfNeeded 复用 setState | 低 |
+| B2.6 [已完成] | SearchScreen.kt:119-128 | 手写回顶 LaunchedEffect 与共享 `ScrollToTopOnEvent`（FeedScaffold.kt:81-94）逐行等价 | 替换为共享组件 | 低 |
 
 ### B3 微项 / 一致性
 
