@@ -158,7 +158,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| D5 | RecommendScreen.kt:443-496（NovelTabContent） | 整段手写 BoxWithConstraints + 列数公式 + LazyVerticalStaggeredGrid + NovelCard，与 `NovelGrid` **逐字节同构**（spacing/contentPadding/公式/key 全一致） | NovelTabContent 改为 `NovelGrid(gridState, items){...}`（gridState/回顶/trigger 留在调用处） | 低-中 |
+| D5 [已完成] | RecommendScreen.kt:443-496（NovelTabContent） | 整段手写 BoxWithConstraints + 列数公式 + LazyVerticalStaggeredGrid + NovelCard，与 `NovelGrid` **逐字节同构**（spacing/contentPadding/公式/key 全一致） | NovelTabContent 改为 `NovelGrid(gridState, items){...}`（gridState/回顶/trigger 留在调用处） | 低-中 |
 | D6 | RankingFeed.kt:223-375 | `RankingFeedScreenModel` 的 type 构造期固定却持双 pager+双 state，7 处 `when(type)` 分发（fetchCurrent/hasVisibleContent/setSuccess/setError/currentState/republishIfLoaded/loadMore）——约一半模型表面积是死的 | 收敛为单 pager+单 state，when 分发坍缩；UI 侧 when(type) 因卡片类型不同保留；**同步改 RankingFeedScreenModelTest 的 novelState 读法** | 中 |
 | D7 [已完成] | RankingFeed.kt:113-124 | RankingFeedScaffold 的 LocalScrollToTop 分支与 `ScrollToTopOnEvent` 函数体相同，仅多 `refreshTick==null` 守卫 | `if (refreshTick==null) ScrollToTopOnEvent(gridState, onScrolledToTop=onRefresh)`，守卫提外层 | 低 |
 | D9 [已完成] | UgoiraPlayer.kt:92-117 | `decodeUgoiraZip` 的 sortedFrames/frameMap 计算后从未使用，`frameMetadata` 参数只喂死代码；61 行 `currentBitmap!=null && bitmaps.isNotEmpty()` 第二条件冗余 | 删死局部变量 + 未用参数（private 函数，行为逐字节等价） | 低 |
