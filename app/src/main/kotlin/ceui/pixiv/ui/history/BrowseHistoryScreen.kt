@@ -296,8 +296,6 @@ private fun NovelHistoryList(
                 NovelCard(
                     novel = novel,
                     onClick = { onClick(item) },
-                    onUserClick = {},
-                    onToggleBookmark = {},
                     modifier = Modifier.fillMaxWidth(),
                 )
                 HistoryOverlay(

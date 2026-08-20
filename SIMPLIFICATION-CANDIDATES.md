@@ -152,7 +152,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | D1 [已完成] | CommentsSection.kt:206-223 / 227-242 / 639-654 | 「加载更多」按钮在 LazyColumn 内 / 空列表+hasMore / 加载更多回复 三份完全相同的 TextButton+进度圈+Text | 提取 `LoadMoreButton(loading, text, onClick)` | 低 | 无（纯 UI） |
 | D2 | CommentsSection.kt:520-658 vs 660-728 | `CommentRow` 与 `ChildCommentRow` 结构相似（hover、头像+名字+日期、正文、回复/删除），仅尺寸/操作行不同 | 先提取共享「用户头部行+正文」子 composable，操作行保留差异 | 中 | 无 |
 | D3 [已完成] | NovelGrid.kt:30-38 vs WorkFeedGrid.kt:53-67 | 内联列数计算与 `calculateWorkFeedColumns` 逐行相同 | 复用该函数（重命名 `calculateResponsiveColumnCount`） | 低 | 无 |
-| D4 | NovelCard.kt 必填回调空传 | BrowseHistoryScreen.kt:296-302 传 `onUserClick={}`/`onToggleBookmark={}`（历史列表无此交互，死 UI） | NovelCard 回调改可空/默认（涉及跨区域调用点） | 低 | 无 |
+| D4 [已完成] | NovelCard.kt 可选回调空传 | BrowseHistoryScreen.kt:296-302 传 `onUserClick={}`/`onToggleBookmark={}`（历史列表无此交互，死 UI） | 依赖已有可空默认参数，删除两个空 lambda | 低 | 无 |
 
 ### D 区补充（第二轮审查，互证 + 新增）
 
