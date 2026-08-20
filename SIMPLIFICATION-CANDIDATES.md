@@ -173,7 +173,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | E2 [已完成] | NovelMarkersScreen.kt:107-110 | Screen 层 `filter{runCatching{it.novel;it.novel_marker}.isSuccess}` 与模型层 `visibleMarkedNovels` 重复过滤（数据已过模型过滤，Screen 层永远空转） | 删 Screen 层 filter | 低 | 有（模型侧测试） |
 | E3 [已完成] | WatchlistScreen.kt:261 | `WatchlistRowDate(value)=value.orEmpty()` 平凡 PascalCase 包装 | 调用点直接 `.orEmpty()`，删包装（保留 runCatching 注释） | 低 | 无 |
 | E4 [已完成] | UserDetailScreenModel.kt:27-28 / 71-97 | `illustPager`/`bookmarkPager` 只调用 refresh+items.value，全模型无 loadMore——Pager 机制是死机器 | 换普通列表直接发布，删两个 Pager | 低-中 | 无 |
-| E5 | ProfileScreenModel.kt:240-266 | 4 对 `publishX`/`hasVisibleX`（8 个函数，仅 pager/state/filter 不同） | 收敛为 `publish(pager, stateFlow, filter)` + `hasVisible(...)` | 中 | 有 |
+| E5 [已完成] | ProfileScreenModel.kt:240-266 | 4 对 `publishX`/`hasVisibleX`（8 个函数，仅 pager/state/filter 不同） | 收敛为 `publish(pager, stateFlow, filter)` + `hasVisible(...)` | 中 | 有 |
 | E6 [已完成] | ProfileScreen.kt:110-141 | Loading 与 Error 分支渲染完全相同（同 avatar、都不渲染名字） | 合并为 `is Loading, is Error ->` | 低 | 无 |
 | E7 | ProfileScreen.kt:212-354 | 四个 tab 内容块重复 Loading/Error/Success+items+FeedLoadMoreTrigger 结构，仅卡片类型与 key 前缀不同 | 收敛为 `ProfileTabContent(state, onRefresh, loadMoreKey, card)` | 中 | 无（UI 层） |
 | E8 | ProfileScreenModel.kt:310-329 vs BrowseHistoryScreenModel.kt:266-288 | 「读 DB 历史 → Gson 反序列化 → R18 过滤」两处独立实现（loadHistory 每次 new Gson()） | 收敛为共享「payloadJson→Display」解码+过滤辅助 | 中 | 两侧都有测试 |

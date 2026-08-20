@@ -239,32 +239,39 @@ class ProfileScreenModel(
     }
 
     private fun publishBookmarks() {
-        _bookmarksState.value = UiState.Success(visibleItems(bookmarkPager.items.value, settingsStore.isShowR18))
+        publish(bookmarkPager, _bookmarksState) { visibleItems(it, settingsStore.isShowR18) }
     }
 
-    private fun hasVisibleBookmarks() =
-        _bookmarksState.value.hasVisibleContent()
+    private fun hasVisibleBookmarks() = hasVisible(_bookmarksState)
 
     private fun publishNovelBookmarks() {
-        _novelBookmarksState.value = UiState.Success(visibleNovels(novelBookmarkPager.items.value, settingsStore.isShowR18))
+        publish(novelBookmarkPager, _novelBookmarksState) { visibleNovels(it, settingsStore.isShowR18) }
     }
 
-    private fun hasVisibleNovelBookmarks() =
-        _novelBookmarksState.value.hasVisibleContent()
+    private fun hasVisibleNovelBookmarks() = hasVisible(_novelBookmarksState)
 
     private fun publishCreatedIllusts() {
-        _createdIllustsState.value = UiState.Success(visibleItems(createdIllustPager.items.value, settingsStore.isShowR18))
+        publish(createdIllustPager, _createdIllustsState) { visibleItems(it, settingsStore.isShowR18) }
     }
 
-    private fun hasVisibleCreatedIllusts() =
-        _createdIllustsState.value.hasVisibleContent()
+    private fun hasVisibleCreatedIllusts() = hasVisible(_createdIllustsState)
 
     private fun publishCreatedNovels() {
-        _createdNovelsState.value = UiState.Success(visibleNovels(createdNovelPager.items.value, settingsStore.isShowR18))
+        publish(createdNovelPager, _createdNovelsState) { visibleNovels(it, settingsStore.isShowR18) }
     }
 
-    private fun hasVisibleCreatedNovels() =
-        _createdNovelsState.value.hasVisibleContent()
+    private fun hasVisibleCreatedNovels() = hasVisible(_createdNovelsState)
+
+    private fun <T : Any> publish(
+        pager: Pager<*, T>,
+        state: MutableStateFlow<UiState<List<T>>>,
+        filter: (List<T>) -> List<T>,
+    ) {
+        state.value = UiState.Success(filter(pager.items.value))
+    }
+
+    private fun <T> hasVisible(state: StateFlow<UiState<List<T>>>): Boolean =
+        state.value.hasVisibleContent()
 
     /** 小说收藏乐观切换（与排行流同款：先更新本地再调 API，失败回滚）。 */
     fun toggleNovelBookmark(novel: Novel) {
