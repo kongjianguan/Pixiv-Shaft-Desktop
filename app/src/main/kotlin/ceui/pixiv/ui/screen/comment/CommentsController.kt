@@ -339,14 +339,7 @@ class CommentsController(
                 _hasMore.value = false
                 _error.value = null
                 try {
-                    val response = when (workType) {
-                        ObjectType.ILLUST -> client.appApi.getIllustComments(workId)
-                        else -> client.appApi.getNovelComments(workId)
-                    }
-                    commentsPager.refresh(response)
-                    commentsPager.updateItems { mergeComments(it) }
-                    _hasMore.value = commentsPager.hasNext.value
-                    pagerInitialized = true
+                    fetchFirstPageIntoPager()
                     _commentsState.value = UiState.Success(commentsPager.items.value)
                 } catch (e: CancellationException) {
                     throw e
@@ -355,6 +348,17 @@ class CommentsController(
                 }
             }
         }
+    }
+
+    private suspend fun fetchFirstPageIntoPager() {
+        val response = when (workType) {
+            ObjectType.ILLUST -> client.appApi.getIllustComments(workId)
+            else -> client.appApi.getNovelComments(workId)
+        }
+        commentsPager.refresh(response)
+        commentsPager.updateItems { mergeComments(it) }
+        _hasMore.value = commentsPager.hasNext.value
+        pagerInitialized = true
     }
 
     private suspend fun postComment(
@@ -427,14 +431,7 @@ class CommentsController(
     /** 首屏从未成功加载时重拉一次第一页（发布成功后的补偿路径） */
     private suspend fun ensurePagerLoaded() {
         if (pagerInitialized) return
-        val response = when (workType) {
-            ObjectType.ILLUST -> client.appApi.getIllustComments(workId)
-            else -> client.appApi.getNovelComments(workId)
-        }
-        commentsPager.refresh(response)
-        commentsPager.updateItems { mergeComments(it) }
-        _hasMore.value = commentsPager.hasNext.value
-        pagerInitialized = true
+        fetchFirstPageIntoPager()
     }
 
     private fun mergeComments(items: List<Comment>): List<Comment> {
