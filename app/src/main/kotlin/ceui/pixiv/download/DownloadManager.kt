@@ -485,18 +485,7 @@ class DownloadManager(
 
     fun pause(id: String) {
         scope.launch {
-            cancelRunningJob(id)
-            // 竞态保护：任务协程可能刚写了 FAILED（网络错误）或 COMPLETED（恰好下完），
-            // 不再覆盖成 PAUSED
-            if (canOverwriteStatus(id)) {
-                queue.updateState(id, DownloadStatus.PAUSED.name, null, now())
-            }
-            // 协调器可能在上一轮取消之前刚启动该任务（claimQueued 已成功）：
-            // 补一轮取消，避免「点了暂停却仍在下载」
-            cancelRunningJob(id)
-            if (canOverwriteStatus(id)) {
-                queue.updateState(id, DownloadStatus.PAUSED.name, null, now())
-            }
+            stopTask(id, DownloadStatus.PAUSED, deleteTemp = false)
             refresh()
             wake.trySend(Unit)
         }
@@ -512,20 +501,7 @@ class DownloadManager(
 
     fun cancel(id: String) {
         scope.launch {
-            cancelRunningJob(id)
-            deleteTempIfExists(id)
-            // 竞态保护：任务协程可能刚写了 FAILED（网络错误）或 COMPLETED（恰好下完），
-            // 不再覆盖成 CANCELED
-            if (canOverwriteStatus(id)) {
-                queue.updateState(id, DownloadStatus.CANCELED.name, null, now())
-            }
-            // 与 pause() 同理：协调器可能在第一轮取消之前刚启动该任务（claimQueued 已成功），
-            // 补一轮取消，避免「点了取消却仍在下载」
-            cancelRunningJob(id)
-            deleteTempIfExists(id)
-            if (canOverwriteStatus(id)) {
-                queue.updateState(id, DownloadStatus.CANCELED.name, null, now())
-            }
+            stopTask(id, DownloadStatus.CANCELED, deleteTemp = true)
             refresh()
             wake.trySend(Unit)
         }
@@ -1034,6 +1010,20 @@ class DownloadManager(
     private fun canOverwriteStatus(id: String): Boolean {
         val status = queue.all().firstOrNull { it.id == id }?.status
         return status != DownloadStatus.FAILED.name && status != DownloadStatus.COMPLETED.name
+    }
+
+    private suspend fun stopTask(id: String, target: DownloadStatus, deleteTemp: Boolean) {
+        cancelRunningJob(id)
+        if (deleteTemp) deleteTempIfExists(id)
+        if (canOverwriteStatus(id)) {
+            queue.updateState(id, target.name, null, now())
+        }
+        // 协调器可能在上一轮取消之前刚启动该任务（claimQueued 已成功）：补一轮取消，避免「点了暂停/取消却仍在下载」
+        cancelRunningJob(id)
+        if (deleteTemp) deleteTempIfExists(id)
+        if (canOverwriteStatus(id)) {
+            queue.updateState(id, target.name, null, now())
+        }
     }
 
     private fun pageUrl(illust: Illust, pageIndex: Int): String? {
