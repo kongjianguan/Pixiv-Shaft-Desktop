@@ -839,7 +839,6 @@ private fun IllustDetailContent(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color(0xFFE0E0E0))
                             ) {
                                 val meta = u.data
                                 if (meta != null) {
@@ -871,7 +870,6 @@ private fun IllustDetailContent(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFFE0E0E0))
                         ) {
                             HorizontalPager(
                                 state = imagePagerState,
@@ -902,7 +900,6 @@ private fun IllustDetailContent(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFFE0E0E0))
                     ) {
                         ZoomableImage(
                             model = imageUrls.firstOrNull(),
@@ -1047,7 +1044,8 @@ private fun ArtworkFrame(
         Box(
             modifier = Modifier
                 .width(frameWidth)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .background(Color(0xFFE0E0E0)),
             content = content,
         )
     }
