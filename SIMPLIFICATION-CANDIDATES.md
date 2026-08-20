@@ -63,7 +63,7 @@
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| A2.1 | DownloadManager.kt `pause`:484-501 / `cancel`:515-534 | 两函数除目标状态与是否删 .part 外完全一致 | `stopTask(id, target, deleteTemp)` helper（保留双取消竞态），`delete()` 也可复用 | 低 |
+| A2.1 [已完成] | DownloadManager.kt `pause`:484-501 / `cancel`:515-534 | 两函数除目标状态与是否删 .part 外完全一致 | `stopTask(id, target, deleteTemp)` helper（保留双取消竞态），`delete()` 也可复用 | 低 |
 | A2.2 [已完成] | DownloadManager.kt `pageUrl`:1057-1074 | 单页与 meta_pages 缺失分支各有相同 `original ?: large ?: medium` 回退链 | 提取 `fallbackUrl(illust)` | 低 |
 | A2.3 [已完成] | DownloadManager.kt `retry`:511-513 | `retry` 是 `resume` 纯别名 | 删 `retry`，DownloadScreen.kt:172 改调 `resume`（文案不变） | 低 |
 | A2.4 [已完成] | store/.../DownloadQueue.sq:32-33 `selectByStatus` | 死 SQL（见 V1） | 删查询并重新生成 SQLDelight 代码 | 低 |
@@ -96,7 +96,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| B2.1 | SearchScreenModel.kt:375-414 / :421-464 | `popularPreview`/`searchIllustManga` 与 `popularPreviewNovel`/`searchNovel` 两两参数列表逐字相同（17~19 个命名参数），约 80 行重复 | 函数引用收敛：`val api = if (sort==PopularPreview) appApi::popularPreview else appApi::searchIllustManga` | 低-中 |
+| B2.1 [暂缓/不实施] | SearchScreenModel.kt:375-414 / :421-464 | `popularPreview`/`searchIllustManga` 与 `popularPreviewNovel`/`searchNovel` 两两参数列表逐字相同（17~19 个命名参数），约 80 行重复 | 函数引用收敛：`val api = if (sort==PopularPreview) appApi::popularPreview else appApi::searchIllustManga` | 低-中 |
 | B2.3 | NovelSeriesScreenModel.kt:231,271,321 | `chaptersForDownload(seriesTotal) ?: loadAllChapters()` 写两遍（含缓存写回），`downloadAllSeparate` 第三处直接用 `loadAllChapters()` 不写缓存 | 提取 `fetchAllChapters(total)` 统一三选一策略 | 低-中 |
 | B2.4 [已完成] | SearchScreenModel.kt:619-657 | `setState`/`setError`/`setErrorIfNeeded` 等六个函数做同一份 tab 路由；`setError` 恒等于 `setState(tab, Error(msg))` | setError 收敛为一行，setErrorIfNeeded 复用 setState | 低 |
 | B2.6 [已完成] | SearchScreen.kt:119-128 | 手写回顶 LaunchedEffect 与共享 `ScrollToTopOnEvent`（FeedScaffold.kt:81-94）逐行等价 | 替换为共享组件 | 低 |
@@ -105,8 +105,8 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| B3.1 | SearchScreenModel.kt:477-500 | 私有 `visibleIllusts`/`visibleNovels` 结构平行（R18 + AI 双开关），与 util.visibleNovels 语义不同 | 本区域内合并为带谓词的单个泛型过滤函数（**不上提 util**） | 中 |
-| B3.2 | ComicScreen.kt:100-101 / SearchScreenModel.kt:112-114,:504 vs :38 | 无意义 `remember(data)`；init 重复 `setQueryParts`；`effectiveR18Mode` 用 AppContainer.settingsStore 而类内已有 `settings` 字段 | 分别修掉 | 低 |
+| B3.1 [已完成] | SearchScreenModel.kt:477-500 | 私有 `visibleIllusts`/`visibleNovels` 结构平行（R18 + AI 双开关），与 util.visibleNovels 语义不同 | 本区域内合并为带谓词的单个泛型过滤函数（**不上提 util**） | 中 |
+| B3.2 [已完成] | ComicScreen.kt:100-101 / SearchScreenModel.kt:112-114,:504 vs :38 | 无意义 `remember(data)`；init 重复 `setQueryParts`；`effectiveR18Mode` 用 AppContainer.settingsStore 而类内已有 `settings` 字段 | 分别修掉 | 低 |
 
 ### B4 待验证（?）
 
@@ -123,9 +123,9 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 | 测试 |
 |---|------|------|------|------|------|
-| C1 | CommentsController.kt:149-176 / 285-307 / 365-393 | `submit()` 与 `sendStamp()` 结构几乎全同（mutex、submitting 检查、post、applyPostedComment、cancelReply、错误处理），仅 draftText vs `""`+stampId 不同；API.kt:361-375 的 post 接口本就带可选 `stamp_id` | 合并为 `submitInternal(draftText, stampId)` + `postCommentRequest(...)`（null 字段 Retrofit 省略，wire 不变），submit/sendStamp 变薄壳 | 低 | 有（CommentsControllerTest） |
+| C1 [已完成] | CommentsController.kt:149-176 / 285-307 / 365-393 | `submit()` 与 `sendStamp()` 结构几乎全同（mutex、submitting 检查、post、applyPostedComment、cancelReply、错误处理），仅 draftText vs `""`+stampId 不同；API.kt:361-375 的 post 接口本就带可选 `stamp_id` | 合并为 `submitInternal(draftText, stampId)` + `postCommentRequest(...)`（null 字段 Retrofit 省略，wire 不变），submit/sendStamp 变薄壳 | 低 | 有（CommentsControllerTest） |
 | C2 | IllustDetailScreen.kt:744-784 vs 831-917 | 全屏与普通模式的图片区是同一三分支（gif/多页/单图）各写一遍，约 90 行近重复，仅 zoomActive、页码指示器位置、ugora 错误处理不同 | 提取共享 `ArtworkDisplay(...)`，差异参数化 | 中 | 无（手势路径无测试，需手工回归） |
-| C3 | CommentsController.kt:340-363 vs 433-443 | `ensurePagerLoaded()` 复制了 `loadComments()` 中「拉首页 + pager.refresh + merge + hasMore」中间段 | 提取 `fetchFirstPageIntoPager()` 供两处调用 | 低 | 部分 |
+| C3 [已完成] | CommentsController.kt:340-363 vs 433-443 | `ensurePagerLoaded()` 复制了 `loadComments()` 中「拉首页 + pager.refresh + merge + hasMore」中间段 | 提取 `fetchFirstPageIntoPager()` 供两处调用 | 低 | 部分 |
 | C4 | CommentsController.kt:72-77 / 459-469 / 270-274 | `replyNextUrls: Map<Long,String?>` 与 `_hasMoreReplies: Set<Long>` 是同一信息的两个并行结构，两处都要同步维护（deleteComment 已出现漏同步隐患类） | `replyNextUrls` 改 `MutableStateFlow`，hasMoreReplies 变派生值，只维护一份 | 中 | 部分 |
 | C6 | IllustDetailScreenModel.kt:54 / 92 / 161-162 | `_userId` 字段是 `illustState.user.id` 的冗余拷贝 | **不实施**：已验证该字段为独立可变状态（toggleFollow 在详情加载完成前可被调用），与 state 不同步 | 低 | 无 |
 | C7 [已完成] | CommentsSection.kt:377-381 / 404-407 | 打开表情面板（默认颜文字 tab）就调 `loadStamps()`，切贴纸 tab 再调一次——首次调用常为浪费 | 只在切到贴纸 tab 时调 | 低 | 无 |
@@ -135,9 +135,9 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| C9 | IllustDetailScreenModel.kt:30 / 184-204 | `relatedPager` 用完整 Pager 只用到 refresh/items（hasNext/loadMore/generation 全未用，非分页数据） | 换普通字段 `rawRelated: List<Illust>` + 现成 `visibleItems` 过滤；republishIfLoaded 同改 | 低（同 scope 单线程无竞态；R18 重过滤不变） |
+| C9 [已完成] | IllustDetailScreenModel.kt:30 / 184-204 | `relatedPager` 用完整 Pager 只用到 refresh/items（hasNext/loadMore/generation 全未用，非分页数据） | 换普通字段 `rawRelated: List<Illust>` + 现成 `visibleItems` 过滤；republishIfLoaded 同改 | 低（同 scope 单线程无竞态；R18 重过滤不变） |
 | C10 [已完成] | CommentsController.kt:89-100（init）与 :325-336（retrySelfUserId） | init 的 launch+try/catch+resolveSelfUserId 与 retrySelfUserId 完全同构（init 时 _selfUserId 必为 null，守卫恒通过） | init 改为一行 `retrySelfUserId()` | 低 |
-| C11 | IllustDetailScreen.kt:839-843 / 871-875 / 902-906 | 普通模式三个分支各自写灰底 Box（0xFFE0E0E0），重复 3 次 | 灰底移入 ArtworkFrame 内层 Box，删 3 个包装 | 低（视觉等价） |
+| C11 [已完成] | IllustDetailScreen.kt:839-843 / 871-875 / 902-906 | 普通模式三个分支各自写灰底 Box（0xFFE0E0E0），重复 3 次 | 灰底移入 ArtworkFrame 内层 Box，删 3 个包装 | 低（视觉等价） |
 | C12 [已完成] | IllustDetailScreen.kt:696-698 | private 函数唯一调用点全参显式传入，3 个默认值从未被使用 | 删默认值 | 低 |
 
 **C 区保留约束**：
@@ -218,7 +218,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | F5 | image/ImageLoaderFactory.kt:22-47 + di/AppContainer.kt:79-80 | `create()` 建 client#1 给 Coil，`createImageClient()` 又建完全相同的 client#2 给 DownloadManager——双 OkHttpClient（双 Dispatcher 线程池 + 双连接池） | 先建一次 client，create() 接收已建 client（**确认 Coil fetcher 不修改传入 client 配置**） | 低-中 |
-| F6 | ui/history/BrowseHistoryScreenModel.kt:215-222 + store/BrowseHistoryStore.kt:65 | `clearCurrentTab()` 全仓库零调用（UI 只有 clearAll）；唯一实现 `deleteType` 随之变死（仅 store 测试在用） | 删 clearCurrentTab + deleteType（连带删测试用例） | 低 |
+| F6 [已完成] | ui/history/BrowseHistoryScreenModel.kt:215-222 + store/BrowseHistoryStore.kt:65 | `clearCurrentTab()` 全仓库零调用（UI 只有 clearAll）；唯一实现 `deleteType` 随之变死（仅 store 测试在用） | 删 clearCurrentTab + deleteType（连带删测试用例） | 低 |
 | F8 [已完成] | RecommendScreenModel.kt:13,15 | `import isR18` 无使用；`visibleNovels` 虽与类内成员同名，但带参调用依赖该 import（编译验证） | 只删 `isR18` import，保留 `visibleNovels` | 低 |
 
 **F 区核查结论（纠正/确认）**：
@@ -243,7 +243,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | G1.1 | models/src/main/java/ceui/lisa/models/ | **36 个死 Java bean（约 2338 行）**，存活链仅 NovelBean/UserBean/NovelDetail/IllustsBean 及其直接依赖（Starable/UserContainer/TagsBean/ImageUrlsBean/ProfileImageUrlsBean/MetaPagesBean/MetaSinglePageBean/Deduplicatable/SeriesBean.kt/ModelObject.kt）；其余（AccountEditResponse、CommentBean/CommentHolder/CommentStamp/ReplyCommentBean、Error500/500Obj/BodyBean/Response/Response2、GifResponse/UgoiraMetadataBean/FramesBean、MutedHistory/MutedUsersBean、Preset/ProfilePresetsBean、Live/UserModel/UserState/UserHolder/UserPreviewsBean、SpotlightArticlesBean、HitoResponse、IllustSearchResponse、NovelSearchResponse/NovelSeriesItem/MangaSeriesItem 等）全零引用，**仍被使用的 `ProfileBean` 不在删除范围内** | **只删除列出的 36 个死类及其死依赖，不删除存活链中的类** | 低 |
 | G1.2 | net/src/main/kotlin/ceui/pixiv/net/api/API.kt | 8 个零调用方法：getIdpUrls / getInfoLatest / getInfoList / getNotificationList / getNotificationViewMore / getUserProfile / getIllustSeries / postFlagIllust | 删方法 + 对应死 model 文件（InfoResponse.kt、NotificationResponse.kt、IdpUrlsResponse.kt、UserResponse.kt 共 121 行）+ `Models.kt` 的死 `Profile`/`ProfilePublicity`/`Workspace`（不要删除仍被使用的 `ProfileBean`） | 低 |
 | G1.3 [已完成] | Params.java（约 222 行 / 90 常量） | 唯一使用点是 API.kt:44 的 TYPE_PUBLIC | 只留 TYPE_PUBLIC | 低 |
-| G1.5 | store/src/main/sqldelight/ | `RemoteKey.sq` **整文件**死；`SearchHistory.sq` 的 selectRecentSearches 死；IllustHistory 3 个查询仅测试用，**表本身仍保留给历史迁移** | 只删 RemoteKey 文件和 SearchHistory 的死查询；IllustHistory 表及迁移相关查询保留 | 低 |
+| G1.5 [已完成] | store/src/main/sqldelight/ | `RemoteKey.sq` **整文件**死；`SearchHistory.sq` 的 selectRecentSearches 死；IllustHistory 3 个查询仅测试用，**表本身仍保留给历史迁移** | 只删 RemoteKey 文件和 SearchHistory 的死查询；IllustHistory 表及迁移相关查询保留 | 低 |
 | G1.6 [已完成] | net 杂项 | `CloudFlareDns.kt` 死文件；WALKTHROUGH_PATH、ALIDNS_DOH_POINT、getModeOrdinal、StubTokenRefresher 死符号；CloudFlareDNSResponse 未读字段 | 删 | 低 |
 
 ### G2 收敛 / 去抽象 · 中风险
