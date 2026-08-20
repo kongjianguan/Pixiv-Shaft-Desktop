@@ -228,8 +228,7 @@ class NovelSeriesScreenModel(
                     val detail = (_seriesState.value as? UiState.Success)?.data
                     val seriesTotal = detail?.content_count?.takeIf { it > 0 } ?: 0
                     // 复用已拉取过的全量缓存，避免每次「全选」都重新分页拉取（500ms/页 + 429 风险）
-                    val allChapters = chaptersForDownload(seriesTotal) ?: loadAllChapters()
-                    allChaptersCache = allChapters
+                    val allChapters = fetchAllChapters(seriesTotal)
                     if (!_selectionMode.value) return@launch
                     _selectedIds.value = filterVisibleChapters(allChapters).map { it.id }.toSet()
                     _allSelected.value = true
@@ -268,7 +267,7 @@ class NovelSeriesScreenModel(
         chaptersFetchJob?.cancel()
         chaptersFetchJob = screenModelScope.launch {
             try {
-                val fullList = chaptersForDownload(seriesTotal) ?: loadAllChapters()
+                val fullList = fetchAllChapters(seriesTotal)
                 if (!_selectionMode.value) return@launch
                 allChaptersCache = fullList
                 val selected = fullList.filter { it.id in _selectedIds.value }
@@ -318,9 +317,10 @@ class NovelSeriesScreenModel(
         if (!_resolvingChapters.compareAndSet(false, true)) return
         screenModelScope.launch {
             try {
-                val all = loadAllChapters()
+                val detail = (_seriesState.value as? UiState.Success)?.data
+                val expectedTotal = detail?.content_count?.takeIf { it > 0 } ?: 0
+                val all = fetchAllChapters(expectedTotal)
                 if (all.isNotEmpty()) {
-                    val detail = (_seriesState.value as? UiState.Success)?.data
                     val seriesTitle = detail?.title ?: "series_$seriesId"
                     val seriesTotal = detail?.content_count?.takeIf { it > 0 } ?: all.size
                     withContext(Dispatchers.IO) {
@@ -375,6 +375,12 @@ class NovelSeriesScreenModel(
             return loaded
         }
         return null
+    }
+
+    private suspend fun fetchAllChapters(expectedTotal: Int): List<Novel> {
+        val chapters = chaptersForDownload(expectedTotal) ?: loadAllChapters()
+        allChaptersCache = chapters
+        return chapters
     }
 
     /**

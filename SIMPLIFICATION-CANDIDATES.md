@@ -97,7 +97,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | B2.1 [暂缓/不实施] | SearchScreenModel.kt:375-414 / :421-464 | `popularPreview`/`searchIllustManga` 与 `popularPreviewNovel`/`searchNovel` 两两参数列表逐字相同（17~19 个命名参数），约 80 行重复 | 函数引用收敛：`val api = if (sort==PopularPreview) appApi::popularPreview else appApi::searchIllustManga` | 低-中 |
-| B2.3 | NovelSeriesScreenModel.kt:231,271,321 | `chaptersForDownload(seriesTotal) ?: loadAllChapters()` 写两遍（含缓存写回），`downloadAllSeparate` 第三处直接用 `loadAllChapters()` 不写缓存 | 提取 `fetchAllChapters(total)` 统一三选一策略 | 低-中 |
+| B2.3 [已完成] | NovelSeriesScreenModel.kt:231,271,321 | `chaptersForDownload(seriesTotal) ?: loadAllChapters()` 写两遍（含缓存写回），`downloadAllSeparate` 第三处直接用 `loadAllChapters()` 不写缓存 | 提取 `fetchAllChapters(total)` 统一三选一策略 | 低-中 |
 | B2.4 [已完成] | SearchScreenModel.kt:619-657 | `setState`/`setError`/`setErrorIfNeeded` 等六个函数做同一份 tab 路由；`setError` 恒等于 `setState(tab, Error(msg))` | setError 收敛为一行，setErrorIfNeeded 复用 setState | 低 |
 | B2.6 [已完成] | SearchScreen.kt:119-128 | 手写回顶 LaunchedEffect 与共享 `ScrollToTopOnEvent`（FeedScaffold.kt:81-94）逐行等价 | 替换为共享组件 | 低 |
 
