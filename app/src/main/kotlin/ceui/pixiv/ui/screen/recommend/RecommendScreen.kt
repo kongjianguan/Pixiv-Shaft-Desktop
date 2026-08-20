@@ -3,16 +3,12 @@ package ceui.pixiv.ui.screen.recommend
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -54,13 +50,13 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.loxia.Illust
 import ceui.loxia.Novel
-import ceui.pixiv.di.AppContainer
 import ceui.pixiv.platform.TrackpadGestureBridge
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.NovelCard
+import ceui.pixiv.ui.component.NovelGrid
 import ceui.pixiv.ui.component.WorkFeedGrid
 import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
@@ -72,7 +68,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.ceil
 
 private const val TRACKPAD_SCROLL_MULTIPLIER = 1f
 private const val TRACKPAD_GESTURE_IDLE_MS = 120L
@@ -441,9 +436,6 @@ private fun NovelTabContent(
     onToggleBookmark: (Novel) -> Unit,
 ) {
     val gridState = rememberLazyStaggeredGridState()
-    val maxColumnWidthDp by AppContainer.settingsStore.novelFeedMaxColumnWidthDpFlow.collectAsState()
-    val maxColumns by AppContainer.settingsStore.novelFeedMaxColumnsFlow.collectAsState()
-    val minColumnWidthDp by AppContainer.settingsStore.novelFeedMinColumnWidthDpFlow.collectAsState()
     val scrollToTopState = LocalScrollToTop.current
     val scrollToTopValue = scrollToTopState.value
     LaunchedEffect(scrollToTopValue) {
@@ -466,32 +458,14 @@ private fun NovelTabContent(
         is UiState.Loading -> LoadingView()
         is UiState.Error -> ErrorView(state.message, onRefresh)
         is UiState.Success -> if (state.data.isEmpty()) EmptyView("No novels")
-        else BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val spacing = 10.dp
-            val maxColumnWidth = maxColumnWidthDp.dp
-            val desiredColumns = ceil(
-                (maxWidth.value + spacing.value) / (maxColumnWidth.value + spacing.value)
-            ).toInt()
-            val columnsAllowedByMinimum = (
-                (maxWidth.value + spacing.value) / (minColumnWidthDp.dp.value + spacing.value)
-            ).toInt()
-            val columns = minOf(desiredColumns, maxColumns, columnsAllowedByMinimum).coerceAtLeast(1)
-            LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Fixed(columns),
-                state = gridState,
-                contentPadding = PaddingValues(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(spacing),
-                verticalItemSpacing = spacing,
-                modifier = Modifier.fillMaxSize(),
-            ) { items(state.data, key = { it.id }) { novel ->
-                NovelCard(
-                    novel = novel,
-                    onClick = onNovelClick,
-                    onUserClick = onUserClick,
-                    onSeriesClick = onSeriesClick,
-                    onToggleBookmark = onToggleBookmark,
-                )
-            }}
+        else NovelGrid(gridState = gridState, items = state.data) { novel ->
+            NovelCard(
+                novel = novel,
+                onClick = onNovelClick,
+                onUserClick = onUserClick,
+                onSeriesClick = onSeriesClick,
+                onToggleBookmark = onToggleBookmark,
+            )
         }
     }
 }
