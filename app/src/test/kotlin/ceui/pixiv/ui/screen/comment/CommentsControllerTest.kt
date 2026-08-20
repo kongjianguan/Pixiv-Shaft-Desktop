@@ -107,6 +107,28 @@ class CommentsControllerTest {
     }
 
     @Test
+    fun `submit with invalid parent id sends a top-level comment`() = runBlocking {
+        val data = FakeApiData(initialComments = listOf(comment(1)))
+        val harness = createController(data)
+        val controller = harness.controller
+
+        try {
+            controller.loadInitial()
+            awaitUntil { controller.commentsState.value is UiState.Success }
+
+            val topLevel = (controller.commentsState.value as UiState.Success).data.single()
+            controller.startReply(topLevel, 0L)
+            controller.updateDraft("reply")
+            controller.submit()
+            awaitUntil { data.posted.size == 1 }
+
+            assertNull(data.posted.single().parentId)
+        } finally {
+            harness.close()
+        }
+    }
+
+    @Test
     fun `delete top-level comment removes it and cleans reply cache`() = runBlocking {
         val data = FakeApiData(initialComments = listOf(comment(1), comment(2)))
         val harness = createController(data)

@@ -325,7 +325,7 @@ class CommentsController(
             _submitting.value = true
             _error.value = null
             try {
-                val parentId = replyParentId
+                val parentId = replyParentId?.takeIf { it > 0L }
                 val response = postCommentRequest(comment, stampId, parentId)
                 val c = response.comment ?: throw IllegalStateException("服务器没有返回评论")
                 applyPostedComment(c, parentId)

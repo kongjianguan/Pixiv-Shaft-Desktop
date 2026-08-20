@@ -2,9 +2,15 @@ package ceui.pixiv.ui.state
 
 import ceui.loxia.KListShow
 import ceui.pixiv.testutil.fakeClient
+import ceui.pixiv.testutil.fakeApi
+import ceui.pixiv.testutil.resumeSuspend
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.Serializable
@@ -23,6 +29,23 @@ data class FakeResponse(
 
 class PagerTest {
 
+    private fun httpBackedClient(): ceui.pixiv.net.api.Client = fakeClient(
+        fakeApi { methodName, args ->
+            if (methodName != "generalGet") {
+                throw UnsupportedOperationException("unexpected api call: $methodName")
+            }
+            val responseBody = pagerHttpClient.newCall(
+                Request.Builder()
+                    .url(args[0] as String)
+                    .build(),
+            ).execute().use { response ->
+                response.body?.bytes()
+                    ?: error("pagination test response has no body")
+            }
+            resumeSuspend(args, responseBody.toResponseBody("application/json".toMediaType()))
+        },
+    )
+
     @Test
     fun `refresh sets items and hasNext`() {
         val pager = Pager<FakeResponse, FakeItem>(fakeClient(), FakeResponse::class.java)
@@ -40,7 +63,7 @@ class PagerTest {
                 .setBody("""{"items":[{"id":3}],"next_url":null}"""),
         )
         server.start()
-        val client = fakeClient()
+        val client = httpBackedClient()
         try {
             val pager = Pager<FakeResponse, FakeItem>(client, FakeResponse::class.java)
             pager.refresh(FakeResponse(listOf(FakeItem(1)), server.url("/page2").toString()))
@@ -72,7 +95,7 @@ class PagerTest {
                 .setHeader("Content-Type", "application/json")
                 .setBody("""{"items":[{"id":3}],"next_url":null}"""),
         )
-        val client = fakeClient()
+        val client = httpBackedClient()
         try {
             val pager = Pager<FakeResponse, FakeItem>(client, FakeResponse::class.java)
             pager.refresh(FakeResponse(listOf(FakeItem(1)), server.url("/page2").toString()))
@@ -90,7 +113,7 @@ class PagerTest {
 
     @Test
     fun `loadMore without next url is a no-op`() = runBlocking {
-        val client = fakeClient()
+        val client = httpBackedClient()
         try {
             val pager = Pager<FakeResponse, FakeItem>(client, FakeResponse::class.java)
             pager.refresh(FakeResponse(listOf(FakeItem(1)), null))
@@ -119,7 +142,7 @@ class PagerTest {
                 .setHeader("Content-Type", "application/json")
                 .setBody("""{"items":[{"id":2}],"next_url":null}"""),
         )
-        val client = fakeClient()
+        val client = httpBackedClient()
         try {
             val pager = Pager<FakeResponse, FakeItem>(client, FakeResponse::class.java)
             pager.refresh(FakeResponse(emptyList(), server.url("/page2").toString()))
@@ -173,7 +196,7 @@ class PagerTest {
                 .setBody("""{"items":[{"id":2}],"next_url":null}"""),
         )
         server.start()
-        val client = fakeClient()
+        val client = httpBackedClient()
         try {
             val pager = Pager<FakeResponse, FakeItem>(client, FakeResponse::class.java)
             pager.refresh(FakeResponse(listOf(FakeItem(1)), server.url("/page2").toString()))
@@ -206,5 +229,9 @@ class PagerTest {
             server.shutdown()
             client.close()
         }
+    }
+
+    companion object {
+        private val pagerHttpClient = OkHttpClient()
     }
 }
