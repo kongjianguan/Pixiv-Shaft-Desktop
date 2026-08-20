@@ -3,13 +3,11 @@ package ceui.pixiv.ui.screen.user
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Illust
-import ceui.loxia.IllustResponse
 import ceui.loxia.ProfileBean
 import ceui.loxia.User
 import ceui.loxia.UserDetailResponse
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.history.normalized
-import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
@@ -24,8 +22,8 @@ class UserDetailScreenModel(
 ) : ScreenModel {
 
     private val client = AppContainer.client
-    private val illustPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
-    private val bookmarkPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
+    private var rawIllusts: List<Illust> = emptyList()
+    private var rawBookmarks: List<Illust> = emptyList()
 
     private val _userState = MutableStateFlow<UiState<Pair<User, ProfileBean>>>(UiState.Loading)
     val userState: StateFlow<UiState<Pair<User, ProfileBean>>> = _userState.asStateFlow()
@@ -73,8 +71,8 @@ class UserDetailScreenModel(
             _illustsState.value = UiState.Loading
             try {
                 val resp = client.appApi.getUserCreatedIllusts(userId, "illust")
-                illustPager.refresh(resp)
-                _illustsState.value = UiState.Success(visibleItems(illustPager.items.value))
+                rawIllusts = resp.displayList
+                _illustsState.value = UiState.Success(visibleItems(rawIllusts))
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 _illustsState.value = UiState.Error(e.message ?: "Failed to load illusts")
@@ -87,8 +85,8 @@ class UserDetailScreenModel(
             _bookmarksState.value = UiState.Loading
             try {
                 val resp = client.appApi.getUserBookmarkedIllusts(userId, "public")
-                bookmarkPager.refresh(resp)
-                _bookmarksState.value = UiState.Success(visibleItems(bookmarkPager.items.value))
+                rawBookmarks = resp.displayList
+                _bookmarksState.value = UiState.Success(visibleItems(rawBookmarks))
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 _bookmarksState.value = UiState.Error(e.message ?: "Failed to load bookmarks")
@@ -116,10 +114,10 @@ class UserDetailScreenModel(
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {
         if (_illustsState.value is UiState.Success) {
-            _illustsState.value = UiState.Success(visibleItems(illustPager.items.value))
+            _illustsState.value = UiState.Success(visibleItems(rawIllusts))
         }
         if (_bookmarksState.value is UiState.Success) {
-            _bookmarksState.value = UiState.Success(visibleItems(bookmarkPager.items.value))
+            _bookmarksState.value = UiState.Success(visibleItems(rawBookmarks))
         }
     }
 }

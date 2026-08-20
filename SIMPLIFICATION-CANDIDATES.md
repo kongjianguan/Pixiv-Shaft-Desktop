@@ -172,7 +172,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | E1 | WatchlistScreen.kt:293-433 / BookmarkedListScreen.kt:160-293 / BookmarkTagsScreen.kt:195-315 | 三个模型都是「双 Pager + 双 loadingMore + 成对 fetch/publish/hasVisible」；BookmarkedList 的 type 构造期固定导致另一套 Pager 永远死着；BookmarkTags 两个 Pager 类型相同 | 照抄区域内的正确范式 **PixivisionScreenModel**（`CategoryFeed(pager,state,isRefreshing,loadingMore)` + feeds map），成对字段折叠成 List 按 index 取用 | 中 | Watchlist/BookmarkedList 有测试；BookmarkTags 无 |
 | E2 [已完成] | NovelMarkersScreen.kt:107-110 | Screen 层 `filter{runCatching{it.novel;it.novel_marker}.isSuccess}` 与模型层 `visibleMarkedNovels` 重复过滤（数据已过模型过滤，Screen 层永远空转） | 删 Screen 层 filter | 低 | 有（模型侧测试） |
 | E3 [已完成] | WatchlistScreen.kt:261 | `WatchlistRowDate(value)=value.orEmpty()` 平凡 PascalCase 包装 | 调用点直接 `.orEmpty()`，删包装（保留 runCatching 注释） | 低 | 无 |
-| E4 | UserDetailScreenModel.kt:27-28 / 71-97 | `illustPager`/`bookmarkPager` 只调用 refresh+items.value，全模型无 loadMore——Pager 机制是死机器 | 换普通列表直接发布，删两个 Pager | 低-中 | 无 |
+| E4 [已完成] | UserDetailScreenModel.kt:27-28 / 71-97 | `illustPager`/`bookmarkPager` 只调用 refresh+items.value，全模型无 loadMore——Pager 机制是死机器 | 换普通列表直接发布，删两个 Pager | 低-中 | 无 |
 | E5 | ProfileScreenModel.kt:240-266 | 4 对 `publishX`/`hasVisibleX`（8 个函数，仅 pager/state/filter 不同） | 收敛为 `publish(pager, stateFlow, filter)` + `hasVisible(...)` | 中 | 有 |
 | E6 [已完成] | ProfileScreen.kt:110-141 | Loading 与 Error 分支渲染完全相同（同 avatar、都不渲染名字） | 合并为 `is Loading, is Error ->` | 低 | 无 |
 | E7 | ProfileScreen.kt:212-354 | 四个 tab 内容块重复 Loading/Error/Success+items+FeedLoadMoreTrigger 结构，仅卡片类型与 key 前缀不同 | 收敛为 `ProfileTabContent(state, onRefresh, loadMoreKey, card)` | 中 | 无（UI 层） |
