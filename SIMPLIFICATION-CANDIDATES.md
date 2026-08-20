@@ -217,7 +217,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| F5 | image/ImageLoaderFactory.kt:22-47 + di/AppContainer.kt:79-80 | `create()` 建 client#1 给 Coil，`createImageClient()` 又建完全相同的 client#2 给 DownloadManager——双 OkHttpClient（双 Dispatcher 线程池 + 双连接池） | 先建一次 client，create() 接收已建 client（**确认 Coil fetcher 不修改传入 client 配置**） | 低-中 |
+| F5 [已完成] | image/ImageLoaderFactory.kt:22-47 + di/AppContainer.kt:79-80 | `create()` 建 client#1 给 Coil，`createImageClient()` 又建完全相同的 client#2 给 DownloadManager——双 OkHttpClient（双 Dispatcher 线程池 + 双连接池） | 先建一次 client，create() 接收已建 client（**确认 Coil fetcher 不修改传入 client 配置**） | 低-中 |
 | F6 [已完成] | ui/history/BrowseHistoryScreenModel.kt:215-222 + store/BrowseHistoryStore.kt:65 | `clearCurrentTab()` 全仓库零调用（UI 只有 clearAll）；唯一实现 `deleteType` 随之变死（仅 store 测试在用） | 删 clearCurrentTab + deleteType（连带删测试用例） | 低 |
 | F8 [已完成] | RecommendScreenModel.kt:13,15 | `import isR18` 无使用；`visibleNovels` 虽与类内成员同名，但带参调用依赖该 import（编译验证） | 只删 `isR18` import，保留 `visibleNovels` | 低 |
 

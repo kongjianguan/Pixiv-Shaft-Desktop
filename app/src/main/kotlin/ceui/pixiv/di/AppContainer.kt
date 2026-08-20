@@ -76,8 +76,8 @@ object AppContainer {
         client = Client(settingsStore, tokenStore, refresher, DefaultLanguageProvider(), StdoutLogger)
         ImageHostManager.setModeOrdinal(settingsStore.imageHostMode)
         ImageHostManager.setCustomHost(settingsStore.customImageHost)
-        imageLoader = ImageLoaderFactory.create(settingsStore)
         imageClient = ImageLoaderFactory.createImageClient(settingsStore)
+        imageLoader = ImageLoaderFactory.create(imageClient)
         SingletonImageLoader.setUnsafe(imageLoader)
         database = createDatabase()
         downloadManager = DownloadManager(

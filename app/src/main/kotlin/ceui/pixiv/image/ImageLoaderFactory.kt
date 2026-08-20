@@ -19,8 +19,7 @@ import java.util.concurrent.TimeUnit
 object ImageLoaderFactory {
     private const val MEMORY_CACHE_SIZE_BYTES = 128L * 1024 * 1024
 
-    fun create(settings: Settings): ImageLoader {
-        val client = buildImageClient(settings)
+    fun create(client: OkHttpClient): ImageLoader {
         return ImageLoader.Builder(PlatformContext.INSTANCE)
             .memoryCache {
                 MemoryCache.Builder()
