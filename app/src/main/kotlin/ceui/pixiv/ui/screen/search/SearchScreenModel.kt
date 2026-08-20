@@ -457,28 +457,39 @@ class SearchScreenModel(
         }
     }
 
-    private fun visibleIllusts(items: List<Illust>, filter: SearchFilter): List<Illust> = items.filter { illust ->
-        val r18Mode = effectiveR18Mode(filter)
-        when (r18Mode) {
-            SearchR18Mode.All -> true
-            SearchR18Mode.SafeOnly -> (illust.x_restrict ?: 0) <= 0
-            SearchR18Mode.R18Only -> (illust.x_restrict ?: 0) > 0
-        } && when (filter.aiMode) {
-            SearchAiMode.All -> true
-            SearchAiMode.ExcludeAi -> illust.illust_ai_type != 2
-            SearchAiMode.OnlyAi -> illust.illust_ai_type == 2
-        }
-    }
+    private fun visibleIllusts(items: List<Illust>, filter: SearchFilter): List<Illust> =
+        filterBySearchConditions(
+            items = items,
+            filter = filter,
+            xRestrict = { it.x_restrict },
+            aiType = { it.illust_ai_type },
+        )
 
-    private fun visibleNovels(items: List<Novel>, filter: SearchFilter): List<Novel> = items.filter { novel ->
-        (novel.visible != false) && when (effectiveR18Mode(filter)) {
-            SearchR18Mode.All -> true
-            SearchR18Mode.SafeOnly -> (novel.x_restrict ?: 0) <= 0
-            SearchR18Mode.R18Only -> (novel.x_restrict ?: 0) > 0
-        } && when (filter.aiMode) {
+    private fun visibleNovels(items: List<Novel>, filter: SearchFilter): List<Novel> =
+        filterBySearchConditions(
+            items = items,
+            filter = filter,
+            isVisible = { it.visible != false },
+            xRestrict = { it.x_restrict },
+            aiType = { it.novel_ai_type },
+        )
+
+    private fun <T> filterBySearchConditions(
+        items: List<T>,
+        filter: SearchFilter,
+        isVisible: (T) -> Boolean = { true },
+        xRestrict: (T) -> Int?,
+        aiType: (T) -> Int?,
+    ): List<T> = items.filter { item ->
+        isVisible(item) &&
+            when (effectiveR18Mode(filter)) {
+                SearchR18Mode.All -> true
+                SearchR18Mode.SafeOnly -> (xRestrict(item) ?: 0) <= 0
+                SearchR18Mode.R18Only -> (xRestrict(item) ?: 0) > 0
+            } && when (filter.aiMode) {
             SearchAiMode.All -> true
-            SearchAiMode.ExcludeAi -> novel.novel_ai_type != 2
-            SearchAiMode.OnlyAi -> novel.novel_ai_type == 2
+            SearchAiMode.ExcludeAi -> aiType(item) != 2
+            SearchAiMode.OnlyAi -> aiType(item) == 2
         }
     }
 
