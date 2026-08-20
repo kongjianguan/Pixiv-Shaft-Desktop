@@ -141,30 +141,7 @@ class CommentsController(
     fun submit() {
         val draftText = _draft.value.trim()
         if (draftText.isEmpty() || _submitting.value) return
-
-        scope.launch {
-            operationMutex.withLock {
-                if (_commentsState.value is UiState.Loading || _submitting.value) return@withLock
-                _submitting.value = true
-                _error.value = null
-                try {
-                    val parentId = replyParentId
-                    val response = postComment(draftText, parentId)
-                    val comment = response.comment ?: throw IllegalStateException("服务器没有返回评论")
-                    applyPostedComment(comment, parentId)
-                    if (_draft.value.trim() == draftText) {
-                        _draft.value = ""
-                    }
-                    cancelReply()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _error.value = e.message ?: "发表评论失败"
-                } finally {
-                    _submitting.value = false
-                }
-            }
-        }
+        scope.launch { submitInternal(draftText, stampId = null) }
     }
 
     /** 展开某条主评论的回复（失败静默，保留 has_replies 标志，可再次点击重试） */
@@ -276,26 +253,7 @@ class CommentsController(
     /** 表情贴纸选中即发：comment 留空 + 只带 stamp_id，插入逻辑同 submit */
     fun sendStamp(stamp: Stamp) {
         if (_submitting.value) return
-        scope.launch {
-            operationMutex.withLock {
-                if (_commentsState.value is UiState.Loading || _submitting.value) return@withLock
-                _submitting.value = true
-                _error.value = null
-                try {
-                    val parentId = replyParentId
-                    val response = postStamp(stamp.stamp_id, parentId)
-                    val comment = response.comment ?: throw IllegalStateException("服务器没有返回评论")
-                    applyPostedComment(comment, parentId)
-                    cancelReply()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _error.value = e.message ?: "发表评论失败"
-                } finally {
-                    _submitting.value = false
-                }
-            }
-        }
+        scope.launch { submitInternal("", stamp.stamp_id) }
     }
 
     /** 表情面板打开时拉贴纸目录；结果进程内缓存（companion object），避免每个页面重复请求 */
@@ -361,35 +319,35 @@ class CommentsController(
         pagerInitialized = true
     }
 
-    private suspend fun postComment(
-        draftText: String,
-        parentId: Long?,
-    ) = if (parentId != null && parentId > 0L) {
-        when (workType) {
-            ObjectType.ILLUST -> client.appApi.postIllustComment(workId, draftText, parentId)
-            else -> client.appApi.postNovelComment(workId, draftText, parentId)
-        }
-    } else {
-        when (workType) {
-            ObjectType.ILLUST -> client.appApi.postIllustComment(workId, draftText)
-            else -> client.appApi.postNovelComment(workId, draftText)
+    private suspend fun submitInternal(comment: String, stampId: Long?) {
+        operationMutex.withLock {
+            if (_commentsState.value is UiState.Loading || _submitting.value) return@withLock
+            _submitting.value = true
+            _error.value = null
+            try {
+                val parentId = replyParentId
+                val response = postCommentRequest(comment, stampId, parentId)
+                val c = response.comment ?: throw IllegalStateException("服务器没有返回评论")
+                applyPostedComment(c, parentId)
+                if (stampId == null && _draft.value.trim() == comment) {
+                    _draft.value = ""
+                }
+                cancelReply()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _error.value = e.message ?: "发表评论失败"
+            } finally {
+                _submitting.value = false
+            }
         }
     }
 
-    private suspend fun postStamp(
-        stampId: Long,
-        parentId: Long?,
-    ) = if (parentId != null && parentId > 0L) {
+    private suspend fun postCommentRequest(comment: String, stampId: Long?, parentId: Long?) =
         when (workType) {
-            ObjectType.ILLUST -> client.appApi.postIllustComment(workId, "", parentId, stampId)
-            else -> client.appApi.postNovelComment(workId, "", parentId, stampId)
+            ObjectType.ILLUST -> client.appApi.postIllustComment(workId, comment, parentId, stampId)
+            else -> client.appApi.postNovelComment(workId, comment, parentId, stampId)
         }
-    } else {
-        when (workType) {
-            ObjectType.ILLUST -> client.appApi.postIllustComment(workId, "", null, stampId)
-            else -> client.appApi.postNovelComment(workId, "", null, stampId)
-        }
-    }
 
     /** 发评论/贴纸成功后的列表编辑：顶层插头部，回复挂进对应主评论的回复线程 */
     private suspend fun applyPostedComment(comment: Comment, parentId: Long?) {
