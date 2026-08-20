@@ -3,7 +3,6 @@ package ceui.pixiv.ui.screen.detail
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Illust
-import ceui.loxia.IllustResponse
 import ceui.loxia.ObjectType
 import ceui.loxia.UgoiraMetaData
 import ceui.loxia.toIllust
@@ -11,7 +10,6 @@ import ceui.pixiv.di.AppContainer
 import ceui.pixiv.download.DownloadManager
 import ceui.pixiv.ui.history.BrowseHistoryRecorder
 import ceui.pixiv.ui.screen.comment.CommentsController
-import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
@@ -27,7 +25,7 @@ class IllustDetailScreenModel(
 
     private val client = AppContainer.client
     private val downloadManager: DownloadManager = AppContainer.downloadManager
-    private val relatedPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
+    private var rawRelated: List<Illust> = emptyList()
 
     /** 评论逻辑全部收口在 CommentsController（插画/小说/全屏页三处复用） */
     val commentsController = CommentsController(
@@ -186,8 +184,8 @@ class IllustDetailScreenModel(
             _relatedState.value = UiState.Loading
             try {
                 val resp = client.appApi.getRelatedIllusts(illustId)
-                relatedPager.refresh(resp)
-                _relatedState.value = UiState.Success(visibleItems(relatedPager.items.value))
+                rawRelated = resp.displayList
+                _relatedState.value = UiState.Success(visibleItems(rawRelated))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -196,10 +194,10 @@ class IllustDetailScreenModel(
         }
     }
 
-    /** R18 开关变化时重新过滤「相关作品」（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤「相关作品」（保留完整数据） */
     private fun republishIfLoaded() {
         if (_relatedState.value is UiState.Success) {
-            _relatedState.value = UiState.Success(visibleItems(relatedPager.items.value))
+            _relatedState.value = UiState.Success(visibleItems(rawRelated))
         }
     }
 }
