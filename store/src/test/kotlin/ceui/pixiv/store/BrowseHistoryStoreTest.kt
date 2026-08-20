@@ -38,7 +38,7 @@ class BrowseHistoryStoreTest {
     }
 
     @Test
-    fun `delete operations can remove one type or everything`(@TempDir directory: Path) {
+    fun `delete operations can remove one entry or everything`(@TempDir directory: Path) {
         val store = createStore(directory)
         store.upsert("illust", 1L, "one", viewedAt = 1L)
         store.upsert("illust", 2L, "two", viewedAt = 2L)
@@ -46,9 +46,6 @@ class BrowseHistoryStoreTest {
 
         store.delete("illust", 1L)
         assertEquals(listOf(3L, 2L), store.all().map { it.targetId })
-
-        store.deleteType("illust")
-        assertEquals(listOf(3L), store.all().map { it.targetId })
 
         store.clear()
         assertTrue(store.all().isEmpty())

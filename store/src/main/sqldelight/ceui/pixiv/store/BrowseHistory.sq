@@ -29,9 +29,6 @@ SELECT * FROM browse_history ORDER BY viewedAt DESC;
 deleteBrowseHistory:
 DELETE FROM browse_history WHERE contentType = ? AND targetId = ?;
 
-deleteBrowseHistoryByType:
-DELETE FROM browse_history WHERE contentType = ?;
-
 clearBrowseHistory:
 DELETE FROM browse_history;
 

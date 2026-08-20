@@ -212,15 +212,6 @@ class BrowseHistoryScreenModel(
         }
     }
 
-    fun clearCurrentTab() {
-        screenModelScope.launch {
-            withContext(Dispatchers.IO) {
-                store.deleteType(_tab.value.contentType)
-            }
-            loadFirst()
-        }
-    }
-
     fun clearAll() {
         screenModelScope.launch {
             withContext(Dispatchers.IO) { store.clear() }

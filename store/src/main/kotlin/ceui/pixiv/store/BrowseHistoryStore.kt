@@ -62,10 +62,6 @@ class BrowseHistoryStore(
         queries.deleteBrowseHistory(contentType, targetId)
     }
 
-    fun deleteType(contentType: String) {
-        queries.deleteBrowseHistoryByType(contentType)
-    }
-
     fun clear() {
         queries.clearBrowseHistory()
     }
