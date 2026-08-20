@@ -205,40 +205,24 @@ fun CommentList(
 
                     if (hasMore) {
                         item(key = "load-more-comments") {
-                            TextButton(
+                            LoadMoreButton(
+                                loading = loadingMore,
                                 onClick = controller::loadMore,
-                                enabled = !loadingMore,
                                 modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                if (loadingMore) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(if (loadingMore) "加载中" else "加载更多评论")
-                            }
+                                text = "加载更多评论",
+                            )
                         }
                     }
                 }
             }
 
             if (cs.data.isEmpty() && hasMore) {
-                TextButton(
+                LoadMoreButton(
+                    loading = loadingMore,
                     onClick = controller::loadMore,
-                    enabled = !loadingMore,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (loadingMore) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(if (loadingMore) "加载中" else "加载更多评论")
-                }
+                    text = "加载更多评论",
+                )
             }
         }
     }
@@ -636,23 +620,55 @@ private fun CommentRow(
                     )
                 }
                 if (hasMoreReplies) {
-                    TextButton(
+                    LoadMoreButton(
+                        loading = loadingMoreReplies,
                         onClick = onLoadMoreReplies,
-                        enabled = !loadingMoreReplies,
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                    ) {
-                        if (loadingMoreReplies) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        Text(if (loadingMoreReplies) "加载中" else "加载更多回复")
-                    }
+                        indicatorSize = 14.dp,
+                        spacerWidth = 6.dp,
+                        text = "加载更多回复",
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LoadMoreButton(
+    loading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues? = null,
+    indicatorSize: Dp = 16.dp,
+    spacerWidth: Dp = 8.dp,
+    text: String,
+) {
+    val content: @Composable () -> Unit = {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(indicatorSize),
+                strokeWidth = 2.dp,
+            )
+            Spacer(Modifier.width(spacerWidth))
+        }
+        Text(if (loading) "加载中" else text)
+    }
+    if (contentPadding != null) {
+        TextButton(
+            onClick = onClick,
+            enabled = !loading,
+            modifier = modifier,
+            contentPadding = contentPadding,
+            content = { content() },
+        )
+    } else {
+        TextButton(
+            onClick = onClick,
+            enabled = !loading,
+            modifier = modifier,
+            content = { content() },
+        )
     }
 }
 
