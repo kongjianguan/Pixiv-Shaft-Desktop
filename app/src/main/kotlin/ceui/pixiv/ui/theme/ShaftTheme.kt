@@ -74,20 +74,7 @@ enum class ShaftThemePreset(
             tertiary.mix(Color.White, 0.16f)
         }
 
-        val scheme = if (darkTheme) darkColorScheme(
-            primary = primary,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = primaryContainer.contentColor(),
-            secondary = secondary,
-            onSecondary = secondary.contentColor(),
-            secondaryContainer = secondaryContainer,
-            onSecondaryContainer = secondaryContainer.contentColor(),
-            tertiary = tertiary,
-            onTertiary = tertiary.contentColor(),
-            tertiaryContainer = tertiaryContainer,
-            onTertiaryContainer = tertiaryContainer.contentColor(),
-        ) else lightColorScheme(
+        val scheme = (if (darkTheme) darkColorScheme() else lightColorScheme()).copy(
             primary = primary,
             onPrimary = onPrimary,
             primaryContainer = primaryContainer,

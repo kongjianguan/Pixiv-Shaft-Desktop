@@ -1,12 +1,7 @@
 package ceui.pixiv.ui.state
 
 import ceui.loxia.KListShow
-import ceui.pixiv.net.abstractions.LanguageProvider
-import ceui.pixiv.net.abstractions.Settings
-import ceui.pixiv.net.abstractions.TokenRefresher
-import ceui.pixiv.net.abstractions.TokenStore
-import ceui.pixiv.net.api.Client
-import ceui.pixiv.net.impl.StdoutLogger
+import ceui.pixiv.testutil.fakeClient
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -27,33 +22,6 @@ data class FakeResponse(
 }
 
 class PagerTest {
-
-    private fun fakeClient(): Client {
-        return Client(
-            object : Settings {
-                override val isDirectConnect: Boolean get() = false
-                override val isUseSecureDns: Boolean get() = false
-                override val imageHostMode: Int get() = 0
-                override val customImageHost: String get() = ""
-            },
-            object : TokenStore {
-                override val isLoggedIn: Boolean get() = false
-                override fun getAccessToken(): String? = null
-                override fun getBearerToken(): String? = null
-                override fun getRefreshToken(): String? = null
-                override fun saveTokens(accessToken: String?, refreshToken: String?, userJson: String?) {}
-                override fun clear() {}
-            },
-            object : TokenRefresher {
-                override suspend fun refreshAccessToken(currentAccessToken: String?): String? = null
-            },
-            object : LanguageProvider {
-                override fun acceptLanguage(): String = "en"
-                override fun appAcceptLanguage(): String = "en"
-            },
-            StdoutLogger
-        )
-    }
 
     @Test
     fun `refresh sets items and hasNext`() {

@@ -14,6 +14,8 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 
 /** 用假 API 构造可注入 ScreenModel 的 Client（网络层全部走内存实现）。 */
+fun fakeClient(): Client = fakeClient(fakeApi { _, _ -> throw NotImplementedError("fakeClient() no API stub") })
+
 fun fakeClient(api: API): Client = Client(
     settings = object : Settings {
         override val isDirectConnect: Boolean get() = false
