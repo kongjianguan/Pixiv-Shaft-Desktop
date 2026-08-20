@@ -30,7 +30,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -97,8 +96,8 @@ class ComicScreen : Screen {
 
 @Composable
 private fun ComicTopContent(data: ComicTopData) {
-    val banners = remember(data) { data.banners.orEmpty() }
-    val works = remember(data) { data.recent_updated_official_works.orEmpty() }
+    val banners = data.banners.orEmpty()
+    val works = data.recent_updated_official_works.orEmpty()
 
     if (banners.isEmpty() && works.isEmpty()) {
         EmptyView("暂时没有 Comic 内容")

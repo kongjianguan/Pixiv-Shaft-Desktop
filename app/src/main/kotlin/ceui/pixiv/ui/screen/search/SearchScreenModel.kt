@@ -109,9 +109,6 @@ class SearchScreenModel(
     private val novelBookmarksInFlight = ConcurrentHashMap.newKeySet<Long>()
 
     init {
-        if (!initialQuery.isNullOrBlank()) {
-            setQueryParts(initialQuery)
-        }
         screenModelScope.launch {
             loadHistory()
             loadTrendingTags()
@@ -487,7 +484,7 @@ class SearchScreenModel(
 
     /** R18 全局开关关闭时强制按全年龄过滤（用户在界面上看不到也选不到 R18） */
     private fun effectiveR18Mode(filter: SearchFilter): SearchR18Mode =
-        if (AppContainer.settingsStore.isShowR18) filter.r18Mode else SearchR18Mode.SafeOnly
+        if (settings.isShowR18) filter.r18Mode else SearchR18Mode.SafeOnly
 
     private suspend fun loadSearchOptions(
         word: String,
