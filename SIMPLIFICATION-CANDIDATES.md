@@ -16,7 +16,7 @@
 | P1 | search + 明确死 UI | B1.1、B1.3、F1.1-F1.4、F8（**仅删除 `isR18` import，保留 `visibleNovels`**） | `:app:compileKotlin` + `:app:test`；调用点复查 | **已完成**：`1cccdd8` |
 | P2a | search + novel detail 小收敛 | B1.2、B2.4、B2.6 | `:app:compileKotlin` + `:app:test`；函数引用和请求参数复查 | **已完成**：`3a84a16` |
 | P2b | detail / comment 小收敛 | C7、C8、C10、C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | **已完成**：`d1eb350`（C6 调查后保留，不进入实施） |
-| P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1、F2.3-F2.4 顺延至下一批） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
+| P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
 | P6 | 中风险重复收敛 | A1.1、B2.1、B2.3、B3.1、C1、C3、C4、C9、D2、D5-D6、E1、E4-E5、E7-E8、E10-E11、E14、F5、G2.3 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | 待执行 |
@@ -210,8 +210,8 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| F2.3 | ShaftTheme.kt:77-103 | dark/light colorScheme 传完全相同的 12 个命名参数，~26 行重复 | `(if(dark) darkColorScheme() else lightColorScheme()).copy(primary=…12 项…)` | 低 |
-| F2.4 | PagerTest.kt:31-56 | 自带 fakeClient() 与 testutil/FakeClient.kt:17 重复 | testutil 提供无 api 变体，PagerTest 复用 | 低 |
+| F2.3 [已完成] | ShaftTheme.kt:77-103 | dark/light colorScheme 传完全相同的 12 个命名参数，~26 行重复 | `(if(dark) darkColorScheme() else lightColorScheme()).copy(primary=…12 项…)` | 低 |
+| F2.4 [已完成] | PagerTest.kt:31-56 | 自带 fakeClient() 与 testutil/FakeClient.kt:17 重复 | testutil 提供无 api 变体，PagerTest 复用 | 低 |
 
 ### F 区补充（第二轮审查，互证 + 新增）
 
