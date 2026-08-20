@@ -18,7 +18,7 @@
 | P2b | detail / comment 小收敛 | C7、C8、C10、C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | **已完成**：`d1eb350`（C6 调查后保留，不进入实施） |
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1、F2.3-F2.4 顺延至下一批） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
-| P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | 待执行 |
+| P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
 | P6 | 中风险重复收敛 | A1.1、B2.1、B2.3、B3.1、C1、C3、C4、C9、D2、D5-D6、E1、E4-E5、E7-E8、E10-E11、E14、F5、G2.3 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | 待执行 |
 
 ### 不进入实施
@@ -242,16 +242,16 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 |---|------|------|------|------|
 | G1.1 | models/src/main/java/ceui/lisa/models/ | **36 个死 Java bean（约 2338 行）**，存活链仅 NovelBean/UserBean/NovelDetail/IllustsBean 及其直接依赖（Starable/UserContainer/TagsBean/ImageUrlsBean/ProfileImageUrlsBean/MetaPagesBean/MetaSinglePageBean/Deduplicatable/SeriesBean.kt/ModelObject.kt）；其余（AccountEditResponse、CommentBean/CommentHolder/CommentStamp/ReplyCommentBean、Error500/500Obj/BodyBean/Response/Response2、GifResponse/UgoiraMetadataBean/FramesBean、MutedHistory/MutedUsersBean、Preset/ProfilePresetsBean、Live/UserModel/UserState/UserHolder/UserPreviewsBean、SpotlightArticlesBean、HitoResponse、IllustSearchResponse、NovelSearchResponse/NovelSeriesItem/MangaSeriesItem 等）全零引用，**仍被使用的 `ProfileBean` 不在删除范围内** | **只删除列出的 36 个死类及其死依赖，不删除存活链中的类** | 低 |
 | G1.2 | net/src/main/kotlin/ceui/pixiv/net/api/API.kt | 8 个零调用方法：getIdpUrls / getInfoLatest / getInfoList / getNotificationList / getNotificationViewMore / getUserProfile / getIllustSeries / postFlagIllust | 删方法 + 对应死 model 文件（InfoResponse.kt、NotificationResponse.kt、IdpUrlsResponse.kt、UserResponse.kt 共 121 行）+ `Models.kt` 的死 `Profile`/`ProfilePublicity`/`Workspace`（不要删除仍被使用的 `ProfileBean`） | 低 |
-| G1.3 | Params.java（约 222 行 / 90 常量） | 唯一使用点是 API.kt:44 的 TYPE_PUBLIC | 只留 TYPE_PUBLIC | 低 |
+| G1.3 [已完成] | Params.java（约 222 行 / 90 常量） | 唯一使用点是 API.kt:44 的 TYPE_PUBLIC | 只留 TYPE_PUBLIC | 低 |
 | G1.5 | store/src/main/sqldelight/ | `RemoteKey.sq` **整文件**死；`SearchHistory.sq` 的 selectRecentSearches 死；IllustHistory 3 个查询仅测试用，**表本身仍保留给历史迁移** | 只删 RemoteKey 文件和 SearchHistory 的死查询；IllustHistory 表及迁移相关查询保留 | 低 |
-| G1.6 | net 杂项 | `CloudFlareDns.kt` 死文件；WALKTHROUGH_PATH、ALIDNS_DOH_POINT、getModeOrdinal、StubTokenRefresher 死符号；CloudFlareDNSResponse 未读字段 | 删 | 低 |
+| G1.6 [已完成] | net 杂项 | `CloudFlareDns.kt` 死文件；WALKTHROUGH_PATH、ALIDNS_DOH_POINT、getModeOrdinal、StubTokenRefresher 死符号；CloudFlareDNSResponse 未读字段 | 删 | 低 |
 
 ### G2 收敛 / 去抽象 · 中风险
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | G2.3 | SettingsStore | 12 个同模板 int 设置 | helper 收敛（约 120→40 行）；**不得改变设置 key、默认值、Flow 类型和重启生效语义** | 中 |
-| G2.9 | impl/Defaults.kt:15-30,8-13 | FileTokenStore/InMemorySettings 仅测试使用却放 main 源码集 | **只移动这两个测试替身**到 `net/src/test`；保留 `StdoutLogger`/`DefaultLanguageProvider` 等生产实现 | 低 |
+| G2.9 [已完成] | impl/Defaults.kt:15-30,8-13 | FileTokenStore/InMemorySettings 仅测试使用却放 main 源码集 | **只移动这两个测试替身**到 `net/src/test`；保留 `StdoutLogger`/`DefaultLanguageProvider` 等生产实现 | 低 |
 
 ### G3 重要约束与待验证
 
