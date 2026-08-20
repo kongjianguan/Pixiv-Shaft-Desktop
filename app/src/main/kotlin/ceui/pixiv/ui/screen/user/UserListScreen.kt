@@ -46,7 +46,7 @@ import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.UserAvatar
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.util.SelfUserIdResolver
+import ceui.pixiv.ui.util.resolveSelfUserId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -212,15 +212,8 @@ class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
         }
     }
 
-    /** 当前登录用户 id：进程级共享解析（详情页评论等页面共用一次 getSelfProfile 请求） */
-    private suspend fun resolveSelfUserId(): Long =
-        SelfUserIdResolver.resolve {
-            val self = client.appApi.getSelfProfile()
-            self.profile.user_id.takeIf { it > 0 } ?: self.profile.id
-        }
-
     private suspend fun fetchCurrent() {
-        val userId = resolveSelfUserId()
+        val userId = client.resolveSelfUserId()
         val resp = when (mode) {
             UserListMode.FOLLOWING -> client.appApi.getFollowingUsers(userId, "public")
             UserListMode.FOLLOWER -> client.appApi.getUserFans(userId)

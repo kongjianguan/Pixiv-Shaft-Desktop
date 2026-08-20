@@ -50,7 +50,7 @@ import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.util.SelfUserIdResolver
+import ceui.pixiv.ui.util.resolveSelfUserId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -215,7 +215,7 @@ class BookmarkTagsScreenModel : ScreenModel {
 
     private suspend fun fetchInitial() {
         try {
-            userId = resolveSelfUserId()
+            userId = client.resolveSelfUserId()
             fetchBoth()
         } catch (e: CancellationException) {
             throw e
@@ -230,7 +230,7 @@ class BookmarkTagsScreenModel : ScreenModel {
             _isRefreshing.value = true
             try {
                 // 解析器进程级缓存，重复调用不再发请求
-                userId = resolveSelfUserId()
+                userId = client.resolveSelfUserId()
                 fetchBoth()
             } catch (e: CancellationException) {
                 throw e
@@ -269,13 +269,6 @@ class BookmarkTagsScreenModel : ScreenModel {
             }
         }
     }
-
-    /** 当前登录用户 id：进程级共享解析（详情页评论等页面共用一次 getSelfProfile 请求） */
-    private suspend fun resolveSelfUserId(): Long =
-        SelfUserIdResolver.resolve {
-            val self = client.appApi.getSelfProfile()
-            self.profile.user_id.takeIf { it > 0 } ?: self.profile.id
-        }
 
     private suspend fun fetchBoth() {
         coroutineScope {

@@ -8,6 +8,7 @@ import ceui.pixiv.net.api.Client
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.SelfUserIdResolver
+import ceui.pixiv.ui.util.resolveSelfUserId
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -421,10 +422,7 @@ class CommentsController(
     private suspend fun resolveSelfUserId(): Long {
         _selfUserId.value?.let { return it }
         // 进程级共享解析：并发调用等同一结果；无效 id（0）不缓存，下次可重试
-        val id = SelfUserIdResolver.resolve {
-            val self = client.appApi.getSelfProfile()
-            self.profile.user_id.takeIf { it > 0 } ?: self.profile.id
-        }
+        val id = client.resolveSelfUserId()
         if (id > 0L) _selfUserId.value = id
         return id
     }

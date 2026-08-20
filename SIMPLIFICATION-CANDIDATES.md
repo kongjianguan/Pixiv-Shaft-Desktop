@@ -178,7 +178,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | E7 | ProfileScreen.kt:212-354 | 四个 tab 内容块重复 Loading/Error/Success+items+FeedLoadMoreTrigger 结构，仅卡片类型与 key 前缀不同 | 收敛为 `ProfileTabContent(state, onRefresh, loadMoreKey, card)` | 中 | 无（UI 层） |
 | E8 | ProfileScreenModel.kt:310-329 vs BrowseHistoryScreenModel.kt:266-288 | 「读 DB 历史 → Gson 反序列化 → R18 过滤」两处独立实现（loadHistory 每次 new Gson()） | 收敛为共享「payloadJson→Display」解码+过滤辅助 | 中 | 两侧都有测试 |
 | E9 [已完成] | UserDetailScreenModel.kt:60-61 vs BrowseHistoryRecorder.kt:24 | `if (user.id>0L) user else user.copy(id=user.user_id)` 逐字重复 2 处 | 收敛为 `User.normalized()` 扩展 | 低 | 无 |
-| E10 | ProfileScreenModel.kt:106 + BookmarkTagsScreen.kt:274-278 + UserListScreen.kt:216-220 | `SelfUserIdResolver.resolve{...}` 逐字重复 2 处 + 内联 1 处（另 CommentsController.kt:471-480 是第 3 份拷贝） | SelfUserIdResolver 里加 `suspend fun Client.resolveSelfUserId()`，全部调用 | 低 | 有 |
+| E10 [已完成] | BookmarkTagsScreen.kt:274-278 + UserListScreen.kt:216-220 + CommentsController.kt:421-429 | `SelfUserIdResolver.resolve{...}` 逐字重复 3 处；ProfileScreenModel 的 `getSelfProfile()` 同时消费完整资料，保留其 ID 提取 | SelfUserIdResolver 里加 `suspend fun Client.resolveSelfUserId()`，3 个纯 ID 调用点统一使用 | 低 | 有 |
 
 ### E 区补充（第二轮审查，互证 + 新增）
 

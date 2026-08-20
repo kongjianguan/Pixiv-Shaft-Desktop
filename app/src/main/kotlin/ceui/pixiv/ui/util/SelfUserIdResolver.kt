@@ -1,5 +1,6 @@
 package ceui.pixiv.ui.util
 
+import ceui.pixiv.net.api.Client
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -32,4 +33,9 @@ object SelfUserIdResolver {
     fun clear() {
         resolved = 0L
     }
+}
+
+suspend fun Client.resolveSelfUserId(): Long = SelfUserIdResolver.resolve {
+    val self = appApi.getSelfProfile()
+    self.profile.user_id.takeIf { it > 0 } ?: self.profile.id
 }
