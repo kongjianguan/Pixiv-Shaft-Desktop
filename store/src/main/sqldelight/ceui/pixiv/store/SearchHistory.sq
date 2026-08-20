@@ -10,9 +10,6 @@ CREATE TABLE IF NOT EXISTS search_table (
 insertSearch:
 INSERT OR REPLACE INTO search_table(id, keyword, searchTime, searchType, pinned, previewIllustsJson) VALUES (?, ?, ?, ?, ?, ?);
 
-selectRecentSearches:
-SELECT * FROM search_table ORDER BY pinned DESC, searchTime DESC LIMIT ?;
-
 selectPinnedSearches:
 SELECT * FROM search_table WHERE pinned = 1 ORDER BY searchTime DESC;
 
