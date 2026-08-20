@@ -16,7 +16,7 @@
 | P1 | search + 明确死 UI | B1.1、B1.3、F1.1-F1.4、F8（**仅删除 `isR18` import，保留 `visibleNovels`**） | `:app:compileKotlin` + `:app:test`；调用点复查 | **已完成**：`1cccdd8` |
 | P2a | search + novel detail 小收敛 | B1.2、B2.4、B2.6 | `:app:compileKotlin` + `:app:test`；函数引用和请求参数复查 | **已完成**：`3a84a16` |
 | P2b | detail / comment 小收敛 | C7、C8、C10、C12 | 编译 + 相关 app 测试；评论补偿路径和全屏图片手工回归 | **已完成**：`d1eb350`（C6 调查后保留，不进入实施） |
-| P3 | component + profile 机械收敛 | D1、D3、D7、D9、E2、E3、E6、E9、E13、F2.3-F2.4 | 编译 + `:app:test`；UI 改动只做等价替换 | 待执行 |
+| P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1、F2.3-F2.4 顺延至下一批） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | 待执行 |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | 待执行 |
 | P6 | 中风险重复收敛 | A1.1、B2.1、B2.3、B3.1、C1、C3、C4、C9、D2、D5-D6、E1、E4-E5、E7-E8、E10-E11、E14、F5、G2.3 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | 待执行 |
@@ -151,7 +151,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 |---|------|------|------|------|------|
 | D1 | CommentsSection.kt:206-223 / 227-242 / 639-654 | 「加载更多」按钮在 LazyColumn 内 / 空列表+hasMore / 加载更多回复 三份完全相同的 TextButton+进度圈+Text | 提取 `LoadMoreButton(loading, text, onClick)` | 低 | 无（纯 UI） |
 | D2 | CommentsSection.kt:520-658 vs 660-728 | `CommentRow` 与 `ChildCommentRow` 结构相似（hover、头像+名字+日期、正文、回复/删除），仅尺寸/操作行不同 | 先提取共享「用户头部行+正文」子 composable，操作行保留差异 | 中 | 无 |
-| D3 | NovelGrid.kt:30-38 vs WorkFeedGrid.kt:53-67 | 内联列数计算与 `calculateWorkFeedColumns` 逐行相同 | 复用该函数（重命名 `calculateResponsiveColumnCount`） | 低 | 无 |
+| D3 [已完成] | NovelGrid.kt:30-38 vs WorkFeedGrid.kt:53-67 | 内联列数计算与 `calculateWorkFeedColumns` 逐行相同 | 复用该函数（重命名 `calculateResponsiveColumnCount`） | 低 | 无 |
 | D4 | NovelCard.kt 必填回调空传 | BrowseHistoryScreen.kt:296-302 传 `onUserClick={}`/`onToggleBookmark={}`（历史列表无此交互，死 UI） | NovelCard 回调改可空/默认（涉及跨区域调用点） | 低 | 无 |
 
 ### D 区补充（第二轮审查，互证 + 新增）
@@ -160,8 +160,8 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 |---|------|------|------|------|
 | D5 | RecommendScreen.kt:443-496（NovelTabContent） | 整段手写 BoxWithConstraints + 列数公式 + LazyVerticalStaggeredGrid + NovelCard，与 `NovelGrid` **逐字节同构**（spacing/contentPadding/公式/key 全一致） | NovelTabContent 改为 `NovelGrid(gridState, items){...}`（gridState/回顶/trigger 留在调用处） | 低-中 |
 | D6 | RankingFeed.kt:223-375 | `RankingFeedScreenModel` 的 type 构造期固定却持双 pager+双 state，7 处 `when(type)` 分发（fetchCurrent/hasVisibleContent/setSuccess/setError/currentState/republishIfLoaded/loadMore）——约一半模型表面积是死的 | 收敛为单 pager+单 state，when 分发坍缩；UI 侧 when(type) 因卡片类型不同保留；**同步改 RankingFeedScreenModelTest 的 novelState 读法** | 中 |
-| D7 | RankingFeed.kt:113-124 | RankingFeedScaffold 的 LocalScrollToTop 分支与 `ScrollToTopOnEvent` 函数体相同，仅多 `refreshTick==null` 守卫 | `if (refreshTick==null) ScrollToTopOnEvent(gridState, onScrolledToTop=onRefresh)`，守卫提外层 | 低 |
-| D9 | UgoiraPlayer.kt:92-117 | `decodeUgoiraZip` 的 sortedFrames/frameMap 计算后从未使用，`frameMetadata` 参数只喂死代码；61 行 `currentBitmap!=null && bitmaps.isNotEmpty()` 第二条件冗余 | 删死局部变量 + 未用参数（private 函数，行为逐字节等价） | 低 |
+| D7 [已完成] | RankingFeed.kt:113-124 | RankingFeedScaffold 的 LocalScrollToTop 分支与 `ScrollToTopOnEvent` 函数体相同，仅多 `refreshTick==null` 守卫 | `if (refreshTick==null) ScrollToTopOnEvent(gridState, onScrolledToTop=onRefresh)`，守卫提外层 | 低 |
+| D9 [已完成] | UgoiraPlayer.kt:92-117 | `decodeUgoiraZip` 的 sortedFrames/frameMap 计算后从未使用，`frameMetadata` 参数只喂死代码；61 行 `currentBitmap!=null && bitmaps.isNotEmpty()` 第二条件冗余 | 删死局部变量 + 未用参数（private 函数，行为逐字节等价） | 低 |
 
 **D 区核查结论**：CaptionText/CommonComponents/IllustCard/NovelCard/ShimmerEffect/WorkFeedGrid 无死代码；ZoomableImage 双 handler 缩放逻辑有部分重复但属手势敏感区（待验证）；RankingFeed 的 refreshTick 三层协议**判断为合理复杂度**（注释给足理由），不列候选。
 
@@ -170,14 +170,14 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 | 测试 |
 |---|------|------|------|------|------|
 | E1 | WatchlistScreen.kt:293-433 / BookmarkedListScreen.kt:160-293 / BookmarkTagsScreen.kt:195-315 | 三个模型都是「双 Pager + 双 loadingMore + 成对 fetch/publish/hasVisible」；BookmarkedList 的 type 构造期固定导致另一套 Pager 永远死着；BookmarkTags 两个 Pager 类型相同 | 照抄区域内的正确范式 **PixivisionScreenModel**（`CategoryFeed(pager,state,isRefreshing,loadingMore)` + feeds map），成对字段折叠成 List 按 index 取用 | 中 | Watchlist/BookmarkedList 有测试；BookmarkTags 无 |
-| E2 | NovelMarkersScreen.kt:107-110 | Screen 层 `filter{runCatching{it.novel;it.novel_marker}.isSuccess}` 与模型层 `visibleMarkedNovels` 重复过滤（数据已过模型过滤，Screen 层永远空转） | 删 Screen 层 filter | 低 | 有（模型侧测试） |
-| E3 | WatchlistScreen.kt:261 | `WatchlistRowDate(value)=value.orEmpty()` 平凡 PascalCase 包装 | 调用点直接 `.orEmpty()`，删包装（保留 runCatching 注释） | 低 | 无 |
+| E2 [已完成] | NovelMarkersScreen.kt:107-110 | Screen 层 `filter{runCatching{it.novel;it.novel_marker}.isSuccess}` 与模型层 `visibleMarkedNovels` 重复过滤（数据已过模型过滤，Screen 层永远空转） | 删 Screen 层 filter | 低 | 有（模型侧测试） |
+| E3 [已完成] | WatchlistScreen.kt:261 | `WatchlistRowDate(value)=value.orEmpty()` 平凡 PascalCase 包装 | 调用点直接 `.orEmpty()`，删包装（保留 runCatching 注释） | 低 | 无 |
 | E4 | UserDetailScreenModel.kt:27-28 / 71-97 | `illustPager`/`bookmarkPager` 只调用 refresh+items.value，全模型无 loadMore——Pager 机制是死机器 | 换普通列表直接发布，删两个 Pager | 低-中 | 无 |
 | E5 | ProfileScreenModel.kt:240-266 | 4 对 `publishX`/`hasVisibleX`（8 个函数，仅 pager/state/filter 不同） | 收敛为 `publish(pager, stateFlow, filter)` + `hasVisible(...)` | 中 | 有 |
-| E6 | ProfileScreen.kt:110-141 | Loading 与 Error 分支渲染完全相同（同 avatar、都不渲染名字） | 合并为 `is Loading, is Error ->` | 低 | 无 |
+| E6 [已完成] | ProfileScreen.kt:110-141 | Loading 与 Error 分支渲染完全相同（同 avatar、都不渲染名字） | 合并为 `is Loading, is Error ->` | 低 | 无 |
 | E7 | ProfileScreen.kt:212-354 | 四个 tab 内容块重复 Loading/Error/Success+items+FeedLoadMoreTrigger 结构，仅卡片类型与 key 前缀不同 | 收敛为 `ProfileTabContent(state, onRefresh, loadMoreKey, card)` | 中 | 无（UI 层） |
 | E8 | ProfileScreenModel.kt:310-329 vs BrowseHistoryScreenModel.kt:266-288 | 「读 DB 历史 → Gson 反序列化 → R18 过滤」两处独立实现（loadHistory 每次 new Gson()） | 收敛为共享「payloadJson→Display」解码+过滤辅助 | 中 | 两侧都有测试 |
-| E9 | UserDetailScreenModel.kt:60-61 vs BrowseHistoryRecorder.kt:24 | `if (user.id>0L) user else user.copy(id=user.user_id)` 逐字重复 2 处 | 收敛为 `User.normalized()` 扩展 | 低 | 无 |
+| E9 [已完成] | UserDetailScreenModel.kt:60-61 vs BrowseHistoryRecorder.kt:24 | `if (user.id>0L) user else user.copy(id=user.user_id)` 逐字重复 2 处 | 收敛为 `User.normalized()` 扩展 | 低 | 无 |
 | E10 | ProfileScreenModel.kt:106 + BookmarkTagsScreen.kt:274-278 + UserListScreen.kt:216-220 | `SelfUserIdResolver.resolve{...}` 逐字重复 2 处 + 内联 1 处（另 CommentsController.kt:471-480 是第 3 份拷贝） | SelfUserIdResolver 里加 `suspend fun Client.resolveSelfUserId()`，全部调用 | 低 | 有 |
 
 ### E 区补充（第二轮审查，互证 + 新增）
@@ -185,7 +185,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | E11 | BookmarkedListScreenModel.kt:152-294 与 DynamicScreenModel.kt:27-173 | 两个模型**近乎逐行同构**（双 Pager+双 StateFlow+loadMore→loadMoreUntil+hasVisible/setSuccess/setError/currentState+updateNovelBookmark+republishIfLoaded，约 150-200 行），仅 API 与参数不同 | 抽泛型「双轨 Pager 模型」基类/辅助（参数化 fetchIllust/fetchNovel 两个挂起函数），两模型只留差异 | 中（两模型各有测试可作护栏） |
-| E13 | BookmarkedList:260-264 / Watchlist:419-427 / Profile:244-266 / Dynamic:125-129 / NovelMarkers:267-268 等 | 8+ 份 `(_state.value as? UiState.Success)?.data?.isNotEmpty() == true` | UiState 上加 `fun UiState<*>.hasVisibleContent()` 扩展 | 低 |
+| E13 [已完成] | BookmarkedList:260-264 / Watchlist:419-427 / Profile:244-266 / Dynamic:125-129 / NovelMarkers:267-268 等 | 8+ 份 `(_state.value as? UiState.Success)?.data?.isNotEmpty() == true` | UiState 上加 `fun UiState<*>.hasVisibleContent()` 扩展 | 低 |
 | E14 | ProfileScreenModel.kt:132-191 | loadBookmarks/loadNovelBookmarks/loadCreatedWorks 四份同形（置 Loading→api→refresh→publish→loadMoreUntil→Error） | 抽 `loadChannel(stateFlow, pager, apiCall, publish, hasVisible, errorMsg)`（loadMoreWith 已有先例） | 中 |
 
 **E 区关键待验证/结论**：
