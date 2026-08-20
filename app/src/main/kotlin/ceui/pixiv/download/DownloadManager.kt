@@ -28,6 +28,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import okhttp3.OkHttpClient
+import retrofit2.Call
+import retrofit2.Response
 import okhttp3.Request
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
@@ -283,7 +285,7 @@ class DownloadManager(
                 refreshExistingNovelTask(current, novel, meta)
                 0
             } else {
-                val output = uniqueOutputPath(novelOutputPath(novel, meta), queue.all())
+                val output = uniqueOutputPath(novelOutputPath(novel, meta), all)
                 val taskId = UUID.randomUUID().toString()
                 queue.insert(
                     DownloadTaskRecord(
@@ -508,10 +510,6 @@ class DownloadManager(
         }
     }
 
-    fun retry(id: String) {
-        resume(id)
-    }
-
     fun cancel(id: String) {
         scope.launch {
             cancelRunningJob(id)
@@ -541,7 +539,7 @@ class DownloadManager(
             cancelRunningJob(id)
             val task = queue.all().firstOrNull { it.id == id }
             if (task != null) {
-                Files.deleteIfExists(Path.of(task.tempPath))
+                deleteTempIfExists(id)
                 if (task.status == DownloadStatus.COMPLETED.name) {
                     Files.deleteIfExists(Path.of(task.outputPath))
                 }
@@ -625,7 +623,8 @@ class DownloadManager(
                 return
             }
 
-            when (taskKind(fresh)) {
+            val kind = taskKind(fresh)
+            when (kind) {
                 DownloadTaskKind.NOVEL -> downloadNovelText(fresh, temp, output)
                 DownloadTaskKind.NOVEL_SERIES -> downloadNovelMerge(fresh, temp, output)
                 DownloadTaskKind.UGOIRA -> {
@@ -641,7 +640,7 @@ class DownloadManager(
             Files.deleteIfExists(temp)
             // 系列合并的进度以「章」为单位（buildMergedContent 内推进到 total/total），
             // 完成时保持章数进度，不用文件字节覆盖，避免 100% 时数字从章节数突变成字节数
-            if (taskKind(fresh) != DownloadTaskKind.NOVEL_SERIES) {
+            if (kind != DownloadTaskKind.NOVEL_SERIES) {
                 queue.updateProgress(fresh.id, size, size, now())
             }
             // pause 竞态兜底：下载完成瞬间用户可能已暂停，此时不再把状态改回 COMPLETED
@@ -813,25 +812,7 @@ class DownloadManager(
     /** 系列列表单页请求：与 fetchNovelText 同款可中断实现（runningCalls + runInterruptible） */
     private suspend fun fetchSeriesPage(taskId: String, seriesId: Long, lastOrder: Int?): NovelSeriesResp {
         val call = appApi.getNovelSeriesCall(seriesId, lastOrder)
-        synchronized(runningCallsLock) { runningCalls[taskId] = call::cancel }
-        // 与图片路径同款：注册前已被取消时立即中断，避免阻塞读把 join 拖到请求结束
-        if (!currentCoroutineContext().isActive) call.cancel()
-        try {
-            return runInterruptible {
-                val response = call.execute()
-                if (!response.isSuccessful) {
-                    throw IOException("HTTP ${response.code()}")
-                }
-                response.body() ?: throw IOException("Empty response body")
-            }
-        } catch (e: IOException) {
-            // pause/cancel 已调用 job.cancel()/call.cancel()：把中断转成协程取消，
-            // 让 runTask 走 CancellationException 路径而不是标 FAILED
-            if (!currentCoroutineContext().isActive) throw CancellationException("cancelled")
-            throw e
-        } finally {
-            synchronized(runningCallsLock) { runningCalls.remove(taskId) }
-        }
+        return executeCancellableCall(taskId, call) { it.body() ?: throw IOException("Empty response body") }
     }
 
     private suspend fun buildMergedContent(
@@ -923,20 +904,23 @@ class DownloadManager(
      */
     private suspend fun fetchNovelText(taskId: String, novelId: Long): String {
         val call = appApi.getNovelTextCall(novelId)
+        return executeCancellableCall(taskId, call) { it.body()?.string() ?: throw IOException("Empty response body") }
+    }
+
+    private suspend fun <T, R> executeCancellableCall(
+        taskId: String,
+        call: Call<T>,
+        extract: (Response<T>) -> R,
+    ): R {
         synchronized(runningCallsLock) { runningCalls[taskId] = call::cancel }
-        // 与图片路径同款：注册前已被取消时立即中断，避免阻塞读把 join 拖到请求结束
         if (!currentCoroutineContext().isActive) call.cancel()
         try {
             return runInterruptible {
                 val response = call.execute()
-                if (!response.isSuccessful) {
-                    throw IOException("HTTP ${response.code()}")
-                }
-                response.body()?.string() ?: throw IOException("Empty response body")
+                if (!response.isSuccessful) throw IOException("HTTP ${response.code()}")
+                extract(response)
             }
         } catch (e: IOException) {
-            // pause/cancel 已调用 job.cancel()/call.cancel()：把中断转成协程取消，
-            // 让 runTask 走 CancellationException 路径而不是标 FAILED
             if (!currentCoroutineContext().isActive) throw CancellationException("cancelled")
             throw e
         } finally {
@@ -1033,11 +1017,9 @@ class DownloadManager(
         _tasks.value = queue.all().map(DownloadTask::from)
     }
 
-    private fun runningJob(id: String): Job? = synchronized(runningLock) { running[id] }
-
     /** 取消正在执行的任务协程并等待其退出（无任务时什么都不做） */
     private suspend fun cancelRunningJob(id: String) {
-        val job = runningJob(id) ?: return
+        val job = synchronized(runningLock) { running[id] } ?: return
         job.cancel() // 先取消协程（isActive 立即变 false），再掐 socket；join 后写状态，避免 runTask 的 FAILED 覆盖 PAUSED
         synchronized(runningCallsLock) { runningCalls[id]?.invoke() }
         job.join()
@@ -1056,22 +1038,20 @@ class DownloadManager(
 
     private fun pageUrl(illust: Illust, pageIndex: Int): String? {
         if (illust.page_count <= 1) {
-            return illust.meta_single_page?.original_image_url
-                ?: illust.image_urls?.original
-                ?: illust.image_urls?.large
-                ?: illust.image_urls?.medium
+            return illust.meta_single_page?.original_image_url ?: illust.fallbackUrl()
         }
         val pages = illust.meta_pages
         // 老作品 meta_pages 整体缺失（page_count 仍 > 1）时维持封面回退；
         // 否则缺失的页返回 null 由入队逻辑丢弃，不得用封面顶替（会下载出重复封面文件）
         if (pages.isNullOrEmpty()) {
-            return illust.image_urls?.original
-                ?: illust.image_urls?.large
-                ?: illust.image_urls?.medium
+            return illust.fallbackUrl()
         }
         return pages.getOrNull(pageIndex)?.image_urls?.original
             ?: pages.getOrNull(pageIndex)?.image_urls?.large
     }
+
+    private fun Illust.fallbackUrl(): String? =
+        image_urls?.original ?: image_urls?.large ?: image_urls?.medium
 
     private fun taskKind(record: DownloadTaskRecord): DownloadTaskKind = runCatching {
         DownloadTaskKind.valueOf(record.kind)

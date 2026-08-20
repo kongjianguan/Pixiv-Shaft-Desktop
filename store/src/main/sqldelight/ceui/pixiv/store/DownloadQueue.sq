@@ -29,9 +29,6 @@ INSERT INTO download_queue(
 selectAll:
 SELECT * FROM download_queue ORDER BY createdAt DESC;
 
-selectByStatus:
-SELECT * FROM download_queue WHERE status = ? ORDER BY createdAt ASC;
-
 updateProgress:
 UPDATE download_queue
 SET bytesDownloaded = ?, totalBytes = ?, updatedAt = ?

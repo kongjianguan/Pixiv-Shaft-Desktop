@@ -169,7 +169,7 @@ private fun DownloadTaskCard(task: DownloadTask) {
                         Text("继续")
                     }
                     DownloadStatus.FAILED,
-                    DownloadStatus.CANCELED -> TextButton(onClick = { manager.retry(task.id) }) {
+                    DownloadStatus.CANCELED -> TextButton(onClick = { manager.resume(task.id) }) {
                         Text("重试")
                     }
                     DownloadStatus.COMPLETED -> TextButton(onClick = { revealInFinder(task) }) {

@@ -508,7 +508,7 @@ class DownloadManagerImageTest {
             val failed = fixture.manager.awaitStatus(DownloadStatus.FAILED)
             assertEquals("HTTP 503", failed.errorMessage)
 
-            fixture.manager.retry(failed.id)
+            fixture.manager.resume(failed.id)
 
             val completed = fixture.manager.awaitStatus(DownloadStatus.COMPLETED)
             assertEquals(null, completed.errorMessage)
