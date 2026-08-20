@@ -61,10 +61,6 @@ object ImageHostManager {
     fun getMode(): Mode = mode
     fun setMode(value: Mode) { mode = value }
 
-    /** Persisted-ordinal accessor for [Mode]; kept next to the enum so the
-     *  Settings int (0=PIXIV, 1=PIXIV_CAT, 2=PIXIV_RE, 3=PIXIV_NL, 4=CUSTOM) has one mapping site. */
-    fun getModeOrdinal(): Int = mode.ordinal
-
     /** Set mode from a persisted ordinal, clamping unknown/out-of-range to PIXIV. */
     fun setModeOrdinal(ordinal: Int) {
         mode = Mode.values().getOrElse(ordinal) { Mode.PIXIV }

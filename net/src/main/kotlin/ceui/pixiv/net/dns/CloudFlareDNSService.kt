@@ -25,7 +25,6 @@ interface CloudFlareDNSService {
 
         val CLOUDFLARE_DOH_POINT: String = "https://1.0.0.1/"
         val DNSSB_DOH_POINT: String = "https://185.222.222.222/"
-        val ALIDNS_DOH_POINT: String = "https://223.5.5.5/"
 
         private val serviceCache = ConcurrentHashMap<String, CloudFlareDNSService>()
 

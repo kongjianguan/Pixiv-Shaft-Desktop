@@ -5,8 +5,6 @@ object PixivHosts {
     const val OAUTH_HOST = "oauth.secure.pixiv.net"
     const val WEB_API_HOST = "www.pixiv.net"
     const val COMIC_HOST = "comic.pixiv.net"
-    const val WALKTHROUGH_PATH = "/v1/walkthrough/illusts"
-
     // 源自 CronetInterceptor.java:42-43
     val CF_IPS = listOf("104.18.42.239", "172.64.145.17")
 
