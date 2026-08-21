@@ -131,62 +131,69 @@ class ProfileScreenModel(
     }
 
     private fun loadBookmarks(userId: Long) {
-        screenModelScope.launch {
-            _bookmarksState.value = UiState.Loading
-            try {
-                val resp = client.appApi.getUserBookmarkedIllusts(userId, "public")
-                bookmarkPager.refresh(resp)
-                publishBookmarks()
-                bookmarkPager.loadMoreUntil(::hasVisibleBookmarks, ::publishBookmarks)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _bookmarksState.value = UiState.Error(e.message ?: "Failed to load bookmarks")
-            }
+        loadChannel(
+            state = _bookmarksState,
+            pager = bookmarkPager,
+            hasVisible = ::hasVisibleBookmarks,
+            onLoaded = ::publishBookmarks,
+            errorMessage = "Failed to load bookmarks",
+        ) {
+            bookmarkPager.refresh(client.appApi.getUserBookmarkedIllusts(userId, "public"))
         }
     }
 
     private fun loadNovelBookmarks(userId: Long) {
-        screenModelScope.launch {
-            _novelBookmarksState.value = UiState.Loading
-            try {
-                val resp = client.appApi.getUserBookmarkedNovels(userId, "public")
-                novelBookmarkPager.refresh(resp)
-                publishNovelBookmarks()
-                novelBookmarkPager.loadMoreUntil(::hasVisibleNovelBookmarks, ::publishNovelBookmarks)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _novelBookmarksState.value = UiState.Error(e.message ?: "Failed to load novel bookmarks")
-            }
+        loadChannel(
+            state = _novelBookmarksState,
+            pager = novelBookmarkPager,
+            hasVisible = ::hasVisibleNovelBookmarks,
+            onLoaded = ::publishNovelBookmarks,
+            errorMessage = "Failed to load novel bookmarks",
+        ) {
+            novelBookmarkPager.refresh(client.appApi.getUserBookmarkedNovels(userId, "public"))
         }
     }
 
     private fun loadCreatedWorks(userId: Long) {
-        screenModelScope.launch {
-            _createdIllustsState.value = UiState.Loading
-            try {
-                val resp = client.appApi.getUserCreatedIllusts(userId, "illust")
-                createdIllustPager.refresh(resp)
-                publishCreatedIllusts()
-                createdIllustPager.loadMoreUntil(::hasVisibleCreatedIllusts, ::publishCreatedIllusts)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _createdIllustsState.value = UiState.Error(e.message ?: "Failed to load works")
-            }
+        loadChannel(
+            state = _createdIllustsState,
+            pager = createdIllustPager,
+            hasVisible = ::hasVisibleCreatedIllusts,
+            onLoaded = ::publishCreatedIllusts,
+            errorMessage = "Failed to load works",
+        ) {
+            createdIllustPager.refresh(client.appApi.getUserCreatedIllusts(userId, "illust"))
         }
+        loadChannel(
+            state = _createdNovelsState,
+            pager = createdNovelPager,
+            hasVisible = ::hasVisibleCreatedNovels,
+            onLoaded = ::publishCreatedNovels,
+            errorMessage = "Failed to load works",
+        ) {
+            createdNovelPager.refresh(client.appApi.getUserCreatedNovels(userId))
+        }
+    }
+
+    private fun <T : Any> loadChannel(
+        state: MutableStateFlow<UiState<List<T>>>,
+        pager: Pager<*, T>,
+        hasVisible: () -> Boolean,
+        onLoaded: () -> Unit,
+        errorMessage: String,
+        refreshPager: suspend () -> Unit,
+    ) {
         screenModelScope.launch {
-            _createdNovelsState.value = UiState.Loading
+            state.value = UiState.Loading
             try {
-                val resp = client.appApi.getUserCreatedNovels(userId)
-                createdNovelPager.refresh(resp)
-                publishCreatedNovels()
-                createdNovelPager.loadMoreUntil(::hasVisibleCreatedNovels, ::publishCreatedNovels)
+                refreshPager()
+                onLoaded()
+                // 加载的页被 R18 过滤后整页为空：继续翻页直到出现可见内容或没有更多页
+                pager.loadMoreUntil(hasVisible, onLoaded)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _createdNovelsState.value = UiState.Error(e.message ?: "Failed to load works")
+                state.value = UiState.Error(e.message ?: errorMessage)
             }
         }
     }
