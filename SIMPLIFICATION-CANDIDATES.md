@@ -20,6 +20,7 @@
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
 | P6 | 中风险重复收敛 | 已完成：A1.1、B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、D6（类型安全替代）、E1（类型安全替代）、E4-E5、E7-E8、E10、E11（共享基础设施）、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **已执行**：`697be41`、`b28d85e`、`79def31`、`65a6e1b` |
+| P7 | 类型安全 feed（信息流）跟进 + 旧模型清理 | PagedFeed（类型安全分页容器）扩展到 NovelMarkers、UserList、NiceFriend、Pixivision、Recommend、Profile；删除已确认零引用的旧 Java bean | 相关模型测试 + `:app:test :store:test :net:test`；不改变过滤、分页、下载或网络行为 | **已完成**：`723f854`、`007da55`、`b444b48`、`f3e70c0` |
 
 ### 不进入实施
 
@@ -240,8 +241,8 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| G1.1 | models/src/main/java/ceui/lisa/models/ | **36 个死 Java bean（约 2338 行）**，存活链仅 NovelBean/UserBean/NovelDetail/IllustsBean 及其直接依赖（Starable/UserContainer/TagsBean/ImageUrlsBean/ProfileImageUrlsBean/MetaPagesBean/MetaSinglePageBean/Deduplicatable/SeriesBean.kt/ModelObject.kt）；其余（AccountEditResponse、CommentBean/CommentHolder/CommentStamp/ReplyCommentBean、Error500/500Obj/BodyBean/Response/Response2、GifResponse/UgoiraMetadataBean/FramesBean、MutedHistory/MutedUsersBean、Preset/ProfilePresetsBean、Live/UserModel/UserState/UserHolder/UserPreviewsBean、SpotlightArticlesBean、HitoResponse、IllustSearchResponse、NovelSearchResponse/NovelSeriesItem/MangaSeriesItem 等）全零引用，**仍被使用的 `ProfileBean` 不在删除范围内** | **只删除列出的 36 个死类及其死依赖，不删除存活链中的类** | 低 |
-| G1.2 | net/src/main/kotlin/ceui/pixiv/net/api/API.kt | 8 个零调用方法：getIdpUrls / getInfoLatest / getInfoList / getNotificationList / getNotificationViewMore / getUserProfile / getIllustSeries / postFlagIllust | 删方法 + 对应死 model 文件（InfoResponse.kt、NotificationResponse.kt、IdpUrlsResponse.kt、UserResponse.kt 共 121 行）+ `Models.kt` 的死 `Profile`/`ProfilePublicity`/`Workspace`（不要删除仍被使用的 `ProfileBean`） | 低 |
+| G1.1 [已完成] | models/src/main/java/ceui/lisa/models/ | **36 个死 Java bean（约 2.4k 行）**，存活链仅 NovelBean/UserBean/NovelDetail/IllustsBean 及其直接依赖；其余类经过全仓库生产引用复查确认零引用，**仍被使用的 `ProfileBean` 不在删除范围内** | 只删除已核实的 36 个死类，不删除存活链中的类 | 低 |
+| G1.2 [保留] | net/src/main/kotlin/ceui/pixiv/net/api/API.kt | 8 个当前零调用方法及对应模型属于通知中心、信息页、用户资料/系列等未来扩展接口 | 暂不删除；保留 API 签名和模型，避免为已列入功能计划的页面重新建接口 | 低 |
 | G1.3 [已完成] | Params.java（约 222 行 / 90 常量） | 唯一使用点是 API.kt:44 的 TYPE_PUBLIC | 只留 TYPE_PUBLIC | 低 |
 | G1.5 [已完成] | store/src/main/sqldelight/ | `RemoteKey.sq` **整文件**死；`SearchHistory.sq` 的 selectRecentSearches 死；IllustHistory 3 个查询仅测试用，**表本身仍保留给历史迁移** | 只删 RemoteKey 文件和 SearchHistory 的死查询；IllustHistory 表及迁移相关查询保留 | 低 |
 | G1.6 [已完成] | net 杂项 | `CloudFlareDns.kt` 死文件；WALKTHROUGH_PATH、ALIDNS_DOH_POINT、getModeOrdinal、StubTokenRefresher 死符号；CloudFlareDNSResponse 未读字段 | 删 | 低 |
@@ -255,7 +256,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 ### G3 重要约束与待验证
 
-- **决策点：8 个死 API 方法**（G1.2）对应 AGENTS.md 中优先级待办「通知中心、推荐用户页面」——若计划实现，API 签名应保留（只删对应死模型会在实现时重建）；若不计划，整链删除。
+- **G1.2 已决定保留**：8 个当前零调用 API 方法对应 AGENTS.md 中的通知中心、信息页等扩展方向；保留接口和模型比删除后再重建更利于后续维护。
 - **约束（ECH）**：`PixivHosts.shouldEch == shouldQuic` 是语义别名（注释声明与 rust/ech PIXIV_HOSTS 对齐）——**保留，不合并**。
 - 待验证：app 的 `runtimeOnly netty native` 是否冗余（传递性）；CI 注释与 `updateEchPrebuilt` 实际行为（覆盖 prebuilt、无 diff 校验）不符；WatchlistNovelItem 的 `field!!` NPE 隐患（属 bug 非 simplification，记录）。
 
@@ -266,5 +267,5 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 1. **R18/visible 过滤**：搜索页私有 `visibleNovels`/`visibleIllusts`（AI 过滤 + 按 filter 的 R18）与 util.visibleNovels（全局开关）语义不同，不可直接替换。
 2. **Ugoira zip 解压两处**：`DownloadManager.extractUgoiraFrames` 与 `UgoiraPlayer.decodeUgoiraZip` 同构，但目标不同，合并收益有限。
 3. **测试侧假 Call 重复**：`inertApi`/`fakeApi`/`novelCall`/`novelSeriesCall` 三个测试文件重复定义，可收敛到 testutil，但测试是行为约束，需谨慎。
-4. **收藏图标按钮重复**：IllustDetailScreen.kt:556-574 与 NovelDetailScreen.kt:115-131 同一段 Favorite/FavoriteBorder + tint 的 IconButton，可提取 `BookmarkIconButton(isBookmarked, onClick)`。
+4. **收藏图标按钮重复（不实施）**：IllustDetailScreen、NovelDetailScreen、NovelSeriesScreen 和 NovelCard 的无障碍文本、颜色和“收藏/追更”语义不同；抽成带多个参数的公共按钮不会降低维护复杂度，保留局部实现。
 5. **三种「骨架」并存**：RankingFeed（自带一套 R18 过滤+分页）、RecommendScreen（自带）、DynamicFeedScaffold（FeedScaffold 薄包装，合理）；暂不统一，避免把不同分页协议强行塞进一个抽象。
