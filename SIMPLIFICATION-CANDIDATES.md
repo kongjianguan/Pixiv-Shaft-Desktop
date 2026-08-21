@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 已完成：A1.1、B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1、D6、E1、E11 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **已执行（保留项已说明）** |
+| P6 | 中风险重复收敛 | 已完成：A1.1、B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、D6（类型安全替代）、E1（类型安全替代）、E4-E5、E7-E8、E10、E11（共享基础设施）、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **已执行**：`697be41`、`b28d85e`、`79def31`、`65a6e1b` |
 
 ### 不进入实施
 
@@ -159,7 +159,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
 | D5 [已完成] | RecommendScreen.kt:443-496（NovelTabContent） | 整段手写 BoxWithConstraints + 列数公式 + LazyVerticalStaggeredGrid + NovelCard，与 `NovelGrid` **逐字节同构**（spacing/contentPadding/公式/key 全一致） | NovelTabContent 改为 `NovelGrid(gridState, items){...}`（gridState/回顶/trigger 留在调用处） | 低-中 |
-| D6 [暂缓] | RankingFeed.kt:223-375 | `RankingFeedScreenModel` 的 type 构造期固定却持双 pager+双 state，7 处 `when(type)` 分发（fetchCurrent/hasVisibleContent/setSuccess/setError/currentState/republishIfLoaded/loadMore）——约一半模型表面积是死的 | 暂不合并：插画与小说的 `Pager` response/item 泛型不同，单 Pager 需要类型擦除或自定义解析层，收益不足以抵消类型安全和回归风险 | 中 |
+| D6 [已完成：类型安全替代] | RankingFeed.kt:223-375 | `RankingFeedScreenModel` 的 type 构造期固定却持双 pager+双 state，分页状态、过滤发布和加载锁重复 | 引入泛型 `PagedFeed<Response, Item>` 统一 Pager、StateFlow、过滤发布、并发加载保护和过滤后继续翻页；保留插画/小说两个具体实例，不做类型擦除 | 中；RankingFeedScreenModelTest 通过 |
 | D7 [已完成] | RankingFeed.kt:113-124 | RankingFeedScaffold 的 LocalScrollToTop 分支与 `ScrollToTopOnEvent` 函数体相同，仅多 `refreshTick==null` 守卫 | `if (refreshTick==null) ScrollToTopOnEvent(gridState, onScrolledToTop=onRefresh)`，守卫提外层 | 低 |
 | D9 [已完成] | UgoiraPlayer.kt:92-117 | `decodeUgoiraZip` 的 sortedFrames/frameMap 计算后从未使用，`frameMetadata` 参数只喂死代码；61 行 `currentBitmap!=null && bitmaps.isNotEmpty()` 第二条件冗余 | 删死局部变量 + 未用参数（private 函数，行为逐字节等价） | 低 |
 
@@ -169,7 +169,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 | 测试 |
 |---|------|------|------|------|------|
-| E1 [暂缓] | WatchlistScreen.kt:293-433 / BookmarkedListScreen.kt:160-293 / BookmarkTagsScreen.kt:195-315 | 三个模型都是「双 Pager + 双 loadingMore + 成对 fetch/publish/hasVisible」；BookmarkedList 的 type 构造期固定导致另一套 Pager 永远死着；BookmarkTags 两个 Pager 类型相同 | 暂不统一：Watchlist 的漫画/小说条目和响应类型不同，BookmarkedList 的类型在构造期固定；用 `feeds` map 会抹平类型或迫使模型拆分，现有收益不足以支持跨类型抽象 | 中 | Watchlist/BookmarkedList 有测试；BookmarkTags 无 |
+| E1 [已完成：类型安全替代] | WatchlistScreen.kt:293-433 / BookmarkedListScreen.kt:160-293 / BookmarkTagsScreen.kt:195-315 | 三个模型都是「双列表 feed」；此前各自重复 Pager、StateFlow 和 loadingMore 协调代码 | 三个模型统一使用泛型 `PagedFeed<Response, Item>`；每个列表仍保留自己的响应/条目类型和错误边界，不用 `feeds` map 抹平类型 | 中；Watchlist/BookmarkedList 测试通过，BookmarkTags 编译通过 |
 | E2 [已完成] | NovelMarkersScreen.kt:107-110 | Screen 层 `filter{runCatching{it.novel;it.novel_marker}.isSuccess}` 与模型层 `visibleMarkedNovels` 重复过滤（数据已过模型过滤，Screen 层永远空转） | 删 Screen 层 filter | 低 | 有（模型侧测试） |
 | E3 [已完成] | WatchlistScreen.kt:261 | `WatchlistRowDate(value)=value.orEmpty()` 平凡 PascalCase 包装 | 调用点直接 `.orEmpty()`，删包装（保留 runCatching 注释） | 低 | 无 |
 | E4 [已完成] | UserDetailScreenModel.kt:27-28 / 71-97 | `illustPager`/`bookmarkPager` 只调用 refresh+items.value，全模型无 loadMore——Pager 机制是死机器 | 换普通列表直接发布，删两个 Pager | 低-中 | 无 |
@@ -184,7 +184,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| E11 [暂缓] | BookmarkedListScreenModel.kt:152-294 与 DynamicScreenModel.kt:27-173 | 两个模型**近乎逐行同构**（双 Pager+双 StateFlow+loadMore→loadMoreUntil+hasVisible/setSuccess/setError/currentState+updateNovelBookmark+republishIfLoaded，约 150-200 行），仅 API 与参数不同 | 暂不抽跨模型泛型基类：两者的 type 语义、API 参数、错误保留策略和小说过滤边界不同，基类会把差异隐藏进回调参数；保留局部类型安全 | 中（两模型各有测试可作护栏） |
+| E11 [已完成：共享基础设施] | BookmarkedListScreenModel.kt:152-294 与 DynamicScreenModel.kt:27-173 | 两个模型的分页状态、加载锁、过滤后继续翻页和重新发布逻辑高度重复；API 参数、错误保留策略和小说过滤边界不同 | 共享泛型 `PagedFeed<Response, Item>`，仅收敛真正通用的分页基础设施；API 请求、错误策略、过滤谓词和收藏更新仍留在模型内，避免泛型基类隐藏业务差异 | 中；Dynamic/BookmarkedList 测试通过 |
 | E13 [已完成] | BookmarkedList:260-264 / Watchlist:419-427 / Profile:244-266 / Dynamic:125-129 / NovelMarkers:267-268 等 | 8+ 份 `(_state.value as? UiState.Success)?.data?.isNotEmpty() == true` | UiState 上加 `fun UiState<*>.hasVisibleContent()` 扩展 | 低 |
 | E14 [已完成] | ProfileScreenModel.kt:132-191 | loadBookmarks/loadNovelBookmarks/loadCreatedWorks 四份同形（置 Loading→api→refresh→publish→loadMoreUntil→Error） | 抽 `loadChannel(stateFlow, pager, apiCall, publish, hasVisible, errorMsg)`（loadMoreWith 已有先例） | 中 |
 
@@ -192,7 +192,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 - **R18/visible 过滤无绕过**（核实结论）：Watchlist novel tab 用 `visibleItems` 而非 `visibleNovels`，但 `WatchlistNovelItem` **没有 `visible` 字段**（只有 x_restrict），AGENTS.md 规则只约束 `ceui.loxia.Novel`——此处合规，不算绕过。
 - NovelMarkers UI 过滤（E2）删除前提：`publishItems()` 是 state 唯一生产者（当前确认无其他写 `_state` 路径）。
-- loadMore 守卫 `if (!hasNext || !loadingMore.compareAndSet(false,true)) return` **全 app 18 处**；Profile 的 `loadMoreWith` 是现成收敛样板，其余 7 处（BookmarkedList:210/BookmarkTags:254/NovelMarkers:233/Watchlist:348/Dynamic:84/NiceFriend:141/UserList:200）可复用它。
+- loadMore 守卫 `if (!hasNext || !loadingMore.compareAndSet(false,true)) return` **全 app 多处**；Dynamic、BookmarkedList、BookmarkTags、Watchlist、RankingFeed 已由 `PagedFeed` 统一处理，Profile 的 `loadMoreWith` 仍是其他模型可复用的局部样板，NovelMarkers/NiceFriend/UserList 等未纳入本轮。
 - 手写 derivedStateOf 滚动触发全 app **15 处**。
 
 ## F. 其余 app UI + 核心区域（来源：审查 agent，已定稿）
