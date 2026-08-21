@@ -346,7 +346,7 @@ class RankingFeedScreenModel(
         novelFeed.publish()
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         illustFeed.republishIfLoaded()
         novelFeed.republishIfLoaded()

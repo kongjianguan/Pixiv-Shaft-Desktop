@@ -148,7 +148,7 @@ private fun <T : Any> TaggedGridScaffold(
     )
 }
 
-/** 按标签筛选收藏模型：type 决定走插画还是小说 Pager。 */
+/** 按标签筛选收藏模型：type 决定走插画还是小说 feed。 */
 class BookmarkedListScreenModel(
     private val userId: Long,
     private val type: String,
@@ -249,14 +249,10 @@ class BookmarkedListScreenModel(
     private suspend fun fetchCurrent() {
         if (type == "illust") {
             val resp = client.appApi.getUserBookmarkedIllusts(userId, "public", tag)
-            illustFeed.pager.refresh(resp)
-            illustFeed.publish()
-            illustFeed.pager.loadMoreUntil(illustFeed::hasVisibleContent, illustFeed::publish)
+            illustFeed.refreshUntilVisible(resp)
         } else {
             val resp = client.appApi.getUserBookmarkedNovels(userId, "public", tag)
-            novelFeed.pager.refresh(resp)
-            novelFeed.publish()
-            novelFeed.pager.loadMoreUntil(novelFeed::hasVisibleContent, novelFeed::publish)
+            novelFeed.refreshUntilVisible(resp)
         }
     }
 
@@ -269,7 +265,7 @@ class BookmarkedListScreenModel(
         return ceui.pixiv.ui.util.hasHiddenR18(raw, settingsStore.isShowR18)
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         if (type == "illust") illustFeed.republishIfLoaded() else novelFeed.republishIfLoaded()
     }

@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 
-/** 动态页作品流：按 (type, restrict) 组合独立加载，Pager 分页 + 三段式状态。 */
+/** 动态页作品流：按 (type, restrict) 组合独立加载，类型安全 feed 分页 + 三段式状态。 */
 class DynamicScreenModel(
     private val type: String,
     private val restrict: String,
@@ -112,14 +112,10 @@ class DynamicScreenModel(
     private suspend fun fetchCurrent() {
         if (type == "novel") {
             val resp = client.appApi.getFollowingCreatedNovels(restrict)
-            novelFeed.pager.refresh(resp)
-            novelFeed.publish()
-            novelFeed.pager.loadMoreUntil(novelFeed::hasVisibleContent, novelFeed::publish)
+            novelFeed.refreshUntilVisible(resp)
         } else {
             val resp = client.appApi.followUserPosts(type, restrict)
-            illustFeed.pager.refresh(resp)
-            illustFeed.publish()
-            illustFeed.pager.loadMoreUntil(illustFeed::hasVisibleContent, illustFeed::publish)
+            illustFeed.refreshUntilVisible(resp)
         }
     }
 
@@ -140,7 +136,7 @@ class DynamicScreenModel(
         novelFeed.publish()
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         illustFeed.republishIfLoaded()
         novelFeed.republishIfLoaded()

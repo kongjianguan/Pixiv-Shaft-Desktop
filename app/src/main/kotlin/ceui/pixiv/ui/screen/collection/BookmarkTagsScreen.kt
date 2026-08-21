@@ -44,6 +44,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.loxia.BookmarkTag
 import ceui.loxia.BookmarkTagsResponse
+import ceui.loxia.KListShow
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
@@ -187,7 +188,7 @@ private fun BookmarkTagRow(tag: BookmarkTag, onClick: () -> Unit) {
     }
 }
 
-/** 收藏标签模型：插画/小说两个独立 Pager，懒加载 selfUserId。 */
+/** 收藏标签模型：插画/小说两个独立的类型安全 feed，懒加载 selfUserId。 */
 class BookmarkTagsScreenModel : ScreenModel {
 
     private val client = AppContainer.client
@@ -245,7 +246,7 @@ class BookmarkTagsScreenModel : ScreenModel {
         if (isIllust) loadMore(illustFeed) else loadMore(novelFeed)
     }
 
-    private fun <Response : ceui.loxia.KListShow<Item>, Item : Any> loadMore(
+    private fun <Response : KListShow<Item>, Item : Any> loadMore(
         feed: PagedFeed<Response, Item>,
     ) {
         if (!feed.tryBeginLoadMore()) return

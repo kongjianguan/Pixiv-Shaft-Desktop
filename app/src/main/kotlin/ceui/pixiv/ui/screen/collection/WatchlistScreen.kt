@@ -283,7 +283,7 @@ private fun WatchlistNovelRow(item: WatchlistNovelItem, onClick: () -> Unit) {
     )
 }
 
-/** 追更模型：漫画/小说两个独立 Pager，无需 user_id。 */
+/** 追更模型：漫画/小说两个独立的类型安全 feed，无需 user_id。 */
 class WatchlistScreenModel(
     private val client: Client = AppContainer.client,
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
@@ -400,7 +400,7 @@ class WatchlistScreenModel(
         }
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         mangaFeed.republishIfLoaded()
         novelFeed.republishIfLoaded()
