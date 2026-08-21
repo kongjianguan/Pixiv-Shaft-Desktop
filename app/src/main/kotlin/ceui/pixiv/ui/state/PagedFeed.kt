@@ -25,6 +25,16 @@ class PagedFeed<Response : KListShow<Item>, Item : Any>(
 
     private val loadingMore = AtomicBoolean(false)
 
+    fun refresh(response: Response) {
+        pager.refresh(response)
+        publish()
+    }
+
+    suspend fun refreshUntilVisible(response: Response) {
+        refresh(response)
+        pager.loadMoreUntil(::hasVisibleContent, ::publish)
+    }
+
     fun publish() {
         _state.value = UiState.Success(filter(pager.items.value))
     }

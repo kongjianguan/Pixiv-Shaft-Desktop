@@ -48,7 +48,7 @@ import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.resolveSelfUserId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +56,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 收藏标签页：插画/小说两个 tab，点击标签跳转按标签筛选的收藏列表。 */
@@ -192,20 +191,16 @@ private fun BookmarkTagRow(tag: BookmarkTag, onClick: () -> Unit) {
 class BookmarkTagsScreenModel : ScreenModel {
 
     private val client = AppContainer.client
-    private val illustPager = Pager<BookmarkTagsResponse, BookmarkTag>(client, BookmarkTagsResponse::class.java)
-    private val novelPager = Pager<BookmarkTagsResponse, BookmarkTag>(client, BookmarkTagsResponse::class.java)
+    private val illustFeed = PagedFeed<BookmarkTagsResponse, BookmarkTag>(client, BookmarkTagsResponse::class.java)
+    private val novelFeed = PagedFeed<BookmarkTagsResponse, BookmarkTag>(client, BookmarkTagsResponse::class.java)
 
-    private val _illustState = MutableStateFlow<UiState<List<BookmarkTag>>>(UiState.Loading)
-    val illustState: StateFlow<UiState<List<BookmarkTag>>> = _illustState.asStateFlow()
+    val illustState: StateFlow<UiState<List<BookmarkTag>>> = illustFeed.state
 
-    private val _novelState = MutableStateFlow<UiState<List<BookmarkTag>>>(UiState.Loading)
-    val novelState: StateFlow<UiState<List<BookmarkTag>>> = _novelState.asStateFlow()
+    val novelState: StateFlow<UiState<List<BookmarkTag>>> = novelFeed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val loadingMore = AtomicBoolean(false)
-    private val novelLoadingMore = AtomicBoolean(false)
     var userId: Long = 0L
         private set
 
@@ -220,8 +215,9 @@ class BookmarkTagsScreenModel : ScreenModel {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _illustState.value = UiState.Error(e.message ?: "Failed to load tags")
-            _novelState.value = UiState.Error(e.message ?: "Failed to load tags")
+            val message = e.message ?: "Failed to load tags"
+            illustFeed.setError(message)
+            novelFeed.setError(message)
         }
     }
 
@@ -236,12 +232,9 @@ class BookmarkTagsScreenModel : ScreenModel {
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-                if (_illustState.value !is UiState.Success) {
-                    _illustState.value = UiState.Error(e.message ?: "Failed to load tags")
-                }
-                if (_novelState.value !is UiState.Success) {
-                    _novelState.value = UiState.Error(e.message ?: "Failed to load tags")
-                }
+                val message = e.message ?: "Failed to load tags"
+                if (!illustFeed.isSuccess()) illustFeed.setError(message)
+                if (!novelFeed.isSuccess()) novelFeed.setError(message)
             } finally {
                 _isRefreshing.value = false
             }
@@ -249,23 +242,23 @@ class BookmarkTagsScreenModel : ScreenModel {
     }
 
     fun loadMore(isIllust: Boolean) {
-        val pager = if (isIllust) illustPager else novelPager
-        val loadingMore = if (isIllust) loadingMore else novelLoadingMore
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (isIllust) loadMore(illustFeed) else loadMore(novelFeed)
+    }
+
+    private fun <Response : ceui.loxia.KListShow<Item>, Item : Any> loadMore(
+        feed: PagedFeed<Response, Item>,
+    ) {
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                if (isIllust) {
-                    _illustState.value = UiState.Success(illustPager.items.value)
-                } else {
-                    _novelState.value = UiState.Success(novelPager.items.value)
-                }
+                feed.pager.loadMore()
+                feed.publish()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
@@ -280,14 +273,13 @@ class BookmarkTagsScreenModel : ScreenModel {
     private suspend fun fetchIllustTags() {
         try {
             val resp = client.appApi.getIllustBookmarkTags(userId, "public")
-            illustPager.refresh(resp)
-            _illustState.value = UiState.Success(illustPager.items.value)
+            illustFeed.refresh(resp)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-            if (_illustState.value !is UiState.Success) {
-                _illustState.value = UiState.Error(e.message ?: "Failed to load tags")
+            if (!illustFeed.isSuccess()) {
+                illustFeed.setError(e.message ?: "Failed to load tags")
             }
         }
     }
@@ -295,14 +287,13 @@ class BookmarkTagsScreenModel : ScreenModel {
     private suspend fun fetchNovelTags() {
         try {
             val resp = client.appApi.getNovelBookmarkTags(userId, "public")
-            novelPager.refresh(resp)
-            _novelState.value = UiState.Success(novelPager.items.value)
+            novelFeed.refresh(resp)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-            if (_novelState.value !is UiState.Success) {
-                _novelState.value = UiState.Error(e.message ?: "Failed to load tags")
+            if (!novelFeed.isSuccess()) {
+                novelFeed.setError(e.message ?: "Failed to load tags")
             }
         }
     }

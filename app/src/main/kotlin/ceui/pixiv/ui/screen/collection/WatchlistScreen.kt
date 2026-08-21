@@ -49,6 +49,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.lisa.models.WatchlistMangaItem
 import ceui.lisa.models.WatchlistNovelItem
+import ceui.loxia.KListShow
 import ceui.loxia.WatchlistMangaResponse
 import ceui.loxia.WatchlistNovelResponse
 import ceui.pixiv.di.AppContainer
@@ -58,9 +59,8 @@ import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.novel.NovelSeriesScreen
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.util.openInBrowser
@@ -70,7 +70,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 追更列表页：漫画/小说两个 tab。小说进系列页，漫画无独立详情页则用浏览器打开网页版系列。 */
@@ -290,20 +289,21 @@ class WatchlistScreenModel(
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
 ) : ScreenModel {
 
-    private val mangaPager = Pager<WatchlistMangaResponse, WatchlistMangaItem>(client, WatchlistMangaResponse::class.java)
-    private val novelPager = Pager<WatchlistNovelResponse, WatchlistNovelItem>(client, WatchlistNovelResponse::class.java)
+    private val mangaFeed = PagedFeed<WatchlistMangaResponse, WatchlistMangaItem>(
+        client,
+        WatchlistMangaResponse::class.java,
+    ) { visibleItems(it, settingsStore.isShowR18) }
+    private val novelFeed = PagedFeed<WatchlistNovelResponse, WatchlistNovelItem>(
+        client,
+        WatchlistNovelResponse::class.java,
+    ) { visibleItems(it, settingsStore.isShowR18) }
 
-    private val _mangaState = MutableStateFlow<UiState<List<WatchlistMangaItem>>>(UiState.Loading)
-    val mangaState: StateFlow<UiState<List<WatchlistMangaItem>>> = _mangaState.asStateFlow()
+    val mangaState: StateFlow<UiState<List<WatchlistMangaItem>>> = mangaFeed.state
 
-    private val _novelState = MutableStateFlow<UiState<List<WatchlistNovelItem>>>(UiState.Loading)
-    val novelState: StateFlow<UiState<List<WatchlistNovelItem>>> = _novelState.asStateFlow()
+    val novelState: StateFlow<UiState<List<WatchlistNovelItem>>> = novelFeed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val loadingMore = AtomicBoolean(false)
-    private val novelLoadingMore = AtomicBoolean(false)
 
     init {
         screenModelScope.launch { fetchInitial() }
@@ -316,8 +316,9 @@ class WatchlistScreenModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _mangaState.value = UiState.Error(e.message ?: "Failed to load watchlist")
-            _novelState.value = UiState.Error(e.message ?: "Failed to load watchlist")
+            val message = e.message ?: "Failed to load watchlist"
+            mangaFeed.setError(message)
+            novelFeed.setError(message)
         }
     }
 
@@ -330,12 +331,9 @@ class WatchlistScreenModel(
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据
-                if (_mangaState.value !is UiState.Success) {
-                    _mangaState.value = UiState.Error(e.message ?: "Failed to load watchlist")
-                }
-                if (_novelState.value !is UiState.Success) {
-                    _novelState.value = UiState.Error(e.message ?: "Failed to load watchlist")
-                }
+                val message = e.message ?: "Failed to load watchlist"
+                if (!mangaFeed.isSuccess()) mangaFeed.setError(message)
+                if (!novelFeed.isSuccess()) novelFeed.setError(message)
             } finally {
                 _isRefreshing.value = false
             }
@@ -343,33 +341,27 @@ class WatchlistScreenModel(
     }
 
     fun loadMore(isManga: Boolean) {
-        val pager = if (isManga) mangaPager else novelPager
-        val loadingMore = if (isManga) loadingMore else novelLoadingMore
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (isManga) loadMore(mangaFeed) else loadMore(novelFeed)
+    }
+
+    private fun <Response : KListShow<Item>, Item : Any> loadMore(feed: PagedFeed<Response, Item>) {
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                if (isManga) {
-                    publishManga()
-                    // 加载的页被 R18 过滤后整页为空：继续翻页直到出现可见内容或没有更多页
-                    pager.loadMoreUntil(::hasVisibleManga, ::publishManga)
-                } else {
-                    publishNovel()
-                    pager.loadMoreUntil(::hasVisibleNovel, ::publishNovel)
-                }
+                feed.loadMoreAndPublish()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
 
     /** 当前开关状态下，已加载数据中是否有被 R18 过滤隐藏的作品（空态时区分「真没有」与「被隐藏」） */
     fun hasHiddenR18(isManga: Boolean): Boolean {
-        val raw = if (isManga) mangaPager.items.value else novelPager.items.value
+        val raw = if (isManga) mangaFeed.pager.items.value else novelFeed.pager.items.value
         return ceui.pixiv.ui.util.hasHiddenR18(raw, settingsStore.isShowR18)
     }
 
@@ -383,15 +375,13 @@ class WatchlistScreenModel(
     private suspend fun fetchManga() {
         try {
             val resp = client.appApi.getWatchlistMangas()
-            mangaPager.refresh(resp)
-            publishManga()
-            mangaPager.loadMoreUntil(::hasVisibleManga, ::publishManga)
+            mangaFeed.refreshUntilVisible(resp)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-            if (_mangaState.value !is UiState.Success) {
-                _mangaState.value = UiState.Error(e.message ?: "Failed to load watchlist")
+            if (!mangaFeed.isSuccess()) {
+                mangaFeed.setError(e.message ?: "Failed to load watchlist")
             }
         }
     }
@@ -399,36 +389,20 @@ class WatchlistScreenModel(
     private suspend fun fetchNovel() {
         try {
             val resp = client.appApi.getWatchlistNovels()
-            novelPager.refresh(resp)
-            publishNovel()
-            novelPager.loadMoreUntil(::hasVisibleNovel, ::publishNovel)
+            novelFeed.refreshUntilVisible(resp)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-            if (_novelState.value !is UiState.Success) {
-                _novelState.value = UiState.Error(e.message ?: "Failed to load watchlist")
+            if (!novelFeed.isSuccess()) {
+                novelFeed.setError(e.message ?: "Failed to load watchlist")
             }
         }
     }
 
-    private fun publishManga() {
-        _mangaState.value = UiState.Success(visibleItems(mangaPager.items.value, settingsStore.isShowR18))
-    }
-
-    private fun hasVisibleManga() =
-        _mangaState.value.hasVisibleContent()
-
-    private fun publishNovel() {
-        _novelState.value = UiState.Success(visibleItems(novelPager.items.value, settingsStore.isShowR18))
-    }
-
-    private fun hasVisibleNovel() =
-        _novelState.value.hasVisibleContent()
-
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {
-        if (_mangaState.value is UiState.Success) publishManga()
-        if (_novelState.value is UiState.Success) publishNovel()
+        mangaFeed.republishIfLoaded()
+        novelFeed.republishIfLoaded()
     }
 }
