@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E11；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
+| P6 | 中风险重复收敛 | 待执行：A1.1、D6、E1、E11；已完成：B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
 
 ### 不进入实施
 
@@ -150,7 +150,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | # | 位置 | 现状 | 方案 | 风险 | 测试 |
 |---|------|------|------|------|------|
 | D1 [已完成] | CommentsSection.kt:206-223 / 227-242 / 639-654 | 「加载更多」按钮在 LazyColumn 内 / 空列表+hasMore / 加载更多回复 三份完全相同的 TextButton+进度圈+Text | 提取 `LoadMoreButton(loading, text, onClick)` | 低 | 无（纯 UI） |
-| D2 | CommentsSection.kt:520-658 vs 660-728 | `CommentRow` 与 `ChildCommentRow` 结构相似（hover、头像+名字+日期、正文、回复/删除），仅尺寸/操作行不同 | 先提取共享「用户头部行+正文」子 composable，操作行保留差异 | 中 | 无 |
+| D2 [已完成] | CommentsSection.kt:520-658 vs 660-728 | `CommentRow` 与 `ChildCommentRow` 结构相似（hover、头像+名字+日期、正文、回复/删除），仅尺寸/操作行不同 | 提取共享 `CommentAuthorContent`，操作行保留差异 | 中 | 编译通过 |
 | D3 [已完成] | NovelGrid.kt:30-38 vs WorkFeedGrid.kt:53-67 | 内联列数计算与 `calculateWorkFeedColumns` 逐行相同 | 复用该函数（重命名 `calculateResponsiveColumnCount`） | 低 | 无 |
 | D4 [已完成] | NovelCard.kt 可选回调空传 | BrowseHistoryScreen.kt:296-302 传 `onUserClick={}`/`onToggleBookmark={}`（历史列表无此交互，死 UI） | 依赖已有可空默认参数，删除两个空 lambda | 低 | 无 |
 

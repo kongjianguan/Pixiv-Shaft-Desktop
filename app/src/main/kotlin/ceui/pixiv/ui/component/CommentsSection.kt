@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -517,7 +518,6 @@ private fun CommentRow(
     onReplyChild: (Comment) -> Unit,
     onRequestDelete: (Comment) -> Unit,
 ) {
-    val user = comment.user
     var hovered by remember { mutableStateOf(false) }
 
     Column(
@@ -528,47 +528,19 @@ private fun CommentRow(
             .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+        CommentAuthorContent(
+            comment = comment,
+            avatarSize = 32,
+            contentStartPadding = 10.dp,
+            contentSpacing = 3.dp,
+            nameStyle = MaterialTheme.typography.labelLarge,
+            onUserClick = onUserClick,
         ) {
-            UserAvatar(
-                url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
-                size = 32,
-            )
-            Column(
-                modifier = Modifier.weight(1f).padding(start = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+            // 操作行：展开回复常显；回复/删除桌面端 hover 显示
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = user.name?.takeIf { it.isNotBlank() } ?: "匿名用户",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier
-                            .weight(1f)
-                            .then(
-                                if (user.id > 0L) {
-                                    Modifier.clickable { onUserClick(user.id) }
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                    )
-                    Text(
-                        text = comment.displayCommentDate(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                CommentContent(comment = comment)
-                // 操作行：展开回复常显；回复/删除桌面端 hover 显示
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
                     // 显隐由本地展开态 + 实际回复数据驱动：服务端 has_replies 可能滞后
                     // （本地刚发表第一条回复时仍是 false），只信服务端会导致线程无法收起
                     if ((comment.has_replies || childComments.isNotEmpty()) && !isExpanded) {
@@ -595,7 +567,6 @@ private fun CommentRow(
                             ) { Text("删除") }
                         }
                     }
-                }
             }
         }
 
@@ -681,24 +652,62 @@ private fun ChildCommentRow(
     onReply: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val user = comment.user
     var hovered by remember { mutableStateOf(false) }
 
-    Row(
+    CommentAuthorContent(
         modifier = Modifier
             .fillMaxWidth()
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
             .padding(vertical = 4.dp),
+        comment = comment,
+        avatarSize = 24,
+        contentStartPadding = 8.dp,
+        contentSpacing = 2.dp,
+        nameStyle = MaterialTheme.typography.labelSmall,
+        onUserClick = onUserClick,
+    ) {
+        if (hovered) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = onReply,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                ) { Text("回复") }
+                if (comment.user.id == selfUserId) {
+                    TextButton(
+                        onClick = onDelete,
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                    ) { Text("删除") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommentAuthorContent(
+    modifier: Modifier = Modifier,
+    comment: Comment,
+    avatarSize: Int,
+    contentStartPadding: Dp,
+    contentSpacing: Dp,
+    nameStyle: TextStyle,
+    onUserClick: (Long) -> Unit,
+    actions: @Composable () -> Unit,
+) {
+    val user = comment.user
+
+    Row(
+        modifier = modifier,
         verticalAlignment = Alignment.Top,
     ) {
         UserAvatar(
             url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
-            size = 24,
+            size = avatarSize,
         )
         Column(
-            modifier = Modifier.weight(1f).padding(start = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(1f).padding(start = contentStartPadding),
+            verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -706,7 +715,7 @@ private fun ChildCommentRow(
             ) {
                 Text(
                     text = user.name?.takeIf { it.isNotBlank() } ?: "匿名用户",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = nameStyle,
                     modifier = Modifier
                         .weight(1f)
                         .then(
@@ -724,20 +733,7 @@ private fun ChildCommentRow(
                 )
             }
             CommentContent(comment = comment)
-            if (hovered) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(
-                        onClick = onReply,
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                    ) { Text("回复") }
-                    if (comment.user.id == selfUserId) {
-                        TextButton(
-                            onClick = onDelete,
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                        ) { Text("删除") }
-                    }
-                }
-            }
+            actions()
         }
     }
 }
