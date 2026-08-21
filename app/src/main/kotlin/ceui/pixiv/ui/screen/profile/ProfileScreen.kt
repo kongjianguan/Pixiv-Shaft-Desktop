@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -207,56 +208,38 @@ class ProfileScreen : Screen {
 
                 // Tab content
                 when (selectedTab) {
-                    0 -> {
-                        when (val s = bookmarksState) {
-                            is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-                            is UiState.Error -> item {
-                                ErrorView(s.message, { screenModel.refresh() }, Modifier.height(200.dp))
-                            }
-                            is UiState.Success -> {
-                                if (s.data.isEmpty()) {
-                                    item { Text("No bookmarks", modifier = Modifier.padding(16.dp)) }
-                                } else {
-                                    items(s.data, key = { it.id }) { illust ->
-                                        IllustCard(
-                                            illust = illust,
-                                            onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                                            modifier = Modifier.padding(horizontal = 4.dp)
-                                        )
-                                    }
-                                    item(key = "bookmarks-load-more") {
-                                        FeedLoadMoreTrigger(listState) { screenModel.loadMoreBookmarks() }
-                                    }
-                                }
-                            }
-                        }
+                    0 -> profileTabContent(
+                        state = bookmarksState,
+                        listState = listState,
+                        emptyMessage = "No bookmarks",
+                        loadMoreKey = "bookmarks-load-more",
+                        onRefresh = screenModel::refresh,
+                        onLoadMore = screenModel::loadMoreBookmarks,
+                        key = { it.id },
+                    ) { illust ->
+                        IllustCard(
+                            illust = illust,
+                            onClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
                     }
-                    1 -> {
-                        when (val s = novelBookmarksState) {
-                            is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-                            is UiState.Error -> item {
-                                ErrorView(s.message, { screenModel.refresh() }, Modifier.height(200.dp))
-                            }
-                            is UiState.Success -> {
-                                if (s.data.isEmpty()) {
-                                    item { Text("No novel bookmarks", modifier = Modifier.padding(16.dp)) }
-                                } else {
-                                    items(s.data, key = { it.id }) { novel ->
-                                        NovelCard(
-                                            novel = novel,
-                                            onClick = { id -> navigator.push(NovelDetailScreen(id)) },
-                                            onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
-                                            onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
-                                            onToggleBookmark = { screenModel.toggleNovelBookmark(it) },
-                                            modifier = Modifier.padding(horizontal = 16.dp)
-                                        )
-                                    }
-                                    item(key = "novel-bookmarks-load-more") {
-                                        FeedLoadMoreTrigger(listState) { screenModel.loadMoreNovelBookmarks() }
-                                    }
-                                }
-                            }
-                        }
+                    1 -> profileTabContent(
+                        state = novelBookmarksState,
+                        listState = listState,
+                        emptyMessage = "No novel bookmarks",
+                        loadMoreKey = "novel-bookmarks-load-more",
+                        onRefresh = screenModel::refresh,
+                        onLoadMore = screenModel::loadMoreNovelBookmarks,
+                        key = { it.id },
+                    ) { novel ->
+                        NovelCard(
+                            novel = novel,
+                            onClick = { id -> navigator.push(NovelDetailScreen(id)) },
+                            onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
+                            onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
+                            onToggleBookmark = screenModel::toggleNovelBookmark,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
                     }
                     2 -> {
                         item {
@@ -277,53 +260,39 @@ class ProfileScreen : Screen {
                             }
                         }
                         if (worksType == 0) {
-                            when (val s = createdIllustsState) {
-                                is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-                                is UiState.Error -> item {
-                                    ErrorView(s.message, { screenModel.refresh() }, Modifier.height(200.dp))
-                                }
-                                is UiState.Success -> {
-                                    if (s.data.isEmpty()) {
-                                        item { Text("No works", modifier = Modifier.padding(16.dp)) }
-                                    } else {
-                                        items(s.data, key = { it.id }) { illust ->
-                                            IllustCard(
-                                                illust = illust,
-                                                onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                                                modifier = Modifier.padding(horizontal = 4.dp)
-                                            )
-                                        }
-                                        item(key = "created-illusts-load-more") {
-                                            FeedLoadMoreTrigger(listState) { screenModel.loadMoreCreatedIllusts() }
-                                        }
-                                    }
-                                }
+                            profileTabContent(
+                                state = createdIllustsState,
+                                listState = listState,
+                                emptyMessage = "No works",
+                                loadMoreKey = "created-illusts-load-more",
+                                onRefresh = screenModel::refresh,
+                                onLoadMore = screenModel::loadMoreCreatedIllusts,
+                                key = { it.id },
+                            ) { illust ->
+                                IllustCard(
+                                    illust = illust,
+                                    onClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
                             }
                         } else {
-                            when (val s = createdNovelsState) {
-                                is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-                                is UiState.Error -> item {
-                                    ErrorView(s.message, { screenModel.refresh() }, Modifier.height(200.dp))
-                                }
-                                is UiState.Success -> {
-                                    if (s.data.isEmpty()) {
-                                        item { Text("No works", modifier = Modifier.padding(16.dp)) }
-                                    } else {
-                                        items(s.data, key = { it.id }) { novel ->
-                                            NovelCard(
-                                                novel = novel,
-                                                onClick = { id -> navigator.push(NovelDetailScreen(id)) },
-                                                onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
-                                                onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
-                                                onToggleBookmark = { screenModel.toggleNovelBookmark(it) },
-                                                modifier = Modifier.padding(horizontal = 16.dp)
-                                            )
-                                        }
-                                        item(key = "created-novels-load-more") {
-                                            FeedLoadMoreTrigger(listState) { screenModel.loadMoreCreatedNovels() }
-                                        }
-                                    }
-                                }
+                            profileTabContent(
+                                state = createdNovelsState,
+                                listState = listState,
+                                emptyMessage = "No works",
+                                loadMoreKey = "created-novels-load-more",
+                                onRefresh = screenModel::refresh,
+                                onLoadMore = screenModel::loadMoreCreatedNovels,
+                                key = { it.id },
+                            ) { novel ->
+                                NovelCard(
+                                    novel = novel,
+                                    onClick = { id -> navigator.push(NovelDetailScreen(id)) },
+                                    onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
+                                    onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
+                                    onToggleBookmark = screenModel::toggleNovelBookmark,
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
                             }
                         }
                     }
@@ -348,6 +317,34 @@ class ProfileScreen : Screen {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+private fun <T : Any> LazyListScope.profileTabContent(
+    state: UiState<List<T>>,
+    listState: LazyListState,
+    emptyMessage: String,
+    loadMoreKey: String,
+    onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
+    key: (T) -> Any,
+    itemContent: @Composable (T) -> Unit,
+) {
+    when (state) {
+        is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
+        is UiState.Error -> item {
+            ErrorView(state.message, onRefresh, Modifier.height(200.dp))
+        }
+        is UiState.Success -> {
+            if (state.data.isEmpty()) {
+                item { Text(emptyMessage, modifier = Modifier.padding(16.dp)) }
+            } else {
+                items(state.data, key = key) { value -> itemContent(value) }
+                item(key = loadMoreKey) {
+                    FeedLoadMoreTrigger(listState, onLoadMore)
                 }
             }
         }
