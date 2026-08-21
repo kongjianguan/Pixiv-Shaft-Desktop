@@ -66,4 +66,25 @@ class SettingsStoreTest {
         s.setUgoiraFileNameTemplate(" ")
         assertEquals("Ugoira/{author}/{title} {id}", s.ugoiraFileNameTemplate)
     }
+
+    @Test fun `integer settings clamp and update their flows`() {
+        val kv = PreferencesKv(java.util.prefs.Preferences.userRoot().node("test-${System.nanoTime()}"))
+        val s = SettingsStore(kv)
+
+        s.setWorkFeedMaxColumnWidthDp(10)
+        assertEquals(220, s.workFeedMaxColumnWidthDp)
+        assertEquals(220, s.workFeedMaxColumnWidthDpFlow.value)
+
+        s.setNovelFeedMaxColumns(99)
+        assertEquals(8, s.novelFeedMaxColumns)
+        assertEquals(8, s.novelFeedMaxColumnsFlow.value)
+
+        s.setReaderFontSizeSp(99)
+        assertEquals(30, s.readerFontSizeSp)
+        assertEquals(30, s.readerFontSizeSpFlow.value)
+
+        s.setThemeColorIndex(-1)
+        assertEquals(0, s.themeColorIndex)
+        assertEquals(0, s.themeColorIndexFlow.value)
+    }
 }

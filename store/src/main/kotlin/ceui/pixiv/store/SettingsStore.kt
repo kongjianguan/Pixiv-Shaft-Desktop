@@ -9,45 +9,23 @@ import java.nio.file.Path
 class SettingsStore(
     private val kv: KvStore = PreferencesKv.forApp(),
 ) : Settings {
-    private val _workFeedMaxColumnWidthDp = MutableStateFlow(
-        kv.getInt("workFeedMaxColumnWidthDp", 360).coerceIn(220, 720)
-    )
-    private val _workFeedMaxColumns = MutableStateFlow(
-        kv.getInt("workFeedMaxColumns", 4).coerceIn(1, 8)
-    )
-    private val _workFeedMinColumnWidthDp = MutableStateFlow(
-        kv.getInt("workFeedMinColumnWidthDp", 280).coerceIn(180, 560)
-    )
-    private val _workTitleMaxLines = MutableStateFlow(
-        kv.getInt("workTitleMaxLines", 1).coerceIn(1, 5)
-    )
-    private val _novelFeedMaxColumnWidthDp = MutableStateFlow(
-        kv.getInt("novelFeedMaxColumnWidthDp", 360).coerceIn(260, 720)
-    )
-    private val _novelFeedMaxColumns = MutableStateFlow(
-        kv.getInt("novelFeedMaxColumns", 4).coerceIn(1, 8)
-    )
-    private val _novelFeedMinColumnWidthDp = MutableStateFlow(
-        kv.getInt("novelFeedMinColumnWidthDp", 280).coerceIn(220, 560)
-    )
-    private val _novelTitleMaxLines = MutableStateFlow(
-        kv.getInt("novelTitleMaxLines", 2).coerceIn(1, 5)
-    )
-    private val _readerFontSizeSp = MutableStateFlow(
-        kv.getInt("readerFontSizeSp", 18).coerceIn(14, 30)
-    )
+    private val workFeedMaxColumnWidthDpSetting = IntSetting(kv, "workFeedMaxColumnWidthDp", 360, 220..720)
+    private val workFeedMaxColumnsSetting = IntSetting(kv, "workFeedMaxColumns", 4, 1..8)
+    private val workFeedMinColumnWidthDpSetting = IntSetting(kv, "workFeedMinColumnWidthDp", 280, 180..560)
+    private val workTitleMaxLinesSetting = IntSetting(kv, "workTitleMaxLines", 1, 1..5)
+    private val novelFeedMaxColumnWidthDpSetting = IntSetting(kv, "novelFeedMaxColumnWidthDp", 360, 260..720)
+    private val novelFeedMaxColumnsSetting = IntSetting(kv, "novelFeedMaxColumns", 4, 1..8)
+    private val novelFeedMinColumnWidthDpSetting = IntSetting(kv, "novelFeedMinColumnWidthDp", 280, 220..560)
+    private val novelTitleMaxLinesSetting = IntSetting(kv, "novelTitleMaxLines", 2, 1..5)
+    private val readerFontSizeSpSetting = IntSetting(kv, "readerFontSizeSp", 18, 14..30)
     private val _readerLineSpacing = MutableStateFlow(
         (kv.getString("readerLineSpacing")?.toFloatOrNull() ?: 1.8f).coerceIn(1.2f, 2.6f)
     )
-    private val _readerParagraphSpacingDp = MutableStateFlow(
-        kv.getInt("readerParagraphSpacingDp", 12).coerceIn(4, 28)
-    )
+    private val readerParagraphSpacingDpSetting = IntSetting(kv, "readerParagraphSpacingDp", 12, 4..28)
     private val _readerTheme = MutableStateFlow(
         kv.getString("readerTheme")?.takeIf { it in READER_THEMES } ?: "paper"
     )
-    private val _themeColorIndex = MutableStateFlow(
-        kv.getInt("themeColorIndex", 0).coerceIn(0, 9)
-    )
+    private val themeColorIndexSetting = IntSetting(kv, "themeColorIndex", 0, 0..9)
     private val _themeMode = MutableStateFlow(
         kv.getString("themeMode")?.takeIf { it in THEME_MODES } ?: "system"
     )
@@ -77,34 +55,34 @@ class SettingsStore(
     override val isUseSecureDns: Boolean get() = kv.getBoolean("isUseSecureDns", false)
     override val imageHostMode: Int get() = kv.getInt("imageHostMode", 0)
     override val customImageHost: String get() = kv.getString("customImageHost") ?: ""
-    val workFeedMaxColumnWidthDp: Int get() = _workFeedMaxColumnWidthDp.value
-    val workFeedMaxColumnWidthDpFlow: StateFlow<Int> = _workFeedMaxColumnWidthDp.asStateFlow()
-    val workFeedMaxColumns: Int get() = _workFeedMaxColumns.value
-    val workFeedMaxColumnsFlow: StateFlow<Int> = _workFeedMaxColumns.asStateFlow()
-    val workFeedMinColumnWidthDp: Int get() = _workFeedMinColumnWidthDp.value
-    val workFeedMinColumnWidthDpFlow: StateFlow<Int> = _workFeedMinColumnWidthDp.asStateFlow()
-    val workTitleMaxLines: Int get() = _workTitleMaxLines.value
-    val workTitleMaxLinesFlow: StateFlow<Int> = _workTitleMaxLines.asStateFlow()
+    val workFeedMaxColumnWidthDp: Int get() = workFeedMaxColumnWidthDpSetting.value
+    val workFeedMaxColumnWidthDpFlow: StateFlow<Int> = workFeedMaxColumnWidthDpSetting.flow
+    val workFeedMaxColumns: Int get() = workFeedMaxColumnsSetting.value
+    val workFeedMaxColumnsFlow: StateFlow<Int> = workFeedMaxColumnsSetting.flow
+    val workFeedMinColumnWidthDp: Int get() = workFeedMinColumnWidthDpSetting.value
+    val workFeedMinColumnWidthDpFlow: StateFlow<Int> = workFeedMinColumnWidthDpSetting.flow
+    val workTitleMaxLines: Int get() = workTitleMaxLinesSetting.value
+    val workTitleMaxLinesFlow: StateFlow<Int> = workTitleMaxLinesSetting.flow
     /** Upper bound for each responsive novel-feed column, in dp. */
     val novelFeedMaxColumnWidthDp: Int
-        get() = _novelFeedMaxColumnWidthDp.value
-    val novelFeedMaxColumnWidthDpFlow: StateFlow<Int> = _novelFeedMaxColumnWidthDp.asStateFlow()
-    val novelFeedMaxColumns: Int get() = _novelFeedMaxColumns.value
-    val novelFeedMaxColumnsFlow: StateFlow<Int> = _novelFeedMaxColumns.asStateFlow()
-    val novelFeedMinColumnWidthDp: Int get() = _novelFeedMinColumnWidthDp.value
-    val novelFeedMinColumnWidthDpFlow: StateFlow<Int> = _novelFeedMinColumnWidthDp.asStateFlow()
-    val novelTitleMaxLines: Int get() = _novelTitleMaxLines.value
-    val novelTitleMaxLinesFlow: StateFlow<Int> = _novelTitleMaxLines.asStateFlow()
-    val readerFontSizeSp: Int get() = _readerFontSizeSp.value
-    val readerFontSizeSpFlow: StateFlow<Int> = _readerFontSizeSp.asStateFlow()
+        get() = novelFeedMaxColumnWidthDpSetting.value
+    val novelFeedMaxColumnWidthDpFlow: StateFlow<Int> = novelFeedMaxColumnWidthDpSetting.flow
+    val novelFeedMaxColumns: Int get() = novelFeedMaxColumnsSetting.value
+    val novelFeedMaxColumnsFlow: StateFlow<Int> = novelFeedMaxColumnsSetting.flow
+    val novelFeedMinColumnWidthDp: Int get() = novelFeedMinColumnWidthDpSetting.value
+    val novelFeedMinColumnWidthDpFlow: StateFlow<Int> = novelFeedMinColumnWidthDpSetting.flow
+    val novelTitleMaxLines: Int get() = novelTitleMaxLinesSetting.value
+    val novelTitleMaxLinesFlow: StateFlow<Int> = novelTitleMaxLinesSetting.flow
+    val readerFontSizeSp: Int get() = readerFontSizeSpSetting.value
+    val readerFontSizeSpFlow: StateFlow<Int> = readerFontSizeSpSetting.flow
     val readerLineSpacing: Float get() = _readerLineSpacing.value
     val readerLineSpacingFlow: StateFlow<Float> = _readerLineSpacing.asStateFlow()
-    val readerParagraphSpacingDp: Int get() = _readerParagraphSpacingDp.value
-    val readerParagraphSpacingDpFlow: StateFlow<Int> = _readerParagraphSpacingDp.asStateFlow()
+    val readerParagraphSpacingDp: Int get() = readerParagraphSpacingDpSetting.value
+    val readerParagraphSpacingDpFlow: StateFlow<Int> = readerParagraphSpacingDpSetting.flow
     val readerTheme: String get() = _readerTheme.value
     val readerThemeFlow: StateFlow<String> = _readerTheme.asStateFlow()
-    val themeColorIndex: Int get() = _themeColorIndex.value
-    val themeColorIndexFlow: StateFlow<Int> = _themeColorIndex.asStateFlow()
+    val themeColorIndex: Int get() = themeColorIndexSetting.value
+    val themeColorIndexFlow: StateFlow<Int> = themeColorIndexSetting.flow
     val themeMode: String get() = _themeMode.value
     val themeModeFlow: StateFlow<String> = _themeMode.asStateFlow()
     val saveBrowseHistory: Boolean get() = _saveBrowseHistory.value
@@ -137,50 +115,32 @@ class SettingsStore(
         kv.putString("customImageHost", value)
     }
     fun setWorkFeedMaxColumnWidthDp(value: Int) {
-        val clamped = value.coerceIn(220, 720)
-        kv.putInt("workFeedMaxColumnWidthDp", clamped)
-        _workFeedMaxColumnWidthDp.value = clamped
+        workFeedMaxColumnWidthDpSetting.set(value)
     }
     fun setWorkFeedMaxColumns(value: Int) {
-        val clamped = value.coerceIn(1, 8)
-        kv.putInt("workFeedMaxColumns", clamped)
-        _workFeedMaxColumns.value = clamped
+        workFeedMaxColumnsSetting.set(value)
     }
     fun setWorkFeedMinColumnWidthDp(value: Int) {
-        val clamped = value.coerceIn(180, 560)
-        kv.putInt("workFeedMinColumnWidthDp", clamped)
-        _workFeedMinColumnWidthDp.value = clamped
+        workFeedMinColumnWidthDpSetting.set(value)
     }
     fun setWorkTitleMaxLines(value: Int) {
-        val clamped = value.coerceIn(1, 5)
-        kv.putInt("workTitleMaxLines", clamped)
-        _workTitleMaxLines.value = clamped
+        workTitleMaxLinesSetting.set(value)
     }
     fun setNovelFeedMaxColumnWidthDp(value: Int) {
-        val clamped = value.coerceIn(260, 720)
-        kv.putInt("novelFeedMaxColumnWidthDp", clamped)
-        _novelFeedMaxColumnWidthDp.value = clamped
+        novelFeedMaxColumnWidthDpSetting.set(value)
     }
     fun setNovelFeedMaxColumns(value: Int) {
-        val clamped = value.coerceIn(1, 8)
-        kv.putInt("novelFeedMaxColumns", clamped)
-        _novelFeedMaxColumns.value = clamped
+        novelFeedMaxColumnsSetting.set(value)
     }
     fun setNovelFeedMinColumnWidthDp(value: Int) {
-        val clamped = value.coerceIn(220, 560)
-        kv.putInt("novelFeedMinColumnWidthDp", clamped)
-        _novelFeedMinColumnWidthDp.value = clamped
+        novelFeedMinColumnWidthDpSetting.set(value)
     }
     fun setNovelTitleMaxLines(value: Int) {
-        val clamped = value.coerceIn(1, 5)
-        kv.putInt("novelTitleMaxLines", clamped)
-        _novelTitleMaxLines.value = clamped
+        novelTitleMaxLinesSetting.set(value)
     }
 
     fun setReaderFontSizeSp(value: Int) {
-        val clamped = value.coerceIn(14, 30)
-        kv.putInt("readerFontSizeSp", clamped)
-        _readerFontSizeSp.value = clamped
+        readerFontSizeSpSetting.set(value)
     }
 
     fun setReaderLineSpacing(value: Float) {
@@ -190,9 +150,7 @@ class SettingsStore(
     }
 
     fun setReaderParagraphSpacingDp(value: Int) {
-        val clamped = value.coerceIn(4, 28)
-        kv.putInt("readerParagraphSpacingDp", clamped)
-        _readerParagraphSpacingDp.value = clamped
+        readerParagraphSpacingDpSetting.set(value)
     }
 
     fun setReaderTheme(value: String) {
@@ -202,9 +160,7 @@ class SettingsStore(
     }
 
     fun setThemeColorIndex(value: Int) {
-        val index = value.coerceIn(0, 9)
-        kv.putInt("themeColorIndex", index)
-        _themeColorIndex.value = index
+        themeColorIndexSetting.set(value)
     }
 
     fun setThemeMode(value: String) {
@@ -283,5 +239,22 @@ class SettingsStore(
 
         fun validSearchTarget(value: String?): String =
             value?.takeIf { it in SEARCH_TARGETS } ?: "partial_match_for_tags"
+    }
+
+    private class IntSetting(
+        private val kv: KvStore,
+        private val key: String,
+        default: Int,
+        private val range: IntRange,
+    ) {
+        private val state = MutableStateFlow(kv.getInt(key, default).coerceIn(range.first, range.last))
+        val value: Int get() = state.value
+        val flow: StateFlow<Int> = state.asStateFlow()
+
+        fun set(value: Int) {
+            val clamped = value.coerceIn(range.first, range.last)
+            kv.putInt(key, clamped)
+            state.value = clamped
+        }
     }
 }

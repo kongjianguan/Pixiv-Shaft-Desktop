@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E7-E8、E11、E14、G2.3；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E10、F5；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
+| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E7-E8、E11、E14；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E10、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
 
 ### 不进入实施
 
@@ -250,7 +250,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 
 | # | 位置 | 现状 | 方案 | 风险 |
 |---|------|------|------|------|
-| G2.3 | SettingsStore | 12 个同模板 int 设置 | helper 收敛（约 120→40 行）；**不得改变设置 key、默认值、Flow 类型和重启生效语义** | 中 |
+| G2.3 [已完成] | SettingsStore | 12 个同模板 int 设置 | `IntSetting` helper 收敛读取、范围限制和写回；**设置 key、默认值、Flow 类型和重启生效语义不变** | 中 |
 | G2.9 [已完成] | impl/Defaults.kt:15-30,8-13 | FileTokenStore/InMemorySettings 仅测试使用却放 main 源码集 | **只移动这两个测试替身**到 `net/src/test`；保留 `StdoutLogger`/`DefaultLanguageProvider` 等生产实现 | 低 |
 
 ### G3 重要约束与待验证
