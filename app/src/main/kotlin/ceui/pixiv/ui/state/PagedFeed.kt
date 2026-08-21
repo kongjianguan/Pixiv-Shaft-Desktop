@@ -25,6 +25,10 @@ class PagedFeed<Response : KListShow<Item>, Item : Any>(
 
     private val loadingMore = AtomicBoolean(false)
 
+    fun setLoading() {
+        _state.value = UiState.Loading
+    }
+
     fun refresh(response: Response) {
         pager.refresh(response)
         publish()
@@ -47,7 +51,7 @@ class PagedFeed<Response : KListShow<Item>, Item : Any>(
         _state.value = UiState.Error(message)
     }
 
-    fun hasVisibleContent(): Boolean = _state.value.hasVisibleContent()
+    private fun hasVisibleContent(): Boolean = _state.value.hasVisibleContent()
 
     fun isSuccess(): Boolean = _state.value is UiState.Success
 
@@ -63,5 +67,11 @@ class PagedFeed<Response : KListShow<Item>, Item : Any>(
         pager.loadMore()
         publish()
         pager.loadMoreUntil(::hasVisibleContent, ::publish)
+    }
+
+    /** Loads and publishes exactly one page for feeds without filtered-empty-page skipping. */
+    suspend fun loadMoreAndPublishOnce() {
+        pager.loadMore()
+        publish()
     }
 }

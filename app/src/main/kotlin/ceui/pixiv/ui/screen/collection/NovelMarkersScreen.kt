@@ -50,9 +50,8 @@ import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.screen.novel.NovelDetailScreen
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleMarkedNovels
 import coil3.compose.AsyncImage
@@ -60,7 +59,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 小说标记（书签）列表页：/v2/novel/markers，点击整卡进入小说详情。 */
@@ -185,15 +183,14 @@ class NovelMarkersScreenModel(
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
 ) : ScreenModel {
 
-    private val pager = Pager<NovelMarkersResponse, MarkedNovelItem>(client, NovelMarkersResponse::class.java)
+    private val feed = PagedFeed<NovelMarkersResponse, MarkedNovelItem>(client, NovelMarkersResponse::class.java) {
+        visibleMarkedNovels(it, settingsStore.isShowR18)
+    }
 
-    private val _state = MutableStateFlow<UiState<List<MarkedNovelItem>>>(UiState.Loading)
-    val state: StateFlow<UiState<List<MarkedNovelItem>>> = _state.asStateFlow()
+    val state: StateFlow<UiState<List<MarkedNovelItem>>> = feed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val loadingMore = AtomicBoolean(false)
 
     init {
         screenModelScope.launch { fetchInitial() }
@@ -206,7 +203,7 @@ class NovelMarkersScreenModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _state.value = UiState.Error(e.message ?: "Failed to load markers")
+            feed.setError(e.message ?: "Failed to load markers")
         }
     }
 
@@ -219,8 +216,8 @@ class NovelMarkersScreenModel(
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据
-                if (_state.value !is UiState.Success) {
-                    _state.value = UiState.Error(e.message ?: "Failed to load markers")
+                if (!feed.isSuccess()) {
+                    feed.setError(e.message ?: "Failed to load markers")
                 }
             } finally {
                 _isRefreshing.value = false
@@ -229,44 +226,31 @@ class NovelMarkersScreenModel(
     }
 
     fun loadMore() {
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                publishItems()
                 // R18 或 visible=false 可能让整页都不可展示；继续翻页避免空列表无法触发加载。
-                pager.loadMoreUntil(::hasVisibleContent, ::publishItems)
+                feed.loadMoreAndPublish()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
 
     /** 当前开关状态下，已加载数据中是否有被 R18 过滤隐藏的作品（空态时区分「真没有」与「被隐藏」） */
-    fun hasHiddenR18(): Boolean = ceui.pixiv.ui.util.hasHiddenR18(pager.items.value, settingsStore.isShowR18)
+    fun hasHiddenR18(): Boolean = ceui.pixiv.ui.util.hasHiddenR18(feed.pager.items.value, settingsStore.isShowR18)
 
     private suspend fun fetchCurrent() {
         val resp = client.appApi.getNovelMarkers()
-        pager.refresh(resp)
-        publishItems()
-        pager.loadMoreUntil(::hasVisibleContent, ::publishItems)
+        feed.refreshUntilVisible(resp)
     }
 
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {
-        if (_state.value is UiState.Success) {
-            publishItems()
-        }
-    }
-
-    private fun hasVisibleContent(): Boolean =
-        _state.value.hasVisibleContent()
-
-    private fun publishItems() {
-        _state.value = UiState.Success(visibleMarkedNovels(pager.items.value, settingsStore.isShowR18))
+        feed.republishIfLoaded()
     }
 }

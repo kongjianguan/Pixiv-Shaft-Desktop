@@ -44,14 +44,13 @@ import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.UserAvatar
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.resolveSelfUserId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 用户列表模式：关注中 / 粉丝 / 好P友。 */
@@ -154,15 +153,12 @@ private fun UserListRow(user: User, onClick: () -> Unit) {
 class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
 
     private val client = AppContainer.client
-    private val pager = Pager<UserPreviewResponse, UserPreview>(client, UserPreviewResponse::class.java)
+    private val feed = PagedFeed<UserPreviewResponse, UserPreview>(client, UserPreviewResponse::class.java)
 
-    private val _state = MutableStateFlow<UiState<List<UserPreview>>>(UiState.Loading)
-    val state: StateFlow<UiState<List<UserPreview>>> = _state.asStateFlow()
+    val state: StateFlow<UiState<List<UserPreview>>> = feed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val loadingMore = AtomicBoolean(false)
 
     init {
         screenModelScope.launch { fetchInitial() }
@@ -174,7 +170,7 @@ class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _state.value = UiState.Error(e.message ?: "Failed to load users")
+            feed.setError(e.message ?: "Failed to load users")
         }
     }
 
@@ -187,8 +183,8 @@ class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据
-                if (_state.value !is UiState.Success) {
-                    _state.value = UiState.Error(e.message ?: "Failed to load users")
+                if (!feed.isSuccess()) {
+                    feed.setError(e.message ?: "Failed to load users")
                 }
             } finally {
                 _isRefreshing.value = false
@@ -197,17 +193,16 @@ class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
     }
 
     fun loadMore() {
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                _state.value = UiState.Success(pager.items.value)
+                feed.loadMoreAndPublishOnce()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
@@ -219,7 +214,6 @@ class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
             UserListMode.FOLLOWER -> client.appApi.getUserFans(userId)
             UserListMode.MYPIXIV -> client.appApi.getUserPixivFriends(userId)
         }
-        pager.refresh(resp)
-        _state.value = UiState.Success(pager.items.value)
+        feed.refresh(resp)
     }
 }

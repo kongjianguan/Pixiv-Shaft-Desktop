@@ -53,7 +53,7 @@ import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.component.EmptyView
 import ceui.pixiv.ui.component.ErrorView
 import ceui.pixiv.ui.component.LoadingView
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.util.openInBrowser
 import coil3.compose.AsyncImage
@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 // Pixivision 分类：插画 / 漫画
@@ -212,23 +211,19 @@ class PixivisionScreenModel : ScreenModel {
 
     private class CategoryFeed(
         val category: String,
-        val pager: Pager<ArticlesResponse, Article>,
-        val state: MutableStateFlow<UiState<List<Article>>>,
+        val feed: PagedFeed<ArticlesResponse, Article>,
         val isRefreshing: MutableStateFlow<Boolean>,
-        val loadingMore: AtomicBoolean,
     )
 
     private val feeds = PIXIVISION_CATEGORIES.map { it.second }.associateWith { category ->
         CategoryFeed(
             category = category,
-            pager = Pager(client, ArticlesResponse::class.java),
-            state = MutableStateFlow(UiState.Loading),
+            feed = PagedFeed(client, ArticlesResponse::class.java),
             isRefreshing = MutableStateFlow(false),
-            loadingMore = AtomicBoolean(false),
         )
     }
 
-    fun stateOf(category: String): StateFlow<UiState<List<Article>>> = feeds.getValue(category).state
+    fun stateOf(category: String): StateFlow<UiState<List<Article>>> = feeds.getValue(category).feed.state
 
     fun isRefreshingOf(category: String): StateFlow<Boolean> = feeds.getValue(category).isRefreshing
 
@@ -240,7 +235,7 @@ class PixivisionScreenModel : ScreenModel {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    feed.state.value = UiState.Error(e.message ?: "Failed to load pixivision")
+                    feed.feed.setError(e.message ?: "Failed to load pixivision")
                 }
             }
         }
@@ -256,8 +251,8 @@ class PixivisionScreenModel : ScreenModel {
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据，只有尚无数据时才切到 Error
-                if (feed.state.value !is UiState.Success) {
-                    feed.state.value = UiState.Error(e.message ?: "Failed to load pixivision")
+                if (!feed.feed.isSuccess()) {
+                    feed.feed.setError(e.message ?: "Failed to load pixivision")
                 }
             } finally {
                 feed.isRefreshing.value = false
@@ -267,24 +262,22 @@ class PixivisionScreenModel : ScreenModel {
 
     fun loadMore(category: String) {
         val feed = feeds.getValue(category)
-        if (!feed.pager.hasNext.value || !feed.loadingMore.compareAndSet(false, true)) return
+        if (!feed.feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                feed.pager.loadMore()
-                feed.state.value = UiState.Success(feed.pager.items.value)
+                feed.feed.loadMoreAndPublishOnce()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                feed.loadingMore.set(false)
+                feed.feed.endLoadMore()
             }
         }
     }
 
     private suspend fun fetchFeed(feed: CategoryFeed) {
         val resp = client.appApi.pixivsionArticles(feed.category)
-        feed.pager.refresh(resp)
-        feed.state.value = UiState.Success(feed.pager.items.value)
+        feed.feed.refresh(resp)
     }
 }

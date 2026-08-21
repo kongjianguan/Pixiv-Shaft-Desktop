@@ -29,7 +29,7 @@ import ceui.pixiv.di.AppContainer
 import ceui.pixiv.ui.component.IllustCard
 import ceui.pixiv.ui.component.WorkFeedGrid
 import ceui.pixiv.ui.screen.detail.IllustDetailScreen
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleItems
@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 好P友作品：mypixiv(互关好友)的插画/漫画作品流，独立页面。 */
@@ -94,15 +93,14 @@ class NiceFriendScreen : Screen {
 class NiceFriendScreenModel : ScreenModel {
 
     private val client = AppContainer.client
-    private val pager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
+    private val feed = PagedFeed<IllustResponse, Illust>(client, IllustResponse::class.java) {
+        visibleItems(it)
+    }
 
-    private val _illustState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
-    val illustState: StateFlow<UiState<List<Illust>>> = _illustState.asStateFlow()
+    val illustState: StateFlow<UiState<List<Illust>>> = feed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val loadingMore = AtomicBoolean(false)
 
     init {
         screenModelScope.launch { fetchInitial() }
@@ -115,7 +113,7 @@ class NiceFriendScreenModel : ScreenModel {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _illustState.value = UiState.Error(e.message ?: "Failed to load mypixiv feed")
+            feed.setError(e.message ?: "Failed to load mypixiv feed")
         }
     }
 
@@ -128,8 +126,8 @@ class NiceFriendScreenModel : ScreenModel {
                 throw e
             } catch (e: Exception) {
                 // 刷新失败时保留已有数据
-                if (_illustState.value !is UiState.Success) {
-                    _illustState.value = UiState.Error(e.message ?: "Failed to load mypixiv feed")
+                if (!feed.isSuccess()) {
+                    feed.setError(e.message ?: "Failed to load mypixiv feed")
                 }
             } finally {
                 _isRefreshing.value = false
@@ -138,31 +136,27 @@ class NiceFriendScreenModel : ScreenModel {
     }
 
     fun loadMore() {
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                _illustState.value = UiState.Success(visibleItems(pager.items.value))
+                feed.loadMoreAndPublishOnce()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
 
     private suspend fun fetchCurrent() {
         val resp = client.appApi.getNiceFriendIllust()
-        pager.refresh(resp)
-        _illustState.value = UiState.Success(visibleItems(pager.items.value))
+        feed.refresh(resp)
     }
 
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {
-        if (_illustState.value is UiState.Success) {
-            _illustState.value = UiState.Success(visibleItems(pager.items.value))
-        }
+        feed.republishIfLoaded()
     }
 }
