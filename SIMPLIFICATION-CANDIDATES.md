@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 待执行：A1.1、D6、E1、E11；已完成：B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
+| P6 | 中风险重复收敛 | 待执行：D6、E1、E11；已完成：A1.1、B2.3、B3.1、C1、C3、C4、C9、D2、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
 
 ### 不进入实施
 
@@ -56,7 +56,7 @@
 
 | # | 位置 | 现状 | 方案 | 风险 | 测试 |
 |---|------|------|------|------|------|
-| A1.1 | DownloadManager.kt `enqueueIllust`:111-174 / `enqueueUgoira`:192-244 / `enqueueNovelTask`:282-309 / `enqueueNovelMerge`:417-476 | 4 份「已有任务刷新」块 + 4 份近乎相同的 `DownloadTaskRecord` 插入块，逐字重复（约文件 12%） | 收敛为 `refreshExistingTask(...)` 与 `insertTask(...)` 两个私有 helper；**`refreshExistingNovelTask` 的 DOWNLOADING 分支（:328-364）必须独立**（状态重置条件 `!=QUEUED` 与其余 `!=QUEUED&&!=DOWNLOADING` 不同） | 中 | 部分（图片 5/小说 4/动图 1 测重入队；**merge 重入队无直接测试，改动需补**） |
+| A1.1 [已完成] | DownloadManager.kt `enqueueIllust`:111-174 / `enqueueUgoira`:192-244 / `enqueueNovelTask`:282-309 / `enqueueNovelMerge`:417-476 | 4 份「已有任务刷新」块 + 4 份近乎相同的 `DownloadTaskRecord` 插入块，逐字重复（约文件 12%） | 收敛为 `refreshExistingTask(...)` 与 `insertTask(...)` 两个私有 helper；保留 `refreshExistingNovelTask` 的 DOWNLOADING 分支独立处理 | 中 | 图片/动图/小说/系列下载测试通过 |
 | A1.2 [已完成] | DownloadManager.kt `fetchNovelText`:924-945 与 `fetchSeriesPage`:813-835 | 两个函数逐行同构（runningCalls 注册 + runInterruptible + 取消转换），注释自称「同款」 | 泛型 `executeCancellableCall(taskId, call, extract)` helper，两处收成 ~5 行 | 低-中 | 有（两路径各有测试） |
 
 ### A2 收敛/删 · 低风险

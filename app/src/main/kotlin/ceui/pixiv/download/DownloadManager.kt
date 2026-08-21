@@ -112,36 +112,15 @@ class DownloadManager(
             urls.forEach { (pageIndex, sourceUrl) ->
                 val current = existingByPage[pageIndex]
                 if (current != null) {
-                    // 与小说一致：任意状态重入队都刷新标题/作者/路径（作品可能已改名）。
-                    // PAUSED / FAILED / CANCELED 重置为 QUEUED 恢复下载；COMPLETED 额外
-                    // 标记重下载（旧文件保留到新文件写入成功后被原子替换）。状态重置放
-                    // 最后：协调器只启动 QUEUED 任务，刷新完元数据/路径再置 QUEUED
-                    if (current.status == DownloadStatus.COMPLETED.name) {
-                        // 已下载过的作品再次入队 = 重新下载（文件可能已被用户删除）。
-                        // 不在入队时删旧文件：旧文件保留到新文件写入成功后被原子替换，
-                        // 重下载失败（断网/404/退出）时旧文件仍然可用
-                        queue.markReDownload(current.id, now())
-                    }
-                    queue.updateMetadata(
-                        current.id,
+                    refreshExistingTask(
+                        current = current,
                         title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
                         authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
                         sourceUrl = sourceUrl,
                         metadataJson = null,
-                        updatedAt = now(),
+                        desiredOutputPath = outputPath(illust, pageIndex, pageCount, sourceUrl),
+                        existing = existing,
                     )
-                    refreshOutputPath(
-                        current,
-                        outputPath(illust, pageIndex, pageCount, sourceUrl),
-                        existing,
-                    )
-                    // 状态重置放最后：协调器只启动 QUEUED 任务，刷新完元数据/路径再置
-                    // QUEUED，任务启动时才能读到最新快照
-                    if (current.status != DownloadStatus.QUEUED.name &&
-                        current.status != DownloadStatus.DOWNLOADING.name
-                    ) {
-                        queue.updateState(current.id, DownloadStatus.QUEUED.name, null, now())
-                    }
                     return@forEach
                 }
 
@@ -149,28 +128,16 @@ class DownloadManager(
                     outputPath(illust, pageIndex, pageCount, sourceUrl),
                     existing,
                 )
-                val taskId = UUID.randomUUID().toString()
-                queue.insert(
-                    DownloadTaskRecord(
-                        id = taskId,
-                        illustId = illust.id,
-                        pageIndex = pageIndex.toLong(),
-                        pageCount = pageCount.toLong(),
-                        kind = DownloadTaskKind.IMAGE.name,
-                        title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
-                        authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
-                        sourceUrl = sourceUrl,
-                        metadataJson = null,
-                        outputPath = output.toString(),
-                        tempPath = "$output.part",
-                        status = DownloadStatus.QUEUED.name,
-                        bytesDownloaded = 0L,
-                        totalBytes = 0L,
-                        errorMessage = null,
-                        reDownload = 0L,
-                        createdAt = now(),
-                        updatedAt = now(),
-                    ),
+                insertTask(
+                    illustId = illust.id,
+                    pageIndex = pageIndex,
+                    pageCount = pageCount,
+                    kind = DownloadTaskKind.IMAGE,
+                    title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
+                    authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
+                    sourceUrl = sourceUrl,
+                    metadataJson = null,
+                    output = output,
                 )
                 inserted++
             }
@@ -192,57 +159,30 @@ class DownloadManager(
                 it.illustId == illust.id && it.kind == DownloadTaskKind.UGOIRA.name
             }
             if (current != null) {
-                // 与图片一致：任意状态重入队都刷新标题/作者/帧数据（作品可能已改名
-                // 或重新渲染）；PAUSED / FAILED / CANCELED 重置为 QUEUED 恢复下载；
-                // COMPLETED 额外标记重下载。状态重置放最后：协调器只启动 QUEUED 任务
-                if (current.status == DownloadStatus.COMPLETED.name) {
-                    // 已下载过的作品再次入队 = 重新下载（文件可能已被用户删除）。
-                    // 不在入队时删旧文件：旧文件保留到新文件写入成功后被原子替换，
-                    // 重下载失败（断网/404/退出）时旧文件仍然可用
-                    queue.markReDownload(current.id, now())
-                }
-                queue.updateMetadata(
-                    current.id,
+                refreshExistingTask(
+                    current = current,
                     title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
                     authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
                     sourceUrl = zipUrl,
                     metadataJson = gson.toJson(metadata),
-                    updatedAt = now(),
+                    desiredOutputPath = ugoiraOutputPath(illust),
+                    existing = all,
                 )
-                refreshOutputPath(current, ugoiraOutputPath(illust), all)
-                // 状态重置放最后：协调器只启动 QUEUED 任务，刷新完元数据/路径再置 QUEUED
-                if (current.status != DownloadStatus.QUEUED.name &&
-                    current.status != DownloadStatus.DOWNLOADING.name
-                ) {
-                    queue.updateState(current.id, DownloadStatus.QUEUED.name, null, now())
-                }
                 refresh()
                 wake.trySend(Unit)
                 0
             } else {
                 val output = uniqueOutputPath(ugoiraOutputPath(illust), all)
-                val taskId = UUID.randomUUID().toString()
-                queue.insert(
-                    DownloadTaskRecord(
-                        id = taskId,
-                        illustId = illust.id,
-                        pageIndex = 0L,
-                        pageCount = 1L,
-                        kind = DownloadTaskKind.UGOIRA.name,
-                        title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
-                        authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
-                        sourceUrl = zipUrl,
-                        metadataJson = gson.toJson(metadata),
-                        outputPath = output.toString(),
-                        tempPath = "$output.part",
-                        status = DownloadStatus.QUEUED.name,
-                        bytesDownloaded = 0L,
-                        totalBytes = 0L,
-                        errorMessage = null,
-                        reDownload = 0L,
-                        createdAt = now(),
-                        updatedAt = now(),
-                    ),
+                insertTask(
+                    illustId = illust.id,
+                    pageIndex = 0,
+                    pageCount = 1,
+                    kind = DownloadTaskKind.UGOIRA,
+                    title = illust.title.orEmpty().ifBlank { "illust_${illust.id}" },
+                    authorName = illust.user?.name.orEmpty().ifBlank { "Unknown Artist" },
+                    sourceUrl = zipUrl,
+                    metadataJson = gson.toJson(metadata),
+                    output = output,
                 )
                 refresh()
                 wake.trySend(Unit)
@@ -286,34 +226,92 @@ class DownloadManager(
                 0
             } else {
                 val output = uniqueOutputPath(novelOutputPath(novel, meta), all)
-                val taskId = UUID.randomUUID().toString()
-                queue.insert(
-                    DownloadTaskRecord(
-                        id = taskId,
-                        illustId = novel.id,
-                        pageIndex = 0L,
-                        pageCount = 1L,
-                        kind = DownloadTaskKind.NOVEL.name,
-                        title = novel.title.orEmpty().ifBlank { "novel_${novel.id}" },
-                        authorName = novel.user?.name.orEmpty().ifBlank { "Unknown Artist" },
-                        sourceUrl = "",
-                        metadataJson = metaJson,
-                        outputPath = output.toString(),
-                        tempPath = "$output.part",
-                        status = DownloadStatus.QUEUED.name,
-                        bytesDownloaded = 0L,
-                        totalBytes = 0L,
-                        errorMessage = null,
-                        reDownload = 0L,
-                        createdAt = now(),
-                        updatedAt = now(),
-                    ),
+                insertTask(
+                    illustId = novel.id,
+                    pageIndex = 0,
+                    pageCount = 1,
+                    kind = DownloadTaskKind.NOVEL,
+                    title = novel.title.orEmpty().ifBlank { "novel_${novel.id}" },
+                    authorName = novel.user?.name.orEmpty().ifBlank { "Unknown Artist" },
+                    sourceUrl = "",
+                    metadataJson = metaJson,
+                    output = output,
                 )
                 refresh()
                 wake.trySend(Unit)
                 1
             }
         }
+    }
+
+    /**
+     * 刷新非运行中的已有任务：重入队时统一更新元数据、输出路径和可重试状态。
+     * DOWNLOADING 任务由小说系列章节的独立取消流程处理，避免覆盖运行中快照。
+     */
+    private fun refreshExistingTask(
+        current: DownloadTaskRecord,
+        title: String,
+        authorName: String,
+        sourceUrl: String,
+        metadataJson: String?,
+        desiredOutputPath: Path,
+        existing: List<DownloadTaskRecord>,
+    ) {
+        if (current.status == DownloadStatus.COMPLETED.name) {
+            // 旧文件保留到新内容成功写入后原子替换，重下载失败时仍可用。
+            queue.markReDownload(current.id, now())
+        }
+        queue.updateMetadata(
+            current.id,
+            title = title,
+            authorName = authorName,
+            sourceUrl = sourceUrl,
+            metadataJson = metadataJson,
+            updatedAt = now(),
+        )
+        refreshOutputPath(current, desiredOutputPath, existing)
+        // 状态重置放最后：协调器只启动 QUEUED 任务，刷新完快照后再排队。
+        if (current.status != DownloadStatus.QUEUED.name &&
+            current.status != DownloadStatus.DOWNLOADING.name
+        ) {
+            queue.updateState(current.id, DownloadStatus.QUEUED.name, null, now())
+        }
+    }
+
+    private fun insertTask(
+        illustId: Long,
+        pageIndex: Int,
+        pageCount: Int,
+        kind: DownloadTaskKind,
+        title: String,
+        authorName: String,
+        sourceUrl: String,
+        metadataJson: String?,
+        output: Path,
+    ) {
+        val taskId = UUID.randomUUID().toString()
+        queue.insert(
+            DownloadTaskRecord(
+                id = taskId,
+                illustId = illustId,
+                pageIndex = pageIndex.toLong(),
+                pageCount = pageCount.toLong(),
+                kind = kind.name,
+                title = title,
+                authorName = authorName,
+                sourceUrl = sourceUrl,
+                metadataJson = metadataJson,
+                outputPath = output.toString(),
+                tempPath = "$output.part",
+                status = DownloadStatus.QUEUED.name,
+                bytesDownloaded = 0L,
+                totalBytes = 0L,
+                errorMessage = null,
+                reDownload = 0L,
+                createdAt = now(),
+                updatedAt = now(),
+            ),
+        )
     }
 
     /**
@@ -365,22 +363,15 @@ class DownloadManager(
                 }
             }
         } else {
-            if (current.status == DownloadStatus.COMPLETED.name) {
-                queue.markReDownload(current.id, now())
-            }
-            queue.updateMetadata(
-                current.id,
+            refreshExistingTask(
+                current = current,
                 title = novel.title.orEmpty().ifBlank { "novel_${novel.id}" },
                 authorName = novel.user?.name.orEmpty().ifBlank { "Unknown Artist" },
                 sourceUrl = current.sourceUrl,
                 metadataJson = meta?.let { gson.toJson(it) },
-                updatedAt = now(),
+                desiredOutputPath = novelOutputPath(novel, meta),
+                existing = queue.all(),
             )
-            refreshOutputPath(current, novelOutputPath(novel, meta), queue.all())
-            // 状态重置放最后：协调器只启动 QUEUED 任务，刷新完元数据/路径再置 QUEUED
-            if (current.status != DownloadStatus.QUEUED.name) {
-                queue.updateState(current.id, DownloadStatus.QUEUED.name, null, now())
-            }
             refresh()
             wake.trySend(Unit)
         }
@@ -417,34 +408,15 @@ class DownloadManager(
                     it.metadataJson == metaJson
             }
             if (current != null) {
-                // 与图片/小说一致：任意状态重入队都刷新系列标题；
-                // PAUSED / FAILED / CANCELED 重置为 QUEUED 恢复下载；
-                // COMPLETED 额外标记重下载。状态重置放最后：协调器只启动 QUEUED 任务
-                if (current.status == DownloadStatus.COMPLETED.name) {
-                    // 已下载过的作品再次入队 = 重新下载（文件可能已被用户删除）。
-                    // 不在入队时删旧文件：旧文件保留到新文件写入成功后被原子替换，
-                    // 重下载失败（断网/404/退出）时旧文件仍然可用
-                    queue.markReDownload(current.id, now())
-                }
-                queue.updateMetadata(
-                    current.id,
+                refreshExistingTask(
+                    current = current,
                     title = seriesTitle.ifBlank { "series_$seriesId" },
                     authorName = "",
                     sourceUrl = current.sourceUrl,
                     metadataJson = metaJson,
-                    updatedAt = now(),
+                    desiredOutputPath = novelMergeOutputPath(seriesId, seriesTitle, format),
+                    existing = all,
                 )
-                refreshOutputPath(
-                    current,
-                    novelMergeOutputPath(seriesId, seriesTitle, format),
-                    all,
-                )
-                // 状态重置放最后：协调器只启动 QUEUED 任务，刷新完元数据/路径再置 QUEUED
-                if (current.status != DownloadStatus.QUEUED.name &&
-                    current.status != DownloadStatus.DOWNLOADING.name
-                ) {
-                    queue.updateState(current.id, DownloadStatus.QUEUED.name, null, now())
-                }
                 refresh()
                 wake.trySend(Unit)
                 0
@@ -453,28 +425,16 @@ class DownloadManager(
                     novelMergeOutputPath(seriesId, seriesTitle, format),
                     all,
                 )
-                val taskId = UUID.randomUUID().toString()
-                queue.insert(
-                    DownloadTaskRecord(
-                        id = taskId,
-                        illustId = seriesId,
-                        pageIndex = 0L,
-                        pageCount = 1L,
-                        kind = DownloadTaskKind.NOVEL_SERIES.name,
-                        title = seriesTitle.ifBlank { "series_$seriesId" },
-                        authorName = "",
-                        sourceUrl = "",
-                        metadataJson = metaJson,
-                        outputPath = output.toString(),
-                        tempPath = "$output.part",
-                        status = DownloadStatus.QUEUED.name,
-                        bytesDownloaded = 0L,
-                        totalBytes = 0L,
-                        errorMessage = null,
-                        reDownload = 0L,
-                        createdAt = now(),
-                        updatedAt = now(),
-                    ),
+                insertTask(
+                    illustId = seriesId,
+                    pageIndex = 0,
+                    pageCount = 1,
+                    kind = DownloadTaskKind.NOVEL_SERIES,
+                    title = seriesTitle.ifBlank { "series_$seriesId" },
+                    authorName = "",
+                    sourceUrl = "",
+                    metadataJson = metaJson,
+                    output = output,
                 )
                 refresh()
                 wake.trySend(Unit)
