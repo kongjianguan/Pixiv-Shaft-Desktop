@@ -4,15 +4,15 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
+import ceui.loxia.KListShow
 import ceui.loxia.Novel
 import ceui.loxia.NovelResponse
 import ceui.loxia.UserPreview
 import ceui.pixiv.di.AppContainer
 import ceui.pixiv.net.api.Client
 import ceui.pixiv.store.SettingsStore
-import ceui.pixiv.ui.state.Pager
+import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
-import ceui.pixiv.ui.state.hasVisibleContent
 import ceui.pixiv.ui.util.observeR18Toggle
 import ceui.pixiv.ui.util.visibleNovels
 import ceui.pixiv.ui.util.visibleItems
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 
 /** 动态页作品流：按 (type, restrict) 组合独立加载，Pager 分页 + 三段式状态。 */
@@ -32,19 +31,20 @@ class DynamicScreenModel(
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
 ) : ScreenModel {
 
-    private val illustPager = Pager<IllustResponse, Illust>(client, IllustResponse::class.java)
-    private val novelPager = Pager<NovelResponse, Novel>(client, NovelResponse::class.java)
+    private val illustFeed = PagedFeed<IllustResponse, Illust>(client, IllustResponse::class.java) {
+        visibleItems(it, settingsStore.isShowR18)
+    }
+    private val novelFeed = PagedFeed<NovelResponse, Novel>(client, NovelResponse::class.java) {
+        visibleNovels(it, settingsStore.isShowR18)
+    }
 
-    private val _illustState = MutableStateFlow<UiState<List<Illust>>>(UiState.Loading)
-    val illustState: StateFlow<UiState<List<Illust>>> = _illustState.asStateFlow()
+    val illustState: StateFlow<UiState<List<Illust>>> = illustFeed.state
 
-    private val _novelState = MutableStateFlow<UiState<List<Novel>>>(UiState.Loading)
-    val novelState: StateFlow<UiState<List<Novel>>> = _novelState.asStateFlow()
+    val novelState: StateFlow<UiState<List<Novel>>> = novelFeed.state
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val loadingMore = AtomicBoolean(false)
     private val novelBookmarksInFlight = ConcurrentHashMap.newKeySet<Long>()
 
     init {
@@ -81,20 +81,20 @@ class DynamicScreenModel(
     }
 
     fun loadMore() {
-        val pager = if (type == "novel") novelPager else illustPager
-        if (!pager.hasNext.value || !loadingMore.compareAndSet(false, true)) return
+        if (type == "novel") loadMore(novelFeed) else loadMore(illustFeed)
+    }
+
+    private fun <Response : KListShow<Item>, Item : Any> loadMore(feed: PagedFeed<Response, Item>) {
+        if (!feed.tryBeginLoadMore()) return
         screenModelScope.launch {
             try {
-                pager.loadMore()
-                setSuccess()
-                // 加载的页被 R18 过滤后整页为空：继续翻页直到出现可见内容或没有更多页
-                pager.loadMoreUntil(::hasVisibleContent, ::setSuccess)
+                feed.loadMoreAndPublish()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // 加载失败保留已有数据
             } finally {
-                loadingMore.set(false)
+                feed.endLoadMore()
             }
         }
     }
@@ -110,66 +110,40 @@ class DynamicScreenModel(
     }
 
     private suspend fun fetchCurrent() {
-        val pager = if (type == "novel") novelPager else illustPager
         if (type == "novel") {
             val resp = client.appApi.getFollowingCreatedNovels(restrict)
-            novelPager.refresh(resp)
+            novelFeed.pager.refresh(resp)
+            novelFeed.publish()
+            novelFeed.pager.loadMoreUntil(novelFeed::hasVisibleContent, novelFeed::publish)
         } else {
             val resp = client.appApi.followUserPosts(type, restrict)
-            illustPager.refresh(resp)
-        }
-        setSuccess()
-        // 首页被 R18 过滤后整页为空（且还有下一页）时自动翻页，避免卡在空态
-        pager.loadMoreUntil(::hasVisibleContent, ::setSuccess)
-    }
-
-    private fun hasVisibleContent(): Boolean = if (type == "novel") {
-        _novelState.value.hasVisibleContent()
-    } else {
-        _illustState.value.hasVisibleContent()
-    }
-
-    private fun setSuccess() {
-        if (type == "novel") {
-            _novelState.value = UiState.Success(visibleNovels())
-        } else {
-            _illustState.value = UiState.Success(visibleItems(illustPager.items.value, settingsStore.isShowR18))
+            illustFeed.pager.refresh(resp)
+            illustFeed.publish()
+            illustFeed.pager.loadMoreUntil(illustFeed::hasVisibleContent, illustFeed::publish)
         }
     }
-
-    /** 与 RecommendScreenModel 一致：小说流还要过滤 visible=false（列表接口间歇返回，详情页会 crash） */
-    private fun visibleNovels(): List<Novel> =
-        visibleNovels(novelPager.items.value, settingsStore.isShowR18)
 
     private fun setError(message: String) {
-        if (type == "novel") {
-            _novelState.value = UiState.Error(message)
-        } else {
-            _illustState.value = UiState.Error(message)
-        }
+        if (type == "novel") novelFeed.setError(message) else illustFeed.setError(message)
     }
 
     private fun currentState(): UiState<*> =
-        if (type == "novel") _novelState.value else _illustState.value
+        if (type == "novel") novelFeed.state.value else illustFeed.state.value
 
     private fun updateNovelBookmark(novelId: Long, isBookmarked: Boolean) {
-        novelPager.updateItems { items ->
+        novelFeed.pager.updateItems { items ->
             items.map { item ->
                 if (item.id == novelId) item.copy(is_bookmarked = isBookmarked) else item
             }
         }
         // 与 setSuccess 一致，重新过一遍 R18/visible 过滤，避免收藏操作把未过滤的 pager 数据发布出去
-        _novelState.value = UiState.Success(visibleNovels())
+        novelFeed.publish()
     }
 
     /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
     private fun republishIfLoaded() {
-        if (_illustState.value is UiState.Success) {
-            _illustState.value = UiState.Success(visibleItems(illustPager.items.value, settingsStore.isShowR18))
-        }
-        if (_novelState.value is UiState.Success) {
-            _novelState.value = UiState.Success(visibleNovels())
-        }
+        illustFeed.republishIfLoaded()
+        novelFeed.republishIfLoaded()
     }
 }
 
