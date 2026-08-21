@@ -107,6 +107,31 @@ class CommentsControllerTest {
     }
 
     @Test
+    fun `reply pagination derives has more state from next url`() = runBlocking {
+        val data = FakeApiData(
+            initialComments = listOf(comment(1)),
+            replyNextUrl = "https://example.invalid/replies/page2",
+        )
+        val harness = createController(data)
+        val controller = harness.controller
+
+        try {
+            controller.loadInitial()
+            awaitUntil { controller.commentsState.value is UiState.Success }
+
+            controller.loadReplies(1L)
+            awaitUntil { controller.replies.value[1L].orEmpty().map { it.id } == listOf(30L) }
+            assertTrue(1L in controller.hasMoreReplies.value)
+
+            controller.loadMoreReplies(1L)
+            awaitUntil { controller.replies.value[1L].orEmpty().map { it.id } == listOf(30L, 31L) }
+            assertTrue(1L !in controller.hasMoreReplies.value)
+        } finally {
+            harness.close()
+        }
+    }
+
+    @Test
     fun `submit with invalid parent id sends a top-level comment`() = runBlocking {
         val data = FakeApiData(initialComments = listOf(comment(1)))
         val harness = createController(data)
@@ -272,7 +297,7 @@ class CommentsControllerTest {
                 "getIllustComments", "getNovelComments" ->
                     resumeSuspend(args, CommentResponse(data.initialComments, data.nextUrl))
                 "getIllustReplyComments" ->
-                    resumeSuspend(args, CommentResponse(listOf(comment(30, parentId = 1L)), null))
+                    resumeSuspend(args, CommentResponse(listOf(comment(30, parentId = 1L)), data.replyNextUrl))
                 "postIllustComment", "postNovelComment" -> {
                     val continuationIndex = args.indexOfFirst { it is Continuation<*> }
                     val params = args.take(continuationIndex)
@@ -294,11 +319,15 @@ class CommentsControllerTest {
                     resumeSuspend(args, Unit)
                 }
                 "getStamps" -> resumeSuspend(args, StampsResponse(stamps = listOf(Stamp(5L, "https://example.invalid/5.png"))))
-                "generalGet" -> resumeSuspend(
-                    args,
-                    """{"comments":[{"id":3,"user":{"id":7,"name":"Me"}}],"next_url":null}"""
-                        .toResponseBody("application/json".toMediaType()),
-                )
+                "generalGet" -> {
+                    val url = args[0] as String
+                    val body = if (url.contains("replies")) {
+                        """{"comments":[{"id":31,"parent_comment_id":1,"user":{"id":7,"name":"Me"}}],"next_url":null}"""
+                    } else {
+                        """{"comments":[{"id":3,"user":{"id":7,"name":"Me"}}],"next_url":null}"""
+                    }
+                    resumeSuspend(args, body.toResponseBody("application/json".toMediaType()))
+                }
                 else -> throw UnsupportedOperationException("unexpected api call: ${method.name}")
             }
         } as API
@@ -329,6 +358,7 @@ class CommentsControllerTest {
     private class FakeApiData(
         val initialComments: List<Comment>,
         val nextUrl: String? = null,
+        val replyNextUrl: String? = null,
         var selfUserId: Long = 7L,
     ) {
         val posted = mutableListOf<PostedComment>()

@@ -12,9 +12,13 @@ import ceui.pixiv.ui.util.resolveSelfUserId
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
@@ -71,11 +75,12 @@ class CommentsController(
     val expandedReplies: StateFlow<Set<Long>> = _expandedReplies.asStateFlow()
 
     /** 每个主评论的回复分页游标（next_url）；key 不存在=未加载，null=已到最后一页 */
-    private val replyNextUrls = mutableMapOf<Long, String?>()
+    private val replyNextUrls = MutableStateFlow<Map<Long, String?>>(emptyMap())
 
-    /** 还有下一页回复未加载的主评论 id 集合（供「加载更多回复」按钮显隐） */
-    private val _hasMoreReplies = MutableStateFlow<Set<Long>>(emptySet())
-    val hasMoreReplies: StateFlow<Set<Long>> = _hasMoreReplies.asStateFlow()
+    /** 还有下一页回复未加载的主评论 id 集合（由回复分页游标派生） */
+    val hasMoreReplies: StateFlow<Set<Long>> = replyNextUrls
+        .map { urls -> urls.filterValues { it != null }.keys }
+        .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     /** 正在加载回复下一页的主评论 id（串行化在 operationMutex 上，同一时刻最多一个） */
     private val _loadingMoreReplies = MutableStateFlow<Long?>(null)
@@ -154,7 +159,7 @@ class CommentsController(
                 // 翻过页的线程将重复拉取已看过的页（仅去重不丢数据，但浪费请求）。
                 // 用 replyNextUrls 判断而不是 _replies：本地刚发表的回复也会预置
                 // _replies key，但不能因此挡住服务端回复的首次加载。
-                if (replyNextUrls.containsKey(commentId)) {
+                if (replyNextUrls.value.containsKey(commentId)) {
                     _expandedReplies.value = _expandedReplies.value + commentId
                     return@withLock
                 }
@@ -182,7 +187,7 @@ class CommentsController(
             operationMutex.withLock {
                 _loadingMoreReplies.value = commentId
                 try {
-                    val nextUrl = replyNextUrls[commentId] ?: return@withLock
+                    val nextUrl = replyNextUrls.value[commentId] ?: return@withLock
                     val body = client.appApi.generalGet(nextUrl)
                     val response = gson.fromJson(body.string(), CommentResponse::class.java)
                     // 顶层评论已被删除时丢弃过期响应
@@ -239,8 +244,7 @@ class CommentsController(
                     }
                     // 清理被删评论的回复线程状态，避免孤儿条目残留
                     _replies.value = _replies.value - comment.id
-                    replyNextUrls.remove(comment.id)
-                    _hasMoreReplies.value = _hasMoreReplies.value - comment.id
+                    replyNextUrls.update { it - comment.id }
                     _expandedReplies.value = _expandedReplies.value - comment.id
                 } catch (e: CancellationException) {
                     throw e
@@ -353,7 +357,7 @@ class CommentsController(
     /** 发评论/贴纸成功后的列表编辑：顶层插头部，回复挂进对应主评论的回复线程 */
     private suspend fun applyPostedComment(comment: Comment, parentId: Long?) {
         if (parentId != null && parentId > 0L) {
-            val threadLoadedBefore = replyNextUrls.containsKey(parentId)
+            val threadLoadedBefore = replyNextUrls.value.containsKey(parentId)
             _replies.value = _replies.value.toMutableMap().apply {
                 put(parentId, (get(parentId) ?: emptyList()) + comment)
             }
@@ -411,12 +415,7 @@ class CommentsController(
         val existing = _replies.value[commentId].orEmpty()
         val merged = (existing + response.comments).distinctBy { it.id }
         _replies.value = _replies.value + (commentId to merged)
-        replyNextUrls[commentId] = response.next_url
-        if (response.next_url != null) {
-            _hasMoreReplies.value = _hasMoreReplies.value + commentId
-        } else {
-            _hasMoreReplies.value = _hasMoreReplies.value - commentId
-        }
+        replyNextUrls.update { it + (commentId to response.next_url) }
     }
 
     private suspend fun resolveSelfUserId(): Long {

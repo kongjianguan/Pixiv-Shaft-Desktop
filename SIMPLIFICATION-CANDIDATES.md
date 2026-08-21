@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 待执行：A1.1、B2.3、C4、D2、D6、E1、E4-E5、E7-E8、E10-E11、E14、F5、G2.3；已完成：B3.1、C1、C3、C9、D5；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
+| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E7-E8、E11、E14、G2.3；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E10、F5；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
 
 ### 不进入实施
 
@@ -126,7 +126,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | C1 [已完成] | CommentsController.kt:149-176 / 285-307 / 365-393 | `submit()` 与 `sendStamp()` 结构几乎全同（mutex、submitting 检查、post、applyPostedComment、cancelReply、错误处理），仅 draftText vs `""`+stampId 不同；API.kt:361-375 的 post 接口本就带可选 `stamp_id` | 合并为 `submitInternal(draftText, stampId)` + `postCommentRequest(...)`（null 字段 Retrofit 省略，wire 不变），submit/sendStamp 变薄壳 | 低 | 有（CommentsControllerTest） |
 | C2 | IllustDetailScreen.kt:744-784 vs 831-917 | 全屏与普通模式的图片区是同一三分支（gif/多页/单图）各写一遍，约 90 行近重复，仅 zoomActive、页码指示器位置、ugora 错误处理不同 | 提取共享 `ArtworkDisplay(...)`，差异参数化 | 中 | 无（手势路径无测试，需手工回归） |
 | C3 [已完成] | CommentsController.kt:340-363 vs 433-443 | `ensurePagerLoaded()` 复制了 `loadComments()` 中「拉首页 + pager.refresh + merge + hasMore」中间段 | 提取 `fetchFirstPageIntoPager()` 供两处调用 | 低 | 部分 |
-| C4 | CommentsController.kt:72-77 / 459-469 / 270-274 | `replyNextUrls: Map<Long,String?>` 与 `_hasMoreReplies: Set<Long>` 是同一信息的两个并行结构，两处都要同步维护（deleteComment 已出现漏同步隐患类） | `replyNextUrls` 改 `MutableStateFlow`，hasMoreReplies 变派生值，只维护一份 | 中 | 部分 |
+| C4 [已完成] | CommentsController.kt:72-77 / 459-469 / 270-274 | `replyNextUrls: Map<Long,String?>` 与 `_hasMoreReplies: Set<Long>` 是同一信息的两个并行结构，两处都要同步维护（deleteComment 已出现漏同步隐患类） | `replyNextUrls` 改 `MutableStateFlow`，hasMoreReplies 变派生值，只维护一份 | 中 | 有（补充回复分页状态测试） |
 | C6 | IllustDetailScreenModel.kt:54 / 92 / 161-162 | `_userId` 字段是 `illustState.user.id` 的冗余拷贝 | **不实施**：已验证该字段为独立可变状态（toggleFollow 在详情加载完成前可被调用），与 state 不同步 | 低 | 无 |
 | C7 [已完成] | CommentsSection.kt:377-381 / 404-407 | 打开表情面板（默认颜文字 tab）就调 `loadStamps()`，切贴纸 tab 再调一次——首次调用常为浪费 | 只在切到贴纸 tab 时调 | 低 | 无 |
 | C8 [已完成] | CommentsController.kt:194/219/261 | 三处 `commentsPager.items.value...map{it.id}.toSet()` | 提取 `topLevelCommentIds()`（低价值，可选） | 低 | — |
