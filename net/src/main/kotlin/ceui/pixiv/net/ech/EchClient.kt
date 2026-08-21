@@ -118,9 +118,6 @@ object EchClient {
         // content-type，服务器无法解析 form body（OAuth 报 invalid_client）。
         val headerPairs = mutableListOf<String>()
         val existing = request.headers.names().mapTo(mutableSetOf()) { it.lowercase() }
-        // FormBody 的 Content-Type 由 OkHttp BridgeInterceptor 添加（在 application
-        // interceptor 之后运行），这里必须手动补上，否则 Rust 侧发出的 POST 没有
-        // content-type，服务器无法解析 form body（OAuth 报 invalid_client）。
         // 请求头已显式带 content-type 时不重复添加。
         request.body?.contentType()?.let { ct ->
             if ("content-type" !in existing) headerPairs.add("content-type\u0001${ct}")

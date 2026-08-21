@@ -149,7 +149,7 @@ private fun UserListRow(user: User, onClick: () -> Unit) {
     }
 }
 
-/** 用户列表：先取当前用户 id，再按 [mode] 请求对应列表，Pager 分页 + 三段式状态。 */
+/** 用户列表：先取当前用户 id，再按 [mode] 请求对应列表，类型安全 feed 分页 + 三段式状态。 */
 class UserListScreenModel(private val mode: UserListMode) : ScreenModel {
 
     private val client = AppContainer.client

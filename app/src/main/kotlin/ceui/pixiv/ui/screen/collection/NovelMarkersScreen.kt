@@ -177,7 +177,7 @@ private fun NovelMarkerRow(item: MarkedNovelItem, onClick: () -> Unit) {
     }
 }
 
-/** 小说标记模型：Pager 分页 + 三段式。接口无需 user_id，直接请求自己。 */
+/** 小说标记模型：类型安全 feed 分页 + 三段式。接口无需 user_id，直接请求自己。 */
 class NovelMarkersScreenModel(
     private val client: Client = AppContainer.client,
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
@@ -249,7 +249,7 @@ class NovelMarkersScreenModel(
         feed.refreshUntilVisible(resp)
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         feed.republishIfLoaded()
     }

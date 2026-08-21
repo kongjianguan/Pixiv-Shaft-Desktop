@@ -89,7 +89,7 @@ class NiceFriendScreen : Screen {
     }
 }
 
-/** 好P友作品流：/v2/illust/mypixiv + Pager 分页 + 三段式状态。 */
+/** 好P友作品流：/v2/illust/mypixiv + 类型安全 feed 分页 + 三段式状态。 */
 class NiceFriendScreenModel : ScreenModel {
 
     private val client = AppContainer.client
@@ -155,7 +155,7 @@ class NiceFriendScreenModel : ScreenModel {
         feed.refresh(resp)
     }
 
-    /** R18 开关变化时重新过滤已加载内容（Pager 保留完整数据） */
+    /** R18 开关变化时重新过滤已加载内容（feed 保留完整数据） */
     private fun republishIfLoaded() {
         feed.republishIfLoaded()
     }

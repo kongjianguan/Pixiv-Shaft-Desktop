@@ -32,7 +32,7 @@ class ProfileScreenModel(
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
 ) : ScreenModel {
 
-    // 4 个 tab 各自独立 Pager，常驻不重建：插画收藏 / 小说收藏 / 我的插画 / 我的小说
+    // 4 个 tab 各自独立 feed，常驻不重建：插画收藏 / 小说收藏 / 我的插画 / 我的小说
     private val bookmarkFeed = PagedFeed<IllustResponse, Illust>(client, IllustResponse::class.java) {
         visibleItems(it, settingsStore.isShowR18)
     }
@@ -224,7 +224,7 @@ class ProfileScreenModel(
         }
         novelBookmarkFeed.publish()
         // 同一本小说可能同时出现在「我的小说」tab，同步更新避免书签图标不一致。
-        // 只在已加载完成时重新发布：Pager 初始为空，提前发布会把仍在加载的
+        // 只在已加载完成时重新发布：feed 初始为空，提前发布会把仍在加载的
         // 「我的小说」列表闪成 Success(empty)
         if (createdNovelFeed.isSuccess()) {
             createdNovelFeed.pager.updateItems { items ->
@@ -236,7 +236,7 @@ class ProfileScreenModel(
         }
     }
 
-    /** R18 开关变化时重新发布已加载的 tab，已过滤的列表保持过滤（Pager 数据完整，重新过滤即可）。 */
+    /** R18 开关变化时重新发布已加载的 tab，已过滤的列表保持过滤（feed 数据完整，重新过滤即可）。 */
     private fun republishIfLoaded() {
         bookmarkFeed.republishIfLoaded()
         novelBookmarkFeed.republishIfLoaded()
