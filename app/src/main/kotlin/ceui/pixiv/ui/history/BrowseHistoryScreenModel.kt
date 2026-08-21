@@ -52,6 +52,22 @@ data class BrowseHistoryBackupEntry(
     val viewedAt: Long,
 )
 
+internal fun decodeBrowseHistoryItem(
+    item: BrowseHistoryItem,
+    gson: Gson,
+): BrowseHistoryDisplay? = when (item.contentType) {
+    BrowseHistoryTab.ILLUST.contentType -> runCatching {
+        BrowseHistoryDisplay(item = item, illust = gson.fromJson(item.payloadJson, Illust::class.java))
+    }.getOrNull()
+    BrowseHistoryTab.NOVEL.contentType -> runCatching {
+        BrowseHistoryDisplay(item = item, novel = gson.fromJson(item.payloadJson, Novel::class.java))
+    }.getOrNull()
+    BrowseHistoryTab.USER.contentType -> runCatching {
+        BrowseHistoryDisplay(item = item, user = gson.fromJson(item.payloadJson, User::class.java))
+    }.getOrNull()
+    else -> null
+}
+
 class BrowseHistoryScreenModel(
     private val database: Database = AppContainer.database,
     private val settingsStore: SettingsStore = AppContainer.settingsStore,
@@ -254,29 +270,10 @@ class BrowseHistoryScreenModel(
         return "已导入 ${entries.size} 条浏览记录"
     }
 
-    private fun toDisplay(item: BrowseHistoryItem): BrowseHistoryDisplay? = when (item.contentType) {
-        BrowseHistoryTab.ILLUST.contentType -> runCatching {
-            val illust = gson.fromJson(item.payloadJson, Illust::class.java)
-            // 与「我的」页历史 tab 一致：开关打开时展示 R18，关闭时过滤
-            if (!settingsStore.isShowR18 && isR18(illust)) {
-                null
-            } else {
-                BrowseHistoryDisplay(item = item, illust = illust)
-            }
-        }.getOrNull()
-        BrowseHistoryTab.NOVEL.contentType -> runCatching {
-            val novel = gson.fromJson(item.payloadJson, Novel::class.java)
-            if (!settingsStore.isShowR18 && isR18(novel)) {
-                null
-            } else {
-                BrowseHistoryDisplay(item = item, novel = novel)
-            }
-        }.getOrNull()
-        BrowseHistoryTab.USER.contentType -> runCatching {
-            BrowseHistoryDisplay(item = item, user = gson.fromJson(item.payloadJson, User::class.java))
-        }.getOrNull()
-        else -> null
-    }
+    private fun toDisplay(item: BrowseHistoryItem): BrowseHistoryDisplay? =
+        decodeBrowseHistoryItem(item, gson)?.takeUnless { display ->
+            !settingsStore.isShowR18 && isR18(display.illust ?: display.novel)
+        }
 
     private fun chooseFile(mode: Int, defaultName: String?): File? {
         val parent = Window.getWindows()

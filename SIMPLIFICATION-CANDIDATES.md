@@ -19,7 +19,7 @@
 | P3 | component + profile 机械收敛 | D3、D7、D9、E2、E3、E6、E9、E13（D1 已完成 `be951ca`、F2.3-F2.4 已完成 `d5155ad`） | 编译 + `:app:test`；UI 改动只做等价替换 | **已完成**：`7cac54d` |
 | P4 | download 局部简化 | A1.2、A2.2-A2.8 | 下载、动图、小说系列测试；确认取消、重试、临时文件和未知 kind 行为不变 | **已完成**：`262228c` |
 | P5 | models / net / store 的低风险清理 | G1.3、G1.6、G2.9 | 先做调用图复查，再跑对应模块测试；不改变 ECH、QUIC、图片 DNS/TLS 和持久化格式 | **已完成**：`3062b4e` |
-| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E8、E11；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E7、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
+| P6 | 中风险重复收敛 | 待执行：A1.1、D2、D6、E1、E11；已完成：B2.3、B3.1、C1、C3、C4、C9、D4、D5、E4-E5、E7-E8、E10、E14、F5、G2.3；暂缓：B2.1 | 每个主题单独提交；先补测试，再改代码；需要手工回归的项目不得合并为一个大提交 | **进行中** |
 
 ### 不进入实施
 
@@ -176,7 +176,7 @@ Range 重启循环、ATOMIC_MOVE 回退、moveOrDeleteTemp 失败删旧、novel 
 | E5 [已完成] | ProfileScreenModel.kt:240-266 | 4 对 `publishX`/`hasVisibleX`（8 个函数，仅 pager/state/filter 不同） | 收敛为 `publish(pager, stateFlow, filter)` + `hasVisible(...)` | 中 | 有 |
 | E6 [已完成] | ProfileScreen.kt:110-141 | Loading 与 Error 分支渲染完全相同（同 avatar、都不渲染名字） | 合并为 `is Loading, is Error ->` | 低 | 无 |
 | E7 [已完成] | ProfileScreen.kt:212-354 | 四个 tab 内容块重复 Loading/Error/Success+items+FeedLoadMoreTrigger 结构，仅卡片类型与 key 前缀不同 | 收敛为 `LazyListScope.profileTabContent(state, listState, onRefresh, loadMoreKey, card)` | 中 | 编译通过（UI 层） |
-| E8 | ProfileScreenModel.kt:310-329 vs BrowseHistoryScreenModel.kt:266-288 | 「读 DB 历史 → Gson 反序列化 → R18 过滤」两处独立实现（loadHistory 每次 new Gson()） | 收敛为共享「payloadJson→Display」解码+过滤辅助 | 中 | 两侧都有测试 |
+| E8 [已完成] | ProfileScreenModel.kt:310-329 vs BrowseHistoryScreenModel.kt:266-288 | 「读 DB 历史 → Gson 反序列化 → R18 过滤」两处独立实现（loadHistory 每次 new Gson()） | 共享 `decodeBrowseHistoryItem` 解码；各状态边界保留原始列表与 R18 过滤语义 | 中 | 两侧测试通过 |
 | E9 [已完成] | UserDetailScreenModel.kt:60-61 vs BrowseHistoryRecorder.kt:24 | `if (user.id>0L) user else user.copy(id=user.user_id)` 逐字重复 2 处 | 收敛为 `User.normalized()` 扩展 | 低 | 无 |
 | E10 [已完成] | BookmarkTagsScreen.kt:274-278 + UserListScreen.kt:216-220 + CommentsController.kt:421-429 | `SelfUserIdResolver.resolve{...}` 逐字重复 3 处；ProfileScreenModel 的 `getSelfProfile()` 同时消费完整资料，保留其 ID 提取 | SelfUserIdResolver 里加 `suspend fun Client.resolveSelfUserId()`，3 个纯 ID 调用点统一使用 | 低 | 有 |
 

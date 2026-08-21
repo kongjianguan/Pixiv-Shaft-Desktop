@@ -2,6 +2,7 @@ package ceui.pixiv.ui.screen.profile
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import com.google.gson.Gson
 import ceui.loxia.Illust
 import ceui.loxia.IllustResponse
 import ceui.loxia.Novel
@@ -15,6 +16,7 @@ import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.ui.state.Pager
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.state.hasVisibleContent
+import ceui.pixiv.ui.history.decodeBrowseHistoryItem
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.ui.util.visibleNovels
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,7 @@ class ProfileScreenModel(
 
     private val _history = MutableStateFlow<List<Illust>>(emptyList())
     val history: StateFlow<List<Illust>> = _history.asStateFlow()
+    private val gson = Gson()
 
     /** 浏览历史原始数据（不过滤），R18 开关变化时重新过滤发布，与 tab 发布方式一致 */
     private var historyRaw: List<Illust> = emptyList()
@@ -329,11 +332,7 @@ class ProfileScreenModel(
                 limit = 50L,
                 offset = 0L,
             )
-            val illusts = rows.mapNotNull { row ->
-                try {
-                    com.google.gson.Gson().fromJson(row.payloadJson, Illust::class.java)
-                } catch (_: Exception) { null }
-            }
+            val illusts = rows.mapNotNull { row -> decodeBrowseHistoryItem(row, gson)?.illust }
             historyRaw = illusts
             _history.value = visibleItems(illusts, settingsStore.isShowR18)
         } catch (e: CancellationException) {
