@@ -14,6 +14,12 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.flow.drop
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.CurrentScreen
@@ -103,10 +109,52 @@ class MainScreen : Screen {
                     }
                 }
 
-                CurrentTab()
+                Row(modifier = Modifier.fillMaxSize()) {
+                    MainSidebar(selected = tabNavigator.current, onSelect = ::selectTab)
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        CurrentTab()
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun MainSidebar(selected: Tab, onSelect: (Tab) -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxHeight().width(224.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(modifier = Modifier.size(34.dp), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primary) {}
+                Column(modifier = Modifier.padding(start = 10.dp)) {
+                    Text("Pixiv Shaft", style = MaterialTheme.typography.titleMedium)
+                    Text("发现你的下一幅作品", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text("浏览", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SidebarItem(RecommendTab, "推荐", Icons.Default.Home, selected, onSelect)
+            SidebarItem(DiscoverTab, "发现", Icons.Default.Star, selected, onSelect)
+            SidebarItem(SearchTab, "搜索", Icons.Default.Search, selected, onSelect)
+            SidebarItem(DynamicTab, "动态", Icons.Default.DynamicFeed, selected, onSelect)
+            SidebarItem(ProfileTab, "我的", Icons.Default.Person, selected, onSelect)
+            Spacer(Modifier.weight(1f))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+            Text("⌘ 1–5 切换页面 · 重复点击回到顶部", modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun SidebarItem(tab: Tab, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Tab, onSelect: (Tab) -> Unit) {
+    NavigationRailItem(selected = selected.key == tab.key, onClick = { onSelect(tab) }, icon = { Icon(icon, contentDescription = label) }, label = { Text(label) }, alwaysShowLabel = true, modifier = Modifier.fillMaxWidth().height(48.dp))
 }
 
 object RecommendTab : Tab {
