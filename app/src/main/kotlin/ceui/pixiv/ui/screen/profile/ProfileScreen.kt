@@ -1,19 +1,18 @@
 package ceui.pixiv.ui.screen.profile
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
@@ -23,8 +22,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -42,12 +39,14 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import ceui.pixiv.ui.component.FeedLoadMoreTrigger
-import ceui.pixiv.ui.component.ErrorView
+import ceui.loxia.Illust
+import ceui.loxia.Novel
+import ceui.pixiv.ui.component.FeedPager
+import ceui.pixiv.ui.component.FeedScaffold
 import ceui.pixiv.ui.component.IllustCard
-import ceui.pixiv.ui.component.LoadingView
 import ceui.pixiv.ui.component.NovelCard
-import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.component.NovelGrid
+import ceui.pixiv.ui.component.WorkFeedGrid
 import ceui.pixiv.ui.history.BrowseHistoryScreen
 import ceui.pixiv.ui.navigation.LocalScrollToTop
 import ceui.pixiv.ui.screen.collection.BookmarkTagsScreen
@@ -61,6 +60,13 @@ import ceui.pixiv.ui.screen.user.UserDetailScreen
 import ceui.pixiv.ui.screen.user.UserListMode
 import ceui.pixiv.ui.screen.user.UserListScreen
 import ceui.pixiv.ui.state.UiState
+
+private enum class ProfileTab(val label: String) {
+    ILLUST_BOOKMARKS("插画收藏"),
+    NOVEL_BOOKMARKS("小说收藏"),
+    CREATED_WORKS("我的作品"),
+    HISTORY("历史"),
+}
 
 class ProfileScreen : Screen {
 
@@ -77,281 +83,325 @@ class ProfileScreen : Screen {
         val history by screenModel.history.collectAsState()
         val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
-        var selectedTab by remember { mutableStateOf(0) }
         var worksType by remember { mutableStateOf(0) } // 我的作品: 0=插画 1=小说
 
-        // 每个 tab（含我的作品下的插画/小说）独立滚动位置，切换时列表回到顶部
-        val listState = remember(selectedTab, worksType) { LazyListState() }
-        val scrollToTopState = LocalScrollToTop.current
-        val scrollToTopValue = scrollToTopState.value
-        LaunchedEffect(scrollToTopValue, listState) {
-            if (scrollToTopValue > 0) {
-                listState.scrollToItem(0)
-                screenModel.refresh()
-                scrollToTopState.value = 0
-            }
-        }
+        Column(modifier = Modifier.fillMaxSize()) {
+            ProfileHeader(
+                profileState = profileState,
+                profileDetailState = profileDetailState,
+                onOpenSettings = { navigator.push(SettingsScreen()) },
+            )
+            ProfileEntryRow(navigator = navigator)
 
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { screenModel.refresh() },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize()
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = screenModel::refresh,
+                modifier = Modifier.weight(1f),
             ) {
-                // Header: avatar + name + stats + settings button
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        when (val s = profileState) {
-                            is UiState.Loading, is UiState.Error -> {
-                                UserAvatar(url = null, size = 64)
-                            }
-                            is UiState.Success -> {
-                                val user = s.data.profile
-                                UserAvatar(
-                                    url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
-                                    size = 64
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = user.name ?: "Unknown",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        text = "@${user.pixiv_id ?: user.account ?: user.user_id}",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                    if (user.is_premium == true) {
-                                        Text(
-                                            text = "Premium",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        IconButton(onClick = { navigator.push(SettingsScreen()) }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    }
-                }
+                FeedPager(pageLabels = ProfileTab.entries.map { it.label }) { page, isCurrentPage ->
+                    when (ProfileTab.entries[page]) {
+                        ProfileTab.ILLUST_BOOKMARKS -> ProfileIllustFeedPage(
+                            state = bookmarksState,
+                            isCurrentPage = isCurrentPage,
+                            onRefresh = screenModel::refresh,
+                            onLoadMore = screenModel::loadMoreBookmarks,
+                            emptyMessage = if (screenModel.hasHiddenBookmarksR18()) {
+                                "R18 内容已隐藏（可在设置中开启）"
+                            } else {
+                                "暂无插画收藏"
+                            },
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                        )
 
-                // Stats row
-                item {
-                    profileDetailState.let { state ->
-                        if (state is UiState.Success) {
-                            val profile = state.data
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Text("Illusts: ${profile.total_illusts}", style = MaterialTheme.typography.labelMedium)
-                                Text("Bookmarks: ${profile.total_illust_bookmarks_public}", style = MaterialTheme.typography.labelMedium)
-                            }
-                            if (!profile.job.isNullOrEmpty() || !profile.region.isNullOrEmpty() || !profile.twitter_account.isNullOrEmpty()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    if (!profile.job.isNullOrEmpty()) {
-                                        Text("Job: ${profile.job}", style = MaterialTheme.typography.labelSmall)
-                                    }
-                                    if (!profile.region.isNullOrEmpty()) {
-                                        Text("Region: ${profile.region}", style = MaterialTheme.typography.labelSmall)
-                                    }
-                                    if (!profile.twitter_account.isNullOrEmpty()) {
-                                        Text("Twitter: @${profile.twitter_account}", style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Entry row: 收藏标签 / 小说标记 / 追更 / 关注中 / 粉丝 / 好P友
-                item {
-                    ProfileEntryRow(navigator = navigator)
-                }
-
-                // Tab row: 插画收藏 / 小说收藏 / 我的作品 / 历史
-                item {
-                    TabRow(selectedTabIndex = selectedTab) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("插画收藏") }
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("小说收藏") }
-                        )
-                        Tab(
-                            selected = selectedTab == 2,
-                            onClick = { selectedTab = 2 },
-                            text = { Text("我的作品") }
-                        )
-                        Tab(
-                            selected = selectedTab == 3,
-                            onClick = { selectedTab = 3 },
-                            text = { Text("历史") }
-                        )
-                    }
-                }
-
-                // Tab content
-                when (selectedTab) {
-                    0 -> profileTabContent(
-                        state = bookmarksState,
-                        listState = listState,
-                        emptyMessage = "No bookmarks",
-                        loadMoreKey = "bookmarks-load-more",
-                        onRefresh = screenModel::refresh,
-                        onLoadMore = screenModel::loadMoreBookmarks,
-                        key = { it.id },
-                    ) { illust ->
-                        IllustCard(
-                            illust = illust,
-                            onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                    }
-                    1 -> profileTabContent(
-                        state = novelBookmarksState,
-                        listState = listState,
-                        emptyMessage = "No novel bookmarks",
-                        loadMoreKey = "novel-bookmarks-load-more",
-                        onRefresh = screenModel::refresh,
-                        onLoadMore = screenModel::loadMoreNovelBookmarks,
-                        key = { it.id },
-                    ) { novel ->
-                        NovelCard(
-                            novel = novel,
-                            onClick = { id -> navigator.push(NovelDetailScreen(id)) },
+                        ProfileTab.NOVEL_BOOKMARKS -> ProfileNovelFeedPage(
+                            state = novelBookmarksState,
+                            isCurrentPage = isCurrentPage,
+                            onRefresh = screenModel::refresh,
+                            onLoadMore = screenModel::loadMoreNovelBookmarks,
+                            emptyMessage = if (screenModel.hasHiddenNovelBookmarksR18()) {
+                                "R18 内容已隐藏（可在设置中开启）"
+                            } else {
+                                "暂无小说收藏"
+                            },
+                            onNovelClick = { id -> navigator.push(NovelDetailScreen(id)) },
                             onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
                             onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
                             onToggleBookmark = screenModel::toggleNovelBookmark,
-                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        ProfileTab.CREATED_WORKS -> ProfileWorksPage(
+                            worksType = worksType,
+                            onWorksTypeChange = { worksType = it },
+                            isCurrentPage = isCurrentPage,
+                            illustState = createdIllustsState,
+                            novelState = createdNovelsState,
+                            onRefresh = screenModel::refresh,
+                            onLoadMoreIllusts = screenModel::loadMoreCreatedIllusts,
+                            onLoadMoreNovels = screenModel::loadMoreCreatedNovels,
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
+                            onNovelClick = { id -> navigator.push(NovelDetailScreen(id)) },
+                            onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
+                            onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
+                            onToggleBookmark = screenModel::toggleNovelBookmark,
+                        )
+
+                        ProfileTab.HISTORY -> ProfileHistoryPage(
+                            history = history,
+                            isCurrentPage = isCurrentPage,
+                            onRefresh = screenModel::refresh,
+                            onOpenHistory = { navigator.push(BrowseHistoryScreen()) },
+                            onIllustClick = { id -> navigator.push(IllustDetailScreen(id)) },
                         )
                     }
-                    2 -> {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterChip(
-                                    selected = worksType == 0,
-                                    onClick = { worksType = 0 },
-                                    label = { Text("插画") }
-                                )
-                                FilterChip(
-                                    selected = worksType == 1,
-                                    onClick = { worksType = 1 },
-                                    label = { Text("小说") }
-                                )
-                            }
-                        }
-                        if (worksType == 0) {
-                            profileTabContent(
-                                state = createdIllustsState,
-                                listState = listState,
-                                emptyMessage = "No works",
-                                loadMoreKey = "created-illusts-load-more",
-                                onRefresh = screenModel::refresh,
-                                onLoadMore = screenModel::loadMoreCreatedIllusts,
-                                key = { it.id },
-                            ) { illust ->
-                                IllustCard(
-                                    illust = illust,
-                                    onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                )
-                            }
-                        } else {
-                            profileTabContent(
-                                state = createdNovelsState,
-                                listState = listState,
-                                emptyMessage = "No works",
-                                loadMoreKey = "created-novels-load-more",
-                                onRefresh = screenModel::refresh,
-                                onLoadMore = screenModel::loadMoreCreatedNovels,
-                                key = { it.id },
-                            ) { novel ->
-                                NovelCard(
-                                    novel = novel,
-                                    onClick = { id -> navigator.push(NovelDetailScreen(id)) },
-                                    onUserClick = { id -> navigator.push(UserDetailScreen(id)) },
-                                    onSeriesClick = { id -> navigator.push(NovelSeriesScreen(id)) },
-                                    onToggleBookmark = screenModel::toggleNovelBookmark,
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                )
-                            }
-                        }
-                    }
-                    3 -> {
-                        item {
-                            Button(
-                                onClick = { navigator.push(BrowseHistoryScreen()) },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            ) {
-                                Text("打开完整浏览记录")
-                            }
-                        }
-                        if (history.isEmpty()) {
-                            item { Text("No browse history", modifier = Modifier.padding(16.dp)) }
-                        } else {
-                            items(history, key = { it.id }) { illust ->
-                                IllustCard(
-                                    illust = illust,
-                                    onClick = { id -> navigator.push(IllustDetailScreen(id)) },
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
     }
 }
 
-private fun <T : Any> LazyListScope.profileTabContent(
-    state: UiState<List<T>>,
-    listState: LazyListState,
-    emptyMessage: String,
-    loadMoreKey: String,
+@Composable
+private fun ProfileHeader(
+    profileState: UiState<ceui.loxia.SelfProfile>,
+    profileDetailState: UiState<ceui.loxia.ProfileBean>,
+    onOpenSettings: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (val state = profileState) {
+                UiState.Loading, is UiState.Error -> {
+                    ceui.pixiv.ui.component.UserAvatar(url = null, size = 64)
+                }
+
+                is UiState.Success -> {
+                    val user = state.data.profile
+                    ceui.pixiv.ui.component.UserAvatar(
+                        url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
+                        size = 64,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(user.name ?: "Unknown", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "@${user.pixiv_id ?: user.account ?: user.user_id}",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        if (user.is_premium == true) {
+                            Text(
+                                "Premium",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Default.Settings, contentDescription = "设置")
+            }
+        }
+
+        if (profileDetailState is UiState.Success) {
+            val profile = profileDetailState.data
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text("插画：${profile.total_illusts}", style = MaterialTheme.typography.labelMedium)
+                Text("收藏：${profile.total_illust_bookmarks_public}", style = MaterialTheme.typography.labelMedium)
+            }
+            if (!profile.job.isNullOrEmpty() || !profile.region.isNullOrEmpty() || !profile.twitter_account.isNullOrEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (!profile.job.isNullOrEmpty()) Text("职业：${profile.job}", style = MaterialTheme.typography.labelSmall)
+                    if (!profile.region.isNullOrEmpty()) Text("地区：${profile.region}", style = MaterialTheme.typography.labelSmall)
+                    if (!profile.twitter_account.isNullOrEmpty()) Text("Twitter：@${profile.twitter_account}", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileIllustFeedPage(
+    state: UiState<List<Illust>>,
+    isCurrentPage: Boolean,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
-    key: (T) -> Any,
-    itemContent: @Composable (T) -> Unit,
+    emptyMessage: String,
+    onIllustClick: (Long) -> Unit,
 ) {
-    when (state) {
-        is UiState.Loading -> item { LoadingView(modifier = Modifier.height(200.dp)) }
-        is UiState.Error -> item {
-            ErrorView(state.message, onRefresh, Modifier.height(200.dp))
-        }
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                item { Text(emptyMessage, modifier = Modifier.padding(16.dp)) }
-            } else {
-                items(state.data, key = key) { value -> itemContent(value) }
-                item(key = loadMoreKey) {
-                    FeedLoadMoreTrigger(listState, onLoadMore)
-                }
+    val gridState = rememberLazyStaggeredGridState()
+    ConsumeProfileScrollToTop(gridState, isCurrentPage, onRefresh)
+    FeedScaffold(
+        state = state,
+        gridState = gridState,
+        onLoadMore = onLoadMore,
+        onRefresh = onRefresh,
+        emptyMessage = emptyMessage,
+    ) { works ->
+        WorkFeedGrid(state = gridState) { _, _ ->
+            items(works, key = { it.id }) { illust ->
+                IllustCard(illust = illust, onClick = onIllustClick)
             }
         }
     }
 }
 
-/** 头部入口行：收藏标签 / 小说标记 / 追更 / 关注中 / 粉丝 / 好P友。 */
+@Composable
+private fun ProfileNovelFeedPage(
+    state: UiState<List<Novel>>,
+    isCurrentPage: Boolean,
+    onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
+    emptyMessage: String,
+    onNovelClick: (Long) -> Unit,
+    onUserClick: (Long) -> Unit,
+    onSeriesClick: (Long) -> Unit,
+    onToggleBookmark: (Novel) -> Unit,
+) {
+    val gridState = rememberLazyStaggeredGridState()
+    ConsumeProfileScrollToTop(gridState, isCurrentPage, onRefresh)
+    FeedScaffold(
+        state = state,
+        gridState = gridState,
+        onLoadMore = onLoadMore,
+        onRefresh = onRefresh,
+        emptyMessage = emptyMessage,
+    ) { novels ->
+        NovelGrid(gridState = gridState, items = novels) { novel ->
+            NovelCard(
+                novel = novel,
+                onClick = onNovelClick,
+                onUserClick = onUserClick,
+                onSeriesClick = onSeriesClick,
+                onToggleBookmark = onToggleBookmark,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileWorksPage(
+    worksType: Int,
+    onWorksTypeChange: (Int) -> Unit,
+    isCurrentPage: Boolean,
+    illustState: UiState<List<Illust>>,
+    novelState: UiState<List<Novel>>,
+    onRefresh: () -> Unit,
+    onLoadMoreIllusts: () -> Unit,
+    onLoadMoreNovels: () -> Unit,
+    onIllustClick: (Long) -> Unit,
+    onNovelClick: (Long) -> Unit,
+    onUserClick: (Long) -> Unit,
+    onSeriesClick: (Long) -> Unit,
+    onToggleBookmark: (Novel) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = worksType == 0,
+                onClick = { onWorksTypeChange(0) },
+                label = { Text("插画") },
+            )
+            FilterChip(
+                selected = worksType == 1,
+                onClick = { onWorksTypeChange(1) },
+                label = { Text("小说") },
+            )
+        }
+
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (worksType == 0) {
+                ProfileIllustFeedPage(
+                    state = illustState,
+                    isCurrentPage = isCurrentPage,
+                    onRefresh = onRefresh,
+                    onLoadMore = onLoadMoreIllusts,
+                    emptyMessage = "暂无已发布插画",
+                    onIllustClick = onIllustClick,
+                )
+            } else {
+                ProfileNovelFeedPage(
+                    state = novelState,
+                    isCurrentPage = isCurrentPage,
+                    onRefresh = onRefresh,
+                    onLoadMore = onLoadMoreNovels,
+                    emptyMessage = "暂无已发布小说",
+                    onNovelClick = onNovelClick,
+                    onUserClick = onUserClick,
+                    onSeriesClick = onSeriesClick,
+                    onToggleBookmark = onToggleBookmark,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileHistoryPage(
+    history: List<Illust>,
+    isCurrentPage: Boolean,
+    onRefresh: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onIllustClick: (Long) -> Unit,
+) {
+    val gridState = rememberLazyStaggeredGridState()
+    ConsumeProfileScrollToTop(gridState, isCurrentPage, onRefresh)
+
+    if (history.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("暂无浏览记录")
+            Button(onClick = onOpenHistory, modifier = Modifier.padding(top = 12.dp)) {
+                Text("打开完整浏览记录")
+            }
+        }
+    } else {
+        WorkFeedGrid(state = gridState) { _, _ ->
+            item(key = "history-open", span = StaggeredGridItemSpan.FullLine) {
+                Button(
+                    onClick = onOpenHistory,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                ) {
+                    Text("打开完整浏览记录")
+                }
+            }
+            items(history, key = { it.id }) { illust ->
+                IllustCard(illust = illust, onClick = onIllustClick)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsumeProfileScrollToTop(
+    gridState: LazyStaggeredGridState,
+    isCurrentPage: Boolean,
+    onRefresh: () -> Unit,
+) {
+    val scrollToTopState = LocalScrollToTop.current
+    val scrollToTopValue = scrollToTopState.value
+    LaunchedEffect(scrollToTopValue, isCurrentPage) {
+        if (scrollToTopValue > 0 && isCurrentPage) {
+            gridState.scrollToItem(0)
+            onRefresh()
+            scrollToTopState.value = 0
+        }
+    }
+}
+
+/** 作品流上方的快捷入口：收藏标签、小说标记、追更和用户关系列表。 */
 @Composable
 private fun ProfileEntryRow(navigator: Navigator) {
     LazyRow(

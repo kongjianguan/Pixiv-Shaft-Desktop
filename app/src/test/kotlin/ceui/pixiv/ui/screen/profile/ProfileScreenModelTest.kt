@@ -15,6 +15,7 @@ import ceui.pixiv.testutil.fakeClient
 import ceui.pixiv.testutil.fakeSettingsStore
 import ceui.pixiv.testutil.resumeSuspend
 import ceui.pixiv.ui.state.UiState
+import ceui.pixiv.ui.util.SelfUserIdResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -40,10 +41,12 @@ class ProfileScreenModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
+        SelfUserIdResolver.clear()
     }
 
     @AfterEach
     fun tearDown() {
+        SelfUserIdResolver.clear()
         Dispatchers.resetMain()
     }
 

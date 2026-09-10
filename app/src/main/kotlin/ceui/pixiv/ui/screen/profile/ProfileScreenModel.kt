@@ -17,6 +17,8 @@ import ceui.pixiv.store.SettingsStore
 import ceui.pixiv.ui.state.PagedFeed
 import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.history.decodeBrowseHistoryItem
+import ceui.pixiv.ui.util.resolveSelfProfile
+import ceui.pixiv.ui.util.resolvedUserId
 import ceui.pixiv.ui.util.visibleItems
 import ceui.pixiv.ui.util.visibleNovels
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,7 +93,7 @@ class ProfileScreenModel(
         screenModelScope.launch {
             _isRefreshing.value = true
             try {
-                loadProfile()
+                loadProfile(forceRefresh = true)
                 loadHistory()
             } finally {
                 _isRefreshing.value = false
@@ -99,14 +101,14 @@ class ProfileScreenModel(
         }
     }
 
-    private suspend fun loadProfile() {
+    private suspend fun loadProfile(forceRefresh: Boolean = false) {
         if (_profileState.value !is UiState.Success) {
             _profileState.value = UiState.Loading
         }
         try {
-            val profile = client.appApi.getSelfProfile()
+            val profile = client.resolveSelfProfile(forceRefresh)
             _profileState.value = UiState.Success(profile)
-            val userId = profile.profile.user_id.takeIf { it > 0 } ?: profile.profile.id
+            val userId = profile.resolvedUserId
             loadProfileDetail(userId)
             loadBookmarks(userId)
             loadNovelBookmarks(userId)
@@ -114,7 +116,12 @@ class ProfileScreenModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _profileState.value = UiState.Error(e.message ?: "Failed to load profile")
+            val message = e.message ?: "Failed to load profile"
+            _profileState.value = UiState.Error(message)
+            bookmarkFeed.setError(message)
+            novelBookmarkFeed.setError(message)
+            createdIllustFeed.setError(message)
+            createdNovelFeed.setError(message)
         }
     }
 
@@ -246,6 +253,16 @@ class ProfileScreenModel(
             _history.value = visibleItems(historyRaw, settingsStore.isShowR18)
         }
     }
+
+    fun hasHiddenBookmarksR18(): Boolean = ceui.pixiv.ui.util.hasHiddenR18(
+        bookmarkFeed.pager.items.value,
+        settingsStore.isShowR18,
+    )
+
+    fun hasHiddenNovelBookmarksR18(): Boolean = ceui.pixiv.ui.util.hasHiddenR18(
+        novelBookmarkFeed.pager.items.value,
+        settingsStore.isShowR18,
+    )
 
     private suspend fun loadHistory() {
         try {
