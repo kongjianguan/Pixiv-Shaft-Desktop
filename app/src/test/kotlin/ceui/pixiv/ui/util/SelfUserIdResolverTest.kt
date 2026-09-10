@@ -1,5 +1,8 @@
 package ceui.pixiv.ui.util
 
+import ceui.loxia.KUserState
+import ceui.loxia.SelfProfile
+import ceui.loxia.User
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -58,6 +61,24 @@ class SelfUserIdResolverTest {
         SelfUserIdResolver.clear()
         SelfUserIdResolver.resolve(fetch)
 
+        assertEquals(2, fetches.get())
+    }
+
+    @Test
+    fun `profile refresh bypasses cached profile`() = runBlocking {
+        SelfUserIdResolver.clear()
+        val fetches = AtomicInteger(0)
+        val fetch = {
+            val number = fetches.incrementAndGet()
+            SelfProfile(
+                profile = User(id = 7L, name = "Me $number"),
+                user_state = KUserState(),
+            )
+        }
+
+        assertEquals("Me 1", SelfUserIdResolver.resolveProfile(fetch).profile.name)
+        assertEquals("Me 1", SelfUserIdResolver.resolveProfile(fetch).profile.name)
+        assertEquals("Me 2", SelfUserIdResolver.resolveProfile(fetch, forceRefresh = true).profile.name)
         assertEquals(2, fetches.get())
     }
 }

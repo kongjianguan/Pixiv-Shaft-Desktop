@@ -55,6 +55,9 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import ceui.pixiv.download.DownloadTemplate
 import ceui.pixiv.download.DownloadTemplateValues
+import ceui.pixiv.ui.component.ErrorView
+import ceui.pixiv.ui.component.UserAvatar
+import ceui.pixiv.ui.state.UiState
 import ceui.pixiv.ui.theme.ShaftThemeMode
 import ceui.pixiv.ui.theme.ShaftThemePreset
 import javax.swing.JFileChooser
@@ -104,7 +107,7 @@ private enum class SettingsCategory(
     HISTORY("历史记录", "控制本地浏览历史的保存方式", Icons.Default.History),
     DOWNLOAD("下载", "下载路径与文件名模板", Icons.Default.FileDownload),
     APPEARANCE("外观", "主题色与浅色、深色模式", Icons.Default.Palette),
-    ACCOUNT("账号", "退出当前 Pixiv 账号", Icons.Default.Person),
+    ACCOUNT("账号", "查看账号资料、R18 显示和退出登录", Icons.Default.Person),
 }
 
 @Composable
@@ -154,7 +157,10 @@ private class SettingsCategoryScreen(private val category: SettingsCategory) : S
                     SettingsCategory.HISTORY -> HistorySettings(screenModel)
                     SettingsCategory.DOWNLOAD -> DownloadSettings(screenModel)
                     SettingsCategory.APPEARANCE -> AppearanceSettings(screenModel)
-                    SettingsCategory.ACCOUNT -> AccountSettings(screenModel)
+                    SettingsCategory.ACCOUNT -> {
+                        val accountScreenModel = rememberScreenModel { AccountSettingsScreenModel() }
+                        AccountSettings(accountScreenModel, screenModel)
+                    }
                 }
             }
         }
@@ -468,12 +474,27 @@ private fun SettingChips(
 }
 
 @Composable
-private fun AccountSettings(screenModel: SettingsScreenModel) {
-    val isShowR18 by screenModel.isShowR18Flow.collectAsState()
-    Text("账号", style = MaterialTheme.typography.titleMedium)
+private fun AccountSettings(
+    accountScreenModel: AccountSettingsScreenModel,
+    settingsScreenModel: SettingsScreenModel,
+) {
+    val profileState by accountScreenModel.profileState.collectAsState()
+    val profileDetailState by accountScreenModel.profileDetailState.collectAsState()
+    val isShowR18 by settingsScreenModel.isShowR18Flow.collectAsState()
+    when (val state = profileState) {
+        UiState.Loading -> AccountProfileLoading()
+        is UiState.Error -> ErrorView(state.message, accountScreenModel::refresh)
+        is UiState.Success -> AccountProfile(
+            self = state.data,
+            detailState = profileDetailState,
+            onRetryDetail = accountScreenModel::refresh,
+        )
+    }
+
+    Text("账号操作", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
     Text("退出后需要重新通过 Pixiv OAuth（授权登录）登录。", style = MaterialTheme.typography.bodyMedium)
     Button(
-        onClick = screenModel::logout,
+        onClick = settingsScreenModel::logout,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
     ) {
         Text("退出登录")
@@ -482,8 +503,73 @@ private fun AccountSettings(screenModel: SettingsScreenModel) {
         title = "显示 R18 内容",
         subtitle = "",
         checked = isShowR18,
-        onCheckedChange = screenModel::setIsShowR18,
+        onCheckedChange = settingsScreenModel::setIsShowR18,
     )
+}
+
+@Composable
+private fun AccountProfileLoading() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        UserAvatar(url = null, size = 64)
+        Text("正在加载账号资料…", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun AccountProfile(
+    self: ceui.loxia.SelfProfile,
+    detailState: UiState<ceui.loxia.ProfileBean>,
+    onRetryDetail: () -> Unit,
+) {
+    val user = self.profile
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            UserAvatar(
+                url = user.profile_image_urls?.px_50x50 ?: user.profile_image_urls?.medium,
+                size = 64,
+            )
+            Column {
+                Text(user.name ?: "Unknown", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "@${user.pixiv_id ?: user.account ?: user.user_id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (user.is_premium == true) {
+                    Text("Premium", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        when (detailState) {
+            UiState.Loading -> Text("正在加载详细资料…", style = MaterialTheme.typography.bodySmall)
+            is UiState.Error -> ErrorView(detailState.message, onRetryDetail)
+            is UiState.Success -> {
+                val profile = detailState.data
+                Text(
+                    "作品：插画 ${profile.total_illusts} · 漫画 ${profile.total_manga} · 小说 ${profile.total_novels}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "社交：关注 ${profile.total_follow_users} · 好P友 ${profile.total_mypixiv_users} · 收藏 ${profile.total_illust_bookmarks_public}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (!profile.job.isNullOrEmpty()) Text("职业：${profile.job}", style = MaterialTheme.typography.bodySmall)
+                if (!profile.region.isNullOrEmpty()) Text("地区：${profile.region}", style = MaterialTheme.typography.bodySmall)
+                if (!profile.twitter_account.isNullOrEmpty()) {
+                    Text("Twitter：@${profile.twitter_account}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
 }
 
 @Composable
