@@ -2,6 +2,8 @@
 
 # PixivShaft Desktop
 
+English | [中文](README.zh.md)
+
 ### macOS port of Pixiv-Shaft
 
 [![CI](https://github.com/kongjianguan/Pixiv-Shaft-Desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/kongjianguan/Pixiv-Shaft-Desktop/actions/workflows/ci.yml)
@@ -51,6 +53,10 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@21
 # Output
 ls app/build/compose/binaries/main/dmg/PixivShaft-1.0.0.dmg
 ```
+
+## Documentation
+
+Start with the [architecture map](docs/architecture.md) for module boundaries and runtime paths. Contributors should read the [development guide](docs/development.md) and the [build and package cookbook](docs/cookbook/build-and-package.md). Current subsystem contracts are indexed in [docs/subsystems](docs/subsystems/README.md); historical implementation plans are kept in [docs/archived](docs/archived/README.md).
 
 ## Tech Stack
 
