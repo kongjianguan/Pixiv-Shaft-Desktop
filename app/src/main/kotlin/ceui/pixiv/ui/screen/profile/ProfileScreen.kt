@@ -23,13 +23,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,7 +83,7 @@ class ProfileScreen : Screen {
         val history by screenModel.history.collectAsState()
         val isRefreshing by screenModel.isRefreshing.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
-        var worksType by remember { mutableStateOf(0) } // 我的作品: 0=插画 1=小说
+        var worksType by rememberSaveable { mutableStateOf(0) } // 我的作品: 0=插画 1=小说
 
         Column(modifier = Modifier.fillMaxSize()) {
             ProfileHeader(
@@ -93,11 +93,7 @@ class ProfileScreen : Screen {
             )
             ProfileEntryRow(navigator = navigator)
 
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = screenModel::refresh,
-                modifier = Modifier.weight(1f),
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 FeedPager(pageLabels = ProfileTab.entries.map { it.label }) { page, isCurrentPage ->
                     when (ProfileTab.entries[page]) {
                         ProfileTab.ILLUST_BOOKMARKS -> ProfileIllustFeedPage(
@@ -229,13 +225,13 @@ private fun ProfileHeader(
 @Composable
 private fun ProfileIllustFeedPage(
     state: UiState<List<Illust>>,
+    gridState: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
     isCurrentPage: Boolean,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     emptyMessage: String,
     onIllustClick: (Long) -> Unit,
 ) {
-    val gridState = rememberLazyStaggeredGridState()
     ConsumeProfileScrollToTop(gridState, isCurrentPage, onRefresh)
     FeedScaffold(
         state = state,
@@ -255,6 +251,7 @@ private fun ProfileIllustFeedPage(
 @Composable
 private fun ProfileNovelFeedPage(
     state: UiState<List<Novel>>,
+    gridState: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
     isCurrentPage: Boolean,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
@@ -264,7 +261,6 @@ private fun ProfileNovelFeedPage(
     onSeriesClick: (Long) -> Unit,
     onToggleBookmark: (Novel) -> Unit,
 ) {
-    val gridState = rememberLazyStaggeredGridState()
     ConsumeProfileScrollToTop(gridState, isCurrentPage, onRefresh)
     FeedScaffold(
         state = state,
@@ -301,6 +297,9 @@ private fun ProfileWorksPage(
     onSeriesClick: (Long) -> Unit,
     onToggleBookmark: (Novel) -> Unit,
 ) {
+    val illustGridState = rememberLazyStaggeredGridState()
+    val novelGridState = rememberLazyStaggeredGridState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
@@ -322,6 +321,7 @@ private fun ProfileWorksPage(
             if (worksType == 0) {
                 ProfileIllustFeedPage(
                     state = illustState,
+                    gridState = illustGridState,
                     isCurrentPage = isCurrentPage,
                     onRefresh = onRefresh,
                     onLoadMore = onLoadMoreIllusts,
@@ -331,6 +331,7 @@ private fun ProfileWorksPage(
             } else {
                 ProfileNovelFeedPage(
                     state = novelState,
+                    gridState = novelGridState,
                     isCurrentPage = isCurrentPage,
                     onRefresh = onRefresh,
                     onLoadMore = onLoadMoreNovels,

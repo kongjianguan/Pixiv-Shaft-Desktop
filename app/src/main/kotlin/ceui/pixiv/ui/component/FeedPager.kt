@@ -32,7 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerMoveFilter
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import ceui.pixiv.platform.TrackpadGestureBridge
@@ -245,20 +246,11 @@ fun FeedPager(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .height(20.dp)
-                .pointerMoveFilter(
-                    onEnter = {
-                        showTabBar()
-                        false
-                    },
-                    onMove = {
-                        showTabBar()
-                        false
-                    },
-                    onExit = {
-                        if (!isPointerInsideTabBar) scheduleTabBarHide()
-                        false
-                    },
-                ),
+                .onPointerEvent(PointerEventType.Enter) { showTabBar() }
+                .onPointerEvent(PointerEventType.Move) { showTabBar() }
+                .onPointerEvent(PointerEventType.Exit) {
+                    if (!isPointerInsideTabBar) scheduleTabBarHide()
+                },
         )
 
         AnimatedVisibility(
@@ -268,22 +260,18 @@ fun FeedPager(
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
         ) {
             Surface(
-                modifier = Modifier.pointerMoveFilter(
-                    onEnter = {
+                modifier = Modifier
+                    .onPointerEvent(PointerEventType.Enter) {
                         isPointerInsideTabBar = true
                         showTabBar()
-                        false
-                    },
-                    onMove = {
+                    }
+                    .onPointerEvent(PointerEventType.Move) {
                         showTabBar()
-                        false
-                    },
-                    onExit = {
+                    }
+                    .onPointerEvent(PointerEventType.Exit) {
                         isPointerInsideTabBar = false
                         scheduleTabBarHide()
-                        false
                     },
-                ),
                 shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
                 tonalElevation = 4.dp,
