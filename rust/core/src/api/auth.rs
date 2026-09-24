@@ -48,6 +48,7 @@ pub async fn complete_login(pasted: String, code_verifier: String) -> Result<Log
         user_name: user_name.clone(),
     })
     .await;
+    session::persist().await?;
 
     Ok(LoginResult {
         user_id: user.id,
@@ -55,10 +56,17 @@ pub async fn complete_login(pasted: String, code_verifier: String) -> Result<Log
     })
 }
 
-/// 当前是否已登录。
-pub async fn is_logged_in() -> bool {
-    session::get()
-        .await
-        .map(|s| !s.access_token.is_empty())
-        .unwrap_or(false)
+/// 当前是否已登录。首次调用时会尝试从钥匙串恢复上次的登录态。
+pub async fn is_logged_in() -> Result<bool, String> {
+    if let Some(current) = session::get().await {
+        if !current.access_token.is_empty() {
+            return Ok(true);
+        }
+    }
+    session::restore().await
+}
+
+/// 退出登录，同时清掉钥匙串里的凭据。
+pub async fn logout() -> Result<(), String> {
+    session::logout().await
 }

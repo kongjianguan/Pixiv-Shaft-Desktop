@@ -28,11 +28,9 @@ const PROBE_DATABASE: &str = "probe.db";
 
 const KEY_ACCESS: &str = "probe_access_token";
 const KEY_REFRESH: &str = "probe_refresh_token";
-const KEY_USER: &str = "probe_user_json";
 
 const ACCESS_VALUE: &str = "probe-access-token-8f3a";
 const REFRESH_VALUE: &str = "probe-refresh-token-2b7c";
-const USER_VALUE: &str = r#"{"id":42,"name":"验证账号"}"#;
 
 /// 下载产物落在当前目录下，不使用系统临时目录。
 const DOWNLOAD_DIR: &str = "probe-downloads";
@@ -75,19 +73,16 @@ fn argument(index: usize) -> String {
 fn token_write() -> Result<(), String> {
     keychain::put(KEY_ACCESS, ACCESS_VALUE)?;
     keychain::put(KEY_REFRESH, REFRESH_VALUE)?;
-    keychain::put(KEY_USER, USER_VALUE)?;
-    println!("已写入三项凭据");
+    println!("已写入两项凭据");
     Ok(())
 }
 
 fn token_verify() -> Result<(), String> {
     let access = keychain::get(KEY_ACCESS)?;
     let refresh = keychain::get(KEY_REFRESH)?;
-    let user = keychain::get(KEY_USER)?;
 
     println!("access_token: {access:?}");
     println!("refresh_token: {refresh:?}");
-    println!("user_json: {user:?}");
 
     if access.as_deref() != Some(ACCESS_VALUE) {
         return Err("access_token 与写入值不一致".into());
@@ -95,22 +90,18 @@ fn token_verify() -> Result<(), String> {
     if refresh.as_deref() != Some(REFRESH_VALUE) {
         return Err("refresh_token 与写入值不一致".into());
     }
-    if user.as_deref() != Some(USER_VALUE) {
-        return Err("user_json 与写入值不一致".into());
-    }
-    println!("三项凭据与写入值一致");
+    println!("两项凭据与写入值一致");
     Ok(())
 }
 
 fn token_clear() -> Result<(), String> {
     keychain::remove(KEY_ACCESS)?;
     keychain::remove(KEY_REFRESH)?;
-    keychain::remove(KEY_USER)?;
 
     if keychain::get(KEY_ACCESS)?.is_some() {
         return Err("删除后仍能读到 access_token".into());
     }
-    println!("已删除三项凭据，且确认读不到了");
+    println!("已删除两项凭据，且确认读不到了");
     Ok(())
 }
 

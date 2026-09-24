@@ -9,6 +9,9 @@
 //! 密码经 `-w` 传参。这个形式下密码会出现在进程参数里，同一台机器上的同一用户
 //! 通过 `ps` 可以看到；交互式提示那一形式要求把密码重复输入两次，在非交互环境
 //! 里不可靠。
+//!
+//! 只存访问令牌与刷新令牌，两者都是 ASCII。`security -w` 对含非 ASCII 字节的值
+//! 会以十六进制输出，用户名这类内容因此不放这里，需要时从接口取。
 
 use std::process::{Command, Stdio};
 
@@ -18,7 +21,6 @@ const ERR_SEC_ITEM_NOT_FOUND: i32 = 44;
 
 pub const KEY_ACCESS: &str = "access_token";
 pub const KEY_REFRESH: &str = "refresh_token";
-pub const KEY_USER: &str = "user_json";
 
 fn account() -> String {
     std::env::var("USER").unwrap_or_else(|_| "pixiv".to_string())
