@@ -70,9 +70,12 @@ jobs:
 
   # 生成提交用默认令牌推送，那次推送不会再触发其他工作流，
   # 因此在这里直接跑一遍核心检查，避免生成产物处于未验证状态。
+  # 检出分支的最新提交，否则检查到的是生成之前的代码。
   verify:
     needs: generate
     uses: ./.github/workflows/core-check.yml
+    with:
+      ref: rust-flutter
 
   # 桥接签名变化会直接影响 Dart 侧能否编译，因此正式包也要在这里构建一次。
   build:

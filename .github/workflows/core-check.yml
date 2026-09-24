@@ -9,12 +9,21 @@ name: Core check
 
 on:
   workflow_call:
+    inputs:
+      # 指定要检查的提交。生成工作流在推送新提交之后调用这里，
+      # 若用默认检出（触发提交）会检查到生成之前的代码。
+      ref:
+        type: string
+        required: false
+        default: ''
 
 jobs:
   core:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
