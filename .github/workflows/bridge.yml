@@ -1,0 +1,95 @@
+name: Bridge
+
+# 一次性引导任务：在云端生成一个官方的 native-assets 参考工程，
+# 把钩子与集成文件作为产物取回，供本仓库按同样方式接入。
+# 同时尝试对本仓库执行 integrate 并把结果打印出来。
+#
+# 用 push 触发而非 workflow_dispatch：手动触发要求工作流先存在于默认分支。
+
+on:
+  push:
+    branches: [rust-flutter]
+    paths:
+      - '.github/workflows/bridge.yml'
+
+jobs:
+  reference:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-flutter
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+
+      # 代码生成器需要 cargo expand，而展开依赖 nightly 工具链。
+      - name: Setup Rust toolchains
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: Install cargo-expand
+        run: cargo install cargo-expand --locked
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+
+      - name: Show codegen version
+        run: flutter_rust_bridge_codegen --version
+
+      - name: Create reference project with native-assets backend
+        run: |
+          set -euo pipefail
+          mkdir -p ref
+          cd ref
+          flutter_rust_bridge_codegen create ref_app --integration-backend native-assets
+
+      - name: Generate bridge inside the reference project
+        working-directory: ref/ref_app
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Print reference integration files
+        working-directory: ref/ref_app
+        run: |
+          set -euo pipefail
+          for f in hook/build.dart flutter_rust_bridge.yaml pubspec.yaml rust/Cargo.toml rust-toolchain.toml rust/src/lib.rs; do
+            echo "========== $f =========="
+            cat "$f" 2>/dev/null || echo "(不存在)"
+          done
+          echo "========== rust/src/api 目录 =========="
+          find rust/src -type f | sort
+          echo "========== 顶层文件 =========="
+          find . -maxdepth 1 -not -name '.' | sort
+
+      - name: Try integrating into this repository
+        continue-on-error: true
+        run: |
+          flutter_rust_bridge_codegen integrate --integration-backend native-assets 2>&1 | tail -40
+
+      - name: Show repository changes after integrate
+        run: |
+          git status --short
+          echo "----- 新增文件内容 -----"
+          for f in hook/build.dart flutter_rust_bridge.yaml; do
+            echo "========== $f =========="
+            cat "$f" 2>/dev/null || echo "(不存在)"
+          done
+
+      - name: Upload reference project integration files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-assets-reference
+          path: |
+            ref/ref_app/hook/**
+            ref/ref_app/flutter_rust_bridge.yaml
+            ref/ref_app/pubspec.yaml
+            ref/ref_app/rust/Cargo.toml
+            ref/ref_app/rust-toolchain.toml
+            ref/ref_app/rust/src/**
+          if-no-files-found: warn
