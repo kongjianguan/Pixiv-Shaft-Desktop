@@ -63,33 +63,45 @@ pub fn api_headers(access_token: Option<&str>) -> HeaderMap {
     headers
 }
 
-/// 带签名头发起一次 GET，返回原始响应文本。
+/// 令牌失效时服务端返回的提示文案。与现有版本 `PixivConstants` 里的两条一致。
+const TOKEN_ERROR_1: &str = "Error occurred at the OAuth process";
+const TOKEN_ERROR_2: &str = "Invalid refresh token";
+
+fn is_token_error(body: &str) -> bool {
+    body.contains(TOKEN_ERROR_1) || body.contains(TOKEN_ERROR_2)
+}
+
+/// 带签名头发起一次 GET。令牌失效时刷新一次并重试。
 pub async fn get_with_auth(path: &str, access_token: &str) -> Result<String, String> {
-    let (_, body) = request(path, Some(access_token)).await?;
+    let (status, body) = request(path, Some(access_token)).await?;
+
+    if !(200..300).contains(&status) && is_token_error(&body) {
+        if let Some(refreshed) = crate::session::refresh_access_token(access_token).await {
+            let (retry_status, retry_body) = request(path, Some(&refreshed)).await?;
+            if !(200..300).contains(&retry_status) {
+                return Err(format!(
+                    "刷新令牌后重试仍失败：{retry_status} {retry_body}"
+                ));
+            }
+            return Ok(retry_body);
+        }
+    }
+
+    if !(200..300).contains(&status) {
+        return Err(format!("请求 {path} 返回 {status}：{body}"));
+    }
     Ok(body)
 }
 
 /// 不带凭据发起一次 GET，返回状态码与响应体。
 ///
-/// 用来验证签名头本身是否被服务端接受：签名正确时缺少凭据应得到 401，
-/// 签名有问题则会得到别的错误，两者可以区分。
+/// 用来验证签名头本身是否被服务端接受：签名正确时缺少凭据会得到带
+/// token 报错文案的响应，签名有问题则会得到别的错误，两者可以区分。
 pub async fn get_public(path: &str) -> Result<(u16, String), String> {
     request(path, None).await
 }
 
+/// 接口请求一律走 ECH 传输：国内网络下这些域名走普通 HTTPS 不通。
 async fn request(path: &str, access_token: Option<&str>) -> Result<(u16, String), String> {
-    let url = format!("{APP_API_HOST}{path}");
-    let response = reqwest::Client::new()
-        .get(&url)
-        .headers(api_headers(access_token))
-        .send()
-        .await
-        .map_err(|e| format!("请求 {url} 失败：{e}"))?;
-
-    let status = response.status().as_u16();
-    let body = response
-        .text()
-        .await
-        .map_err(|e| format!("读取 {url} 响应失败：{e}"))?;
-    Ok((status, body))
+    crate::ech::get(path, api_headers(access_token)).await
 }

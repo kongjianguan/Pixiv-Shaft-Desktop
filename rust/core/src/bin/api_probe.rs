@@ -45,7 +45,9 @@ async fn main() {
     }
 
     println!();
-    println!("===== 接口签名头 =====");
+    println!("===== ECH 传输与接口签名头 =====");
+    // 这一步同时验证两件事：ECH 握手是否成功（失败会走到下面的请求失败分支），
+    // 以及签名头是否被服务端接受。
     match pixiv_core::api_client::get_public(
         "/v1/illust/recommended?include_ranking_illusts=false&filter=for_ios",
     )
