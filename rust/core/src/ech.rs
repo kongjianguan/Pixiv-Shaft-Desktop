@@ -123,23 +123,94 @@ async fn build_client(ech_config: &[u8]) -> Result<reqwest::Client, String> {
         .map_err(|e| format!("构建 ECH 客户端失败：{e}"))
 }
 
-/// 用 ECH 客户端发起一次 GET，返回状态码与响应体。
+/// 发起一次 GET。
+///
+/// ECH 被服务端拒绝属于正常情况：配置会轮换，边缘节点上可能已经失效。
+/// 规范要求此时去掉 ECH 重试，因此这里先试 ECH，被拒后改用普通 TLS 再试一次。
 pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
-    let client = client().await?;
     let url = format!("https://app-api.pixiv.net{path}");
+
+    let client = client().await?;
+    match send(&client, &url, headers.clone()).await {
+        Ok(result) => Ok(result),
+        Err(failure) if failure.ech_rejected => {
+            eprintln!("ECH 被服务端拒绝，改用普通 TLS 重试");
+            let plain = plain_client()?;
+            let (status, body) = send(&plain, &url, headers)
+                .await
+                .map_err(|e| format!("去掉 ECH 重试仍失败：{}", e.message))?;
+            Ok((status, body))
+        }
+        Err(failure) => Err(format!("ECH 请求 {url} 失败：{}", failure.message)),
+    }
+}
+
+struct Failure {
+    message: String,
+    ech_rejected: bool,
+}
+
+async fn send(
+    client: &reqwest::Client,
+    url: &str,
+    headers: HeaderMap,
+) -> Result<(u16, String), Failure> {
     let response = client
-        .get(&url)
+        .get(url)
         .headers(headers)
         .send()
         .await
-        .map_err(|e| format!("ECH 请求 {url} 失败：{}", describe(&e)))?;
+        .map_err(|e| Failure {
+            ech_rejected: is_ech_rejection(&e),
+            message: describe(&e),
+        })?;
 
     let status = response.status().as_u16();
-    let body = response
-        .text()
-        .await
-        .map_err(|e| format!("读取 {url} 响应失败：{}", describe(&e)))?;
+    let body = response.text().await.map_err(|e| Failure {
+        ech_rejected: false,
+        message: describe(&e),
+    })?;
     Ok((status, body))
+}
+
+/// 判断失败是否来自「服务端拒绝了 ECH」。
+fn is_ech_rejection(error: &reqwest::Error) -> bool {
+    let mut source: Option<&(dyn std::error::Error + 'static)> = Some(error);
+    while let Some(current) = source {
+        if current.to_string().contains("ServerRejectedEncryptedClientHello") {
+            return true;
+        }
+        source = current.source();
+    }
+    false
+}
+
+fn plain_client() -> Result<reqwest::Client, String> {
+    let mut roots = rustls::RootCertStore::empty();
+    roots.add_parsable_certificates(webpki_root_certs::TLS_SERVER_ROOT_CERTS.to_vec());
+    let tls = rustls::ClientConfig::builder_with_provider(Arc::new(
+        rustls::crypto::aws_lc_rs::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .map_err(|e| format!("普通 TLS 协议版本装配失败：{e}"))?
+    .with_root_certificates(roots)
+    .with_no_client_auth();
+
+    let mut builder = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(20))
+        .tls_backend_preconfigured(tls);
+    for host in PIXIV_HOSTS {
+        for ip in ECH_IPS {
+            let address: SocketAddr = format!("{ip}:443")
+                .parse()
+                .map_err(|e| format!("任播地址 {ip} 不合法：{e}"))?;
+            builder = builder.resolve(host, address);
+        }
+    }
+    builder
+        .build()
+        .map_err(|e| format!("构建普通 TLS 客户端失败：{e}"))
 }
 
 /// 把错误连同底层原因一起展开。只看最外层信息时无法判断是握手被拒、
