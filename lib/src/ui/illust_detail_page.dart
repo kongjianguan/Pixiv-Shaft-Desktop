@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/rust/api/store.dart';
+import 'package:pixiv_shaft/src/ui/comments_section.dart';
 import 'package:pixiv_shaft/src/ui/user_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
@@ -193,6 +194,8 @@ class _IllustDetailPageState extends State<IllustDetailPage> {
                 Text('相关作品', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 _RelatedStrip(illustId: detail.id),
+                const SizedBox(height: 24),
+                CommentsSection(illustId: detail.id),
               ],
             ),
           ),

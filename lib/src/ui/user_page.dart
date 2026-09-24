@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/rust/api/user.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
+import 'package:pixiv_shaft/src/ui/user_list_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
 
@@ -106,6 +107,16 @@ class _UserPageState extends State<UserPage> {
                   FilledButton.tonal(
                     onPressed: _working ? null : _toggleFollow,
                     child: Text(_following ? '已关注' : '关注'),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => UserListScreen(userId: widget.userId),
+                      ),
+                    ),
+                    icon: const Icon(Icons.people_outline),
+                    tooltip: '关注的人与粉丝',
                   ),
                 ],
               ),

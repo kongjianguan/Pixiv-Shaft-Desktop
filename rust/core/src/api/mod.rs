@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod comment;
 pub mod illust;
 pub mod image;
 pub mod store;
