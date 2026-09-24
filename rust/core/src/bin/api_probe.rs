@@ -45,31 +45,44 @@ async fn main() {
     }
 
     println!();
-    println!("===== ECH 传输与接口签名头 =====");
-    // 这一步同时验证两件事：ECH 握手是否成功（失败会走到下面的请求失败分支），
-    // 以及签名头是否被服务端接受。
-    match pixiv_core::api_client::get_public(
-        "/v1/illust/recommended?include_ranking_illusts=false&filter=for_ios",
-    )
-    .await
-    {
-        Ok((status, body)) => {
-            let snippet: String = body.chars().take(200).collect();
-            println!("状态码: {status}");
-            println!("响应片段: {snippet}");
-            // 签名头被接受时，缺凭据表现为 Pixiv 的 OAuth 报错（400 或 401）。
-            // 签名本身有问题会得到别的错误，因此用这条已知文案作为判据。
-            let missing_credentials = body.contains("OAuth process") || status == 401;
-            if missing_credentials {
-                println!("签名头被接受，服务端只是在提示缺少凭据");
-            } else {
-                eprintln!("签名头可能有问题：既非 401，也没有出现缺少凭据的提示");
+    println!("===== ECH 传输、签名头与接口路径 =====");
+    // 这一步同时验证三件事：ECH 握手是否成功（失败会走到请求失败分支）、
+    // 签名头是否被接受、以及接口路径是否存在。
+    // 路径写错时 Pixiv 返回 404，与「缺少凭据」的文案可以区分。
+    for (label, path) in [
+        (
+            "推荐",
+            "/v1/illust/recommended?include_ranking_illusts=false&include_privacy_policy=true&filter=for_ios",
+        ),
+        (
+            "搜索",
+            "/v1/search/illust?word=%E5%88%9D%E9%9F%B3&sort=date_desc&search_target=partial_match_for_tags&merge_plain_keyword_results=true&include_translated_tag_results=true&search_ai_type=0&filter=for_ios",
+        ),
+        (
+            "收藏",
+            "/v1/user/bookmarks/illust?filter=for_ios&restrict=public",
+        ),
+    ] {
+        match pixiv_core::api_client::get_public(path).await {
+            Ok((status, body)) => {
+                let snippet: String = body.chars().take(120).collect();
+                let missing_credentials = body.contains("OAuth process") || status == 401;
+                let not_found = status == 404;
+                println!("{label}: 状态码 {status}");
+                if not_found {
+                    eprintln!("  {label} 返回 404，接口路径可能写错");
+                    failed = true;
+                } else if missing_credentials {
+                    println!("  路径有效、签名被接受，服务端只是在提示缺少凭据");
+                } else {
+                    eprintln!("  既非 404 也没有出现缺少凭据的提示：{snippet}");
+                    failed = true;
+                }
+            }
+            Err(error) => {
+                eprintln!("{label}: 请求失败 {error}");
                 failed = true;
             }
-        }
-        Err(error) => {
-            eprintln!("请求失败: {error}");
-            failed = true;
         }
     }
 
