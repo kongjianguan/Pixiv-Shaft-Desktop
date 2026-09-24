@@ -51,6 +51,20 @@ jobs:
           set -o pipefail
           cargo run --release --locked --bin api_probe 2>&1 | tee api-probe-output.txt
 
+      # 无人应答的会话里，钥匙串访问会一直等待授权提示。这里先建一个已解锁的
+      # 专用钥匙串并设为默认，让验证过程无需人工应答。用的是真实的钥匙串，
+      # 只是换了一个而已。
+      - name: Prepare an unlocked keychain for verification
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/probe.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          security show-keychain-info "$KEYCHAIN"
+
       # 验证登录凭据与下载队列跨进程保留。脚本里每个调用都带超时，
       # 避免钥匙串访问在无人应答的会话里一直阻塞。
       - name: Verify credentials and download queue survive a restart
