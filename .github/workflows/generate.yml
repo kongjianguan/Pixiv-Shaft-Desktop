@@ -1,0 +1,69 @@
+name: Generate bridge
+
+# 代码生成在云端完成，本机不安装 Flutter 与代码生成器。
+# 生成产物提交进仓库：改动接口或配置后此工作流重新生成并提交，
+# 避免出现「改了 Rust 接口却忘了重新生成」的漂移。
+
+on:
+  push:
+    branches: [rust-flutter]
+    paths:
+      - 'rust/core/src/api/**'
+      - 'flutter_rust_bridge.yaml'
+      - '.github/workflows/generate.yml'
+
+jobs:
+  generate:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-flutter
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+
+      # 代码生成器依赖 cargo expand，而展开需要 nightly 工具链。
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/core
+
+      - name: Install cargo-expand
+        run: cargo install cargo-expand --locked
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+
+      - name: Resolve Dart dependencies
+        run: flutter pub get
+
+      - name: Generate bridge
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Show generated files
+        run: |
+          git status --short
+          find lib/src/rust -type f | sort
+
+      - name: Commit generated files
+        run: |
+          set -euo pipefail
+          git config user.name "kongjianguan"
+          git config user.email "103617573+kongjianguan@users.noreply.github.com"
+          git add lib/src rust/core/src/frb_generated.rs pubspec.lock
+          if git diff --cached --quiet; then
+            echo "生成产物无变化"
+          else
+            git commit -m "chore(bridge): regenerate flutter_rust_bridge artifacts"
+            git push origin HEAD:rust-flutter
+          fi
