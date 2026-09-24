@@ -8,6 +8,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 struct NovelListResponse {
     novels: Option<Vec<RawNovel>>,
+    next_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -72,6 +73,13 @@ struct RawSeries {
     title: Option<String>,
 }
 
+/// 带游标的小说列表。
+pub struct NovelPage {
+    pub novels: Vec<NovelSummary>,
+    /// 下一页游标，为空表示没有更多。
+    pub next_url: String,
+}
+
 /// 小说在列表与详情里所需的信息。
 pub struct NovelSummary {
     pub id: i64,
@@ -116,6 +124,36 @@ pub async fn fetch_novel_detail(novel_id: i64) -> Result<NovelSummary, String> {
 /// 推荐小说。
 pub async fn fetch_recommended_novels() -> Result<Vec<NovelSummary>, String> {
     fetch_list("/v1/novel/recommended?include_privacy_policy=true&filter=for_ios").await
+}
+
+/// 关注动态里的小说。
+pub async fn fetch_follow_novels(restrict: String) -> Result<NovelPage, String> {
+    fetch_novel_page(&format!(
+        "/v1/novel/follow?restrict={}",
+        crate::api_client::encode_component(&restrict)
+    ))
+    .await
+}
+
+/// 按游标取下一页小说列表。
+pub async fn fetch_next_novel_page(next_url: String) -> Result<NovelPage, String> {
+    fetch_novel_page(&crate::api::comment::path_of(&next_url)).await
+}
+
+/// 带游标的小说列表。
+pub async fn fetch_novel_page(path: &str) -> Result<NovelPage, String> {
+    let text = crate::api_client::get_authed(path).await?;
+    let parsed: NovelListResponse =
+        serde_json::from_str(&text).map_err(|e| format!("解析小说列表失败：{e}"))?;
+    Ok(NovelPage {
+        novels: parsed
+            .novels
+            .unwrap_or_default()
+            .into_iter()
+            .map(convert)
+            .collect(),
+        next_url: parsed.next_url.unwrap_or_default(),
+    })
 }
 
 /// 自己收藏的小说。

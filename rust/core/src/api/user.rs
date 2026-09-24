@@ -202,6 +202,11 @@ pub async fn fetch_mypixiv_users(user_id: i64) -> Result<UserListPage, String> {
     fetch_user_list(&format!("/v1/user/mypixiv?user_id={user_id}")).await
 }
 
+/// 推荐用户货架。
+pub async fn fetch_recommended_users() -> Result<UserListPage, String> {
+    fetch_user_list("/v1/user/recommended?filter=for_ios").await
+}
+
 /// 按游标取下一页用户列表。
 pub async fn fetch_next_users(next_url: String) -> Result<UserListPage, String> {
     fetch_user_list(&crate::api::comment::path_of(&next_url)).await

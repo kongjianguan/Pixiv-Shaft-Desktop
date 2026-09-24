@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pixiv_shaft/src/ui/dynamic_page.dart';
 import 'package:pixiv_shaft/src/ui/feed_pages.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
 import 'package:pixiv_shaft/src/ui/search_profile_pages.dart';
@@ -43,6 +44,11 @@ class _HomeShellState extends State<HomeShell> {
                 label: Text('搜索'),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.people_alt_outlined),
+                selectedIcon: Icon(Icons.people_alt),
+                label: Text('动态'),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.person_outline),
                 selectedIcon: Icon(Icons.person),
                 label: Text('我的'),
@@ -64,6 +70,8 @@ class _HomeShellState extends State<HomeShell> {
         return const RankingPage();
       case 2:
         return const SearchPage();
+      case 3:
+        return const DynamicPage();
       default:
         return ProfilePage(onLoggedOut: _afterLogout);
     }

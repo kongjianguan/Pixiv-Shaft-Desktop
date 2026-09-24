@@ -8,6 +8,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 struct IllustListResponse {
     illusts: Vec<RawIllust>,
+    next_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -61,6 +62,13 @@ struct RawMetaPage {
 #[derive(Deserialize)]
 struct RawMetaSinglePage {
     original_image_url: Option<String>,
+}
+
+/// 带游标的插画列表。
+pub struct IllustPage {
+    pub illusts: Vec<IllustSummary>,
+    /// 下一页游标，为空表示没有更多。
+    pub next_url: String,
 }
 
 /// 列表里一张作品卡片所需的信息。
@@ -126,6 +134,36 @@ pub async fn fetch_ranking(mode: String) -> Result<Vec<IllustSummary>, String> {
 /// 取回相关作品。
 pub async fn fetch_related_illusts(illust_id: i64) -> Result<Vec<IllustSummary>, String> {
     fetch_illusts(&format!("/v2/illust/related?illust_id={illust_id}")).await
+}
+
+/// 关注动态里的插画。`restrict` 取 `public` 或 `private`。
+pub async fn fetch_follow_illusts(restrict: String) -> Result<IllustPage, String> {
+    fetch_illust_page(&format!(
+        "/v2/illust/follow?restrict={}",
+        encode_query(&restrict)
+    ))
+    .await
+}
+
+/// 好P友的作品流。
+pub async fn fetch_nice_friend_illusts() -> Result<IllustPage, String> {
+    fetch_illust_page("/v2/illust/mypixiv").await
+}
+
+/// 按游标取下一页插画列表。
+pub async fn fetch_next_illust_page(next_url: String) -> Result<IllustPage, String> {
+    fetch_illust_page(&crate::api::comment::path_of(&next_url)).await
+}
+
+/// 带游标的插画列表。
+pub async fn fetch_illust_page(path: &str) -> Result<IllustPage, String> {
+    let text = crate::api_client::get_authed(path).await?;
+    let parsed: IllustListResponse =
+        serde_json::from_str(&text).map_err(|e| format!("解析作品列表失败：{e}"))?;
+    Ok(IllustPage {
+        illusts: parsed.illusts.into_iter().map(summarize).collect(),
+        next_url: parsed.next_url.unwrap_or_default(),
+    })
 }
 
 /// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
