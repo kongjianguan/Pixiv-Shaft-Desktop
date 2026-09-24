@@ -9,10 +9,12 @@ pub mod auth;
 pub mod db;
 pub mod download;
 pub mod ech;
+pub mod history;
 pub mod image;
 pub mod keychain;
 pub mod quic;
 pub mod session;
+pub mod settings;
 pub mod tls;
 
 mod frb_generated;

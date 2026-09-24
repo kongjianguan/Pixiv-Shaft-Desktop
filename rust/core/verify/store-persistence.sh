@@ -87,5 +87,39 @@ probe token-clear
 step "另起进程确认队列已空"
 probe list
 
+step "写入设置（进程一）"
+probe setting-write workFeedMaxColumns 6
+probe setting-write isShowR18 true
+
+step "另起进程确认设置仍在"
+probe setting-expect workFeedMaxColumns 6
+probe setting-expect isShowR18 true
+
+step "未改过的设置读出默认值"
+probe setting-expect workTitleMaxLines 1
+
+step "重置回默认值"
+probe setting-reset workFeedMaxColumns
+probe setting-expect workFeedMaxColumns 4
+
+step "记录浏览（进程一）"
+probe browse-write illust 142389693
+
+step "另起进程确认浏览记录仍在"
+probe browse-expect illust 142389693 present
+
+step "同一个关键词搜两次，只留一条"
+probe search-write 初音ミク
+probe search-write 初音ミク
+probe search-expect 1
+
+step "另起进程确认搜索记录仍在"
+probe search-expect 1
+
+step "清理历史"
+probe clear-history
+probe browse-expect illust 142389693 absent
+probe search-expect 0
+
 echo
-echo "全部通过：凭据与队列跨进程保留，下载产物已落盘。"
+echo "全部通过：凭据、队列、设置与历史跨进程保留，下载产物已落盘。"

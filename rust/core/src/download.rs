@@ -7,7 +7,6 @@
 //! 被中断，留在 `DOWNLOADING` 会让它们永远不再被处理。
 
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
@@ -35,18 +34,8 @@ pub struct DownloadTask {
     pub error_message: Option<String>,
 }
 
-fn holder() -> &'static Mutex<Connection> {
-    static DB: OnceLock<Mutex<Connection>> = OnceLock::new();
-    DB.get_or_init(|| {
-        Mutex::new(crate::db::open().expect("打开数据库失败，无法继续"))
-    })
-}
-
 fn with_db<T>(action: impl FnOnce(&Connection) -> Result<T, String>) -> Result<T, String> {
-    let guard = holder()
-        .lock()
-        .map_err(|_| "数据库互斥量已损坏".to_string())?;
-    action(&guard)
+    crate::db::with_connection(action)
 }
 
 fn now() -> i64 {

@@ -51,6 +51,14 @@ async fn main() {
         "download" => download_pending().await,
         "list" => list_tasks(),
         "clear-queue" => clear_queue(),
+        "setting-write" => setting_write(&argument(2), &argument(3)),
+        "setting-expect" => setting_expect(&argument(2), &argument(3)),
+        "setting-reset" => setting_reset(&argument(2)),
+        "browse-write" => browse_write(&argument(2), &argument(3)),
+        "browse-expect" => browse_expect(&argument(2), &argument(3), &argument(4)),
+        "search-write" => search_write(&argument(2)),
+        "search-expect" => search_expect(&argument(2)),
+        "clear-history" => clear_history(),
         other => {
             eprintln!("未知子命令：{other}");
             std::process::exit(2);
@@ -163,5 +171,77 @@ fn clear_queue() -> Result<(), String> {
         download::remove(&task.id)?;
     }
     println!("已清空 {count} 条任务");
+    Ok(())
+}
+
+fn setting_write(key: &str, value: &str) -> Result<(), String> {
+    pixiv_core::settings::put(key, value)?;
+    println!("已写入设置 {key} = {value}");
+    Ok(())
+}
+
+fn setting_expect(key: &str, expected: &str) -> Result<(), String> {
+    let actual = pixiv_core::settings::get(key)?;
+    println!("设置 {key} 当前值：{actual:?}");
+    match actual.as_deref() {
+        Some(value) if value == expected => Ok(()),
+        other => Err(format!("设置 {key} 期望 {expected}，实际 {other:?}")),
+    }
+}
+
+fn setting_reset(key: &str) -> Result<(), String> {
+    pixiv_core::settings::reset(key)?;
+    println!("已重置设置 {key}");
+    Ok(())
+}
+
+fn browse_write(content_type: &str, target_id: &str) -> Result<(), String> {
+    let id: i64 = target_id
+        .parse()
+        .map_err(|e| format!("目标 id {target_id} 不是整数：{e}"))?;
+    pixiv_core::history::record_browse(content_type, id, r#"{"title":"验证用"}"#)?;
+    println!("已记录浏览 {content_type}/{id}");
+    Ok(())
+}
+
+fn browse_expect(content_type: &str, target_id: &str, expected: &str) -> Result<(), String> {
+    let id: i64 = target_id
+        .parse()
+        .map_err(|e| format!("目标 id {target_id} 不是整数：{e}"))?;
+    let entries = pixiv_core::history::list_browse(content_type, 100, 0)?;
+    let found = entries.iter().any(|entry| entry.target_id == id);
+    println!("浏览记录条数：{}，是否含 {id}：{found}", entries.len());
+    if found != (expected == "present") {
+        return Err(format!("期望 {expected}，实际 {}",
+            if found { "present" } else { "absent" }));
+    }
+    Ok(())
+}
+
+fn search_write(keyword: &str) -> Result<(), String> {
+    pixiv_core::history::record_search(keyword, 0)?;
+    println!("已记录搜索 {keyword}");
+    Ok(())
+}
+
+fn search_expect(expected_count: &str) -> Result<(), String> {
+    let expected: usize = expected_count
+        .parse()
+        .map_err(|e| format!("条数 {expected_count} 不是整数：{e}"))?;
+    let entries = pixiv_core::history::list_searches(50)?;
+    println!("搜索记录条数：{}", entries.len());
+    for entry in &entries {
+        println!("  {} pinned={}", entry.keyword, entry.pinned);
+    }
+    if entries.len() != expected {
+        return Err(format!("期望 {expected} 条，实际 {} 条", entries.len()));
+    }
+    Ok(())
+}
+
+fn clear_history() -> Result<(), String> {
+    pixiv_core::history::clear_browse()?;
+    pixiv_core::history::clear_searches()?;
+    println!("已清空浏览记录与搜索记录");
     Ok(())
 }

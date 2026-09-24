@@ -4,7 +4,7 @@
 //! 表结构也沿用现有版本，因此现有版本的下载队列与浏览记录在新版本里直接可用。
 
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use rusqlite::Connection;
 
@@ -39,8 +39,23 @@ pub fn open() -> Result<Connection, String> {
     Ok(connection)
 }
 
-fn create_schema(connection: &Connection) -> Result<(), String> {
-    connection
+/// 进程内共用的数据库连接。
+fn holder() -> &'static Mutex<Connection> {
+    static HOLDER: OnceLock<Mutex<Connection>> = OnceLock::new();
+    HOLDER.get_or_init(|| Mutex::new(open().expect("打开数据库失败，无法继续")))
+}
+
+/// 在共用的连接上执行一段操作。
+pub fn with_connection<T>(
+    action: impl FnOnce(&Connection) -> Result<T, String>,
+) -> Result<T, String> {
+    let guard = holder()
+        .lock()
+        .map_err(|_| "数据库互斥量已损坏".to_string())?;
+    action(&guard)
+}
+
+fn create_schema(connection: &Connection) -> Result<(), String> {    connection
         .execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS download_queue (
@@ -62,6 +77,28 @@ fn create_schema(connection: &Connection) -> Result<(), String> {
                 reDownload INTEGER NOT NULL DEFAULT 0,
                 createdAt INTEGER NOT NULL,
                 updatedAt INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT NOT NULL PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS browse_history (
+                contentType TEXT NOT NULL,
+                targetId INTEGER NOT NULL,
+                payloadJson TEXT NOT NULL,
+                viewedAt INTEGER NOT NULL,
+                PRIMARY KEY (contentType, targetId)
+            );
+
+            CREATE TABLE IF NOT EXISTS search_table (
+                id INTEGER NOT NULL PRIMARY KEY,
+                keyword TEXT NOT NULL,
+                searchTime INTEGER NOT NULL,
+                searchType INTEGER NOT NULL,
+                pinned INTEGER NOT NULL DEFAULT 0,
+                previewIllustsJson TEXT
             );
             "#,
         )
