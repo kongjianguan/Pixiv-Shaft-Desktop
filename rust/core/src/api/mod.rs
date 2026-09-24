@@ -1,3 +1,5 @@
+pub mod auth;
+pub mod illust;
 pub mod image;
 
 /// 桥接层初始化。框架要求提供一个带 `init` 标记的函数来装配默认工具。

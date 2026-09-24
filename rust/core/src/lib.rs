@@ -4,7 +4,10 @@
 //! 通过 Flutter 的构建钩子编译成静态库链进应用。
 
 pub mod api;
+pub mod api_client;
+pub mod auth;
 pub mod image;
+pub mod session;
 pub mod tls;
 
 mod frb_generated;
