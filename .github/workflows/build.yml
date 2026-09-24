@@ -26,6 +26,7 @@ on:
       - 'pubspec.lock'
       - 'flutter_rust_bridge.yaml'
       - '.github/workflows/build.yml'
+  workflow_dispatch:
 
 jobs:
   macos:
