@@ -132,12 +132,24 @@ pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String
         .headers(headers)
         .send()
         .await
-        .map_err(|e| format!("ECH 请求 {url} 失败：{e}"))?;
+        .map_err(|e| format!("ECH 请求 {url} 失败：{}", describe(&e)))?;
 
     let status = response.status().as_u16();
     let body = response
         .text()
         .await
-        .map_err(|e| format!("读取 {url} 响应失败：{e}"))?;
+        .map_err(|e| format!("读取 {url} 响应失败：{}", describe(&e)))?;
     Ok((status, body))
+}
+
+/// 把错误连同底层原因一起展开。只看最外层信息时无法判断是握手被拒、
+/// 配置不匹配还是网络不通，定位问题需要看到具体那一层。
+fn describe(error: &reqwest::Error) -> String {
+    let mut parts = vec![error.to_string()];
+    let mut source: Option<&(dyn std::error::Error + 'static)> = std::error::Error::source(error);
+    while let Some(current) = source {
+        parts.push(current.to_string());
+        source = current.source();
+    }
+    parts.join(" → ")
 }
