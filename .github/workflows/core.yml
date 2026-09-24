@@ -65,14 +65,6 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN"
           security show-keychain-info "$KEYCHAIN"
 
-      # 临时诊断：命令行方式在同样环境下能否读写钥匙串。
-      - name: Diagnose keychain access
-        run: |
-          set -x
-          perl -e 'alarm 30; exec @ARGV' security add-generic-password -a "$USER" -s "PixivShaftCI:probe" -w "value" -U || echo "CLI 写入失败 $?"
-          perl -e 'alarm 30; exec @ARGV' security find-generic-password -a "$USER" -s "PixivShaftCI:probe" -w || echo "CLI 读取失败 $?"
-          perl -e 'alarm 30; exec @ARGV' security delete-generic-password -a "$USER" -s "PixivShaftCI:probe" || echo "CLI 删除失败 $?"
-
       # 验证登录凭据与下载队列跨进程保留。脚本里每个调用都带超时，
       # 避免钥匙串访问在无人应答的会话里一直阻塞。
       - name: Verify credentials and download queue survive a restart

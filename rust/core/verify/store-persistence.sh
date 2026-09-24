@@ -3,10 +3,14 @@
 # 验证登录凭据与下载队列在进程重启后仍然保留。
 #
 # 每一步都是独立进程，所以验证的是真正的持久化，而不是同一进程里读写一遍。
-# 数据库与下载产物都落在脚本自己创建的目录里（通过 HOME 隔离），
+# 数据库与下载产物落在脚本自己创建的目录里（验证程序把数据库指到当前目录），
 # 钥匙串用带 probe_ 前缀的键名，不会动到真实登录态。
 #
-# 每个调用都带超时：某些环境里钥匙串访问会一直阻塞，没有超时会让整个任务挂住。
+# 不覆盖 HOME：默认钥匙串的位置由家目录决定，把 HOME 指到空目录会让 security
+# 去那里新建默认钥匙串，从而一直卡住。
+#
+# 每个调用都带超时：钥匙串访问在无人应答的会话里可能一直阻塞，没有超时会让
+# 整个任务挂住。
 #
 # 用法： verify/store-persistence.sh [store_probe 的路径]
 
@@ -15,6 +19,7 @@ set -euo pipefail
 CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BINARY="${1:-$CORE_DIR/target/release/store_probe}"
 WORK="$CORE_DIR/.store-probe"
+RUN="$WORK/run"
 
 if [[ ! -x "$BINARY" ]]; then
   echo "找不到可执行的验证程序：$BINARY" >&2
@@ -42,9 +47,7 @@ expect_file() {
 }
 
 rm -rf "$WORK"
-mkdir -p "$WORK/home" "$WORK/run"
-export HOME="$WORK/home"
-RUN="$WORK/run"
+mkdir -p "$RUN"
 
 probe() {
   (cd "$RUN" && with_timeout 60 "$BINARY" "$@")

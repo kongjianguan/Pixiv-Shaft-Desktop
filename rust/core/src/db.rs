@@ -4,13 +4,25 @@
 //! 表结构也沿用现有版本，因此现有版本的下载队列与浏览记录在新版本里直接可用。
 
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use rusqlite::Connection;
 
 /// 相对于用户主目录的数据库路径。
 const DB_RELATIVE_PATH: &str = "Library/Application Support/PixivShaft/shaft.db";
 
+static DB_PATH: OnceLock<PathBuf> = OnceLock::new();
+
+/// 指定数据库文件位置。验证程序用它把数据写到隔离的目录里；
+/// 应用本身不调用，走下面的默认位置。
+pub fn use_database(path: PathBuf) {
+    let _ = DB_PATH.set(path);
+}
+
 pub fn database_path() -> Result<PathBuf, String> {
+    if let Some(path) = DB_PATH.get() {
+        return Ok(path.clone());
+    }
     let home = std::env::var("HOME").map_err(|_| "取不到 HOME 环境变量".to_string())?;
     Ok(PathBuf::from(home).join(DB_RELATIVE_PATH))
 }

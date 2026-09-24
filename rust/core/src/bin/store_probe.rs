@@ -18,8 +18,13 @@
 //! store_probe clear-queue
 //! ```
 
+use std::path::PathBuf;
+
 use pixiv_core::download;
 use pixiv_core::keychain;
+
+/// 数据库落在当前目录下，不去碰真实的应用数据。
+const PROBE_DATABASE: &str = "probe.db";
 
 const KEY_ACCESS: &str = "probe_access_token";
 const KEY_REFRESH: &str = "probe_refresh_token";
@@ -34,6 +39,8 @@ const DOWNLOAD_DIR: &str = "probe-downloads";
 
 #[tokio::main]
 async fn main() {
+    pixiv_core::db::use_database(PathBuf::from(PROBE_DATABASE));
+
     let command = std::env::args().nth(1).unwrap_or_default();
     let result = match command.as_str() {
         "token-write" => token_write(),
