@@ -2,6 +2,7 @@ pub mod auth;
 pub mod comment;
 pub mod illust;
 pub mod image;
+pub mod novel;
 pub mod store;
 pub mod user;
 

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
+import 'package:pixiv_shaft/src/ui/novel_pages.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 
-/// 推荐：接口返回的一组插画。
+/// 推荐：插画与小说两栏。
 class RecommendedPage extends StatefulWidget {
   const RecommendedPage({super.key});
 
@@ -11,8 +12,16 @@ class RecommendedPage extends StatefulWidget {
   State<RecommendedPage> createState() => _RecommendedPageState();
 }
 
-class _RecommendedPageState extends State<RecommendedPage> {
+class _RecommendedPageState extends State<RecommendedPage>
+    with SingleTickerProviderStateMixin {
+  final TabController _tabs = TabController(length: 2, vsync: this);
   late Future<List<IllustSummary>> _illusts = fetchRecommendedIllusts();
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   void _reload() {
     setState(() => _illusts = fetchRecommendedIllusts());
@@ -20,19 +29,43 @@ class _RecommendedPageState extends State<RecommendedPage> {
 
   @override
   Widget build(BuildContext context) {
-    return _FeedScaffold(
-      title: '推荐',
-      onReload: _reload,
-      child: AsyncSection<List<IllustSummary>>(
-        future: _illusts,
-        onRetry: _reload,
-        errorLabel: '加载推荐失败',
-        builder: (context, illusts) => IllustGrid(
-          illusts: illusts,
-          emptyLabel: '没有取到推荐作品',
-          onOpen: (illust) => _open(context, illust),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('推荐', style: Theme.of(context).textTheme.titleLarge),
+              ),
+              TabBar(
+                controller: _tabs,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: const [Tab(text: '插画'), Tab(text: '小说')],
+              ),
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              AsyncSection<List<IllustSummary>>(
+                future: _illusts,
+                onRetry: _reload,
+                errorLabel: '加载推荐失败',
+                builder: (context, illusts) => IllustGrid(
+                  illusts: illusts,
+                  emptyLabel: '没有取到推荐作品',
+                  onOpen: (illust) => _open(context, illust),
+                ),
+              ),
+              const NovelFeedPage(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

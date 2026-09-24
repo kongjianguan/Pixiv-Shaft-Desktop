@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
+import 'package:pixiv_shaft/src/rust/api/novel.dart';
 import 'package:pixiv_shaft/src/rust/api/store.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
+import 'package:pixiv_shaft/src/ui/novel_pages.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 
 /// 搜索：关键词搜索插画，未输入时展示搜索记录。
@@ -144,11 +146,23 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
+  final TabController _tabs = TabController(length: 2, vsync: this);
   late Future<List<IllustSummary>> _bookmarks = fetchBookmarkedIllusts();
+  late Future<List<NovelSummary>> _novels = fetchBookmarkedNovels();
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   void _reload() {
-    setState(() => _bookmarks = fetchBookmarkedIllusts());
+    setState(() {
+      _bookmarks = fetchBookmarkedIllusts();
+      _novels = fetchBookmarkedNovels();
+    });
   }
 
   Future<void> _logout() async {
@@ -161,38 +175,61 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
             children: [
               Expanded(
                 child: Text('我的收藏', style: Theme.of(context).textTheme.titleLarge),
               ),
-              IconButton(
-                onPressed: _reload,
-                icon: const Icon(Icons.refresh),
-                tooltip: '重新加载',
+              TabBar(
+                controller: _tabs,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: const [Tab(text: '插画'), Tab(text: '小说')],
               ),
               TextButton(onPressed: _logout, child: const Text('退出登录')),
             ],
           ),
         ),
         Expanded(
-          child: AsyncSection<List<IllustSummary>>(
-            future: _bookmarks,
-            onRetry: _reload,
-            errorLabel: '加载收藏失败',
-            builder: (context, illusts) => IllustGrid(
-              illusts: illusts,
-              emptyLabel: '还没有收藏',
-              onOpen: (illust) => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => IllustDetailPage(
-                    illustId: illust.id,
-                    initialTitle: illust.title,
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              AsyncSection<List<IllustSummary>>(
+                future: _bookmarks,
+                onRetry: _reload,
+                errorLabel: '加载收藏失败',
+                builder: (context, illusts) => IllustGrid(
+                  illusts: illusts,
+                  emptyLabel: '还没有收藏',
+                  onOpen: (illust) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => IllustDetailPage(
+                        illustId: illust.id,
+                        initialTitle: illust.title,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              AsyncSection<List<NovelSummary>>(
+                future: _novels,
+                onRetry: _reload,
+                errorLabel: '加载收藏小说失败',
+                builder: (context, novels) => NovelGrid(
+                  novels: novels,
+                  emptyLabel: '还没有收藏小说',
+                  onOpen: (novel) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => NovelDetailPage(
+                        novelId: novel.id,
+                        initialTitle: novel.title,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
