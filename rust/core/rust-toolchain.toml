@@ -1,0 +1,5 @@
+[toolchain]
+# 固定具体版本。构建钩子不接受浮动的 stable / beta / nightly 通道，
+# 否则同一份代码在不同时间会解析到不同工具链。
+channel = "1.96.0"
+targets = ["aarch64-apple-darwin"]

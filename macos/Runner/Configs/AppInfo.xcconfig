@@ -5,10 +5,11 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = pixiv_shaft
+// 与旧版本保持一致，让新版本能就地替换已安装的应用。
+PRODUCT_NAME = PixivShaft
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = ceui.pixiv.pixivShaft
+PRODUCT_BUNDLE_IDENTIFIER = ceui.pixiv.Shaft
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 ceui.pixiv. All rights reserved.

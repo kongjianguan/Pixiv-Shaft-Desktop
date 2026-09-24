@@ -2,7 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- 关闭应用沙盒。本应用经 GitHub Releases 分发 DMG，不上架 Mac App Store。
+	     沙盒会阻止三件必需的事：写入用户选择的下载目录、读取系统钥匙串里的凭据、
+	     以及开启本地 OAuth 回调服务器所需的入站连接。公证要求的是加固运行时，
+	     与应用沙盒无关。两个权限声明文件保持一致。 -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 </dict>
 </plist>
