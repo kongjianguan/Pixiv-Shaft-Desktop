@@ -148,7 +148,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
-  final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 2, vsync: this);
   late Future<List<IllustSummary>> _bookmarks = fetchBookmarkedIllusts();
   late Future<List<NovelSummary>> _novels = fetchBookmarkedNovels();
 

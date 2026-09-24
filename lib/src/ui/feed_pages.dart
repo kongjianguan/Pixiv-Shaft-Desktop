@@ -14,7 +14,7 @@ class RecommendedPage extends StatefulWidget {
 
 class _RecommendedPageState extends State<RecommendedPage>
     with SingleTickerProviderStateMixin {
-  final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 2, vsync: this);
   late Future<List<IllustSummary>> _illusts = fetchRecommendedIllusts();
 
   @override
