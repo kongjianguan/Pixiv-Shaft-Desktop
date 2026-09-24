@@ -71,7 +71,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -541121793;
+  int get rustContentHash => 1639578937;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -97,6 +97,8 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiInitApp();
 
   Future<bool> crateApiAuthIsLoggedIn();
+
+  Future<void> crateApiAuthLogout();
 
   Future<List<IllustSummary>> crateApiIllustSearchIllusts({
     required String word,
@@ -271,7 +273,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiAuthIsLoggedInConstMeta,
         argValues: [],
@@ -282,6 +284,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiAuthIsLoggedInConstMeta =>
       const TaskConstMeta(debugName: "is_logged_in", argNames: []);
+
+  @override
+  Future<void> crateApiAuthLogout() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAuthLogoutConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAuthLogoutConstMeta =>
+      const TaskConstMeta(debugName: "logout", argNames: []);
 
   @override
   Future<List<IllustSummary>> crateApiIllustSearchIllusts({
@@ -295,7 +324,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -322,7 +351,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },

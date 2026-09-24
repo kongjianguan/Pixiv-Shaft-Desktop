@@ -20,8 +20,11 @@ Future<LoginResult> completeLogin({
   codeVerifier: codeVerifier,
 );
 
-/// 当前是否已登录。
+/// 当前是否已登录。首次调用时会尝试从钥匙串恢复上次的登录态。
 Future<bool> isLoggedIn() => RustLib.instance.api.crateApiAuthIsLoggedIn();
+
+/// 退出登录，同时清掉钥匙串里的凭据。
+Future<void> logout() => RustLib.instance.api.crateApiAuthLogout();
 
 /// 一次授权会话：浏览器要打开的授权地址，以及换取 token 时要用到的 verifier。
 class AuthSession {

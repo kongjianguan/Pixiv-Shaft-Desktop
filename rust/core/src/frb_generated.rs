@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueMoi,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -541121793;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1639578937;
             
 
 // Section: executor
@@ -99,8 +99,17 @@ let api_code_verifier = <String>::sse_decode(&mut deserializer);deserializer.end
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
             let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             deserializer.end(); move |context| async move {
-                    transform_result_sse::<_, ()>((move || async move {
-                         let output_ok = Ok::<_, ()>(crate::api::auth::is_logged_in().await)?;   std::result::Result::Ok(output_ok)
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::auth::is_logged_in().await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__auth__logout_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "logout", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::auth::logout().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__illust__search_illusts_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -209,8 +218,9 @@ return crate::api::auth::LoginResult{user_id: var_userId, user_name: var_userNam
 4 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
 5 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
 6 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
-8 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
+8 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
                 }
