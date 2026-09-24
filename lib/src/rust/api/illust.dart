@@ -32,6 +32,22 @@ Future<List<IllustSummary>> fetchRelatedIllusts({
 }) =>
     RustLib.instance.api.crateApiIllustFetchRelatedIllusts(illustId: illustId);
 
+/// 关注动态里的插画。`restrict` 取 `public` 或 `private`。
+Future<IllustPage> fetchFollowIllusts({required String restrict}) =>
+    RustLib.instance.api.crateApiIllustFetchFollowIllusts(restrict: restrict);
+
+/// 好P友的作品流。
+Future<IllustPage> fetchNiceFriendIllusts() =>
+    RustLib.instance.api.crateApiIllustFetchNiceFriendIllusts();
+
+/// 按游标取下一页插画列表。
+Future<IllustPage> fetchNextIllustPage({required String nextUrl}) =>
+    RustLib.instance.api.crateApiIllustFetchNextIllustPage(nextUrl: nextUrl);
+
+/// 带游标的插画列表。
+Future<IllustPage> fetchIllustPage({required String path}) =>
+    RustLib.instance.api.crateApiIllustFetchIllustPage(path: path);
+
 /// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
 Future<List<IllustSummary>> fetchUserIllusts({
   required PlatformInt64 userId,
@@ -126,6 +142,27 @@ class IllustDetail {
           isBookmarked == other.isBookmarked &&
           tags == other.tags &&
           imageUrls == other.imageUrls;
+}
+
+/// 带游标的插画列表。
+class IllustPage {
+  final List<IllustSummary> illusts;
+
+  /// 下一页游标，为空表示没有更多。
+  final String nextUrl;
+
+  const IllustPage({required this.illusts, required this.nextUrl});
+
+  @override
+  int get hashCode => illusts.hashCode ^ nextUrl.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is IllustPage &&
+          runtimeType == other.runtimeType &&
+          illusts == other.illusts &&
+          nextUrl == other.nextUrl;
 }
 
 /// 列表里一张作品卡片所需的信息。

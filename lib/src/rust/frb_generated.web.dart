@@ -54,6 +54,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   IllustDetail dco_decode_illust_detail(dynamic raw);
 
   @protected
+  IllustPage dco_decode_illust_page(dynamic raw);
+
+  @protected
   IllustSummary dco_decode_illust_summary(dynamic raw);
 
   @protected
@@ -82,6 +85,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResult dco_decode_login_result(dynamic raw);
+
+  @protected
+  NovelPage dco_decode_novel_page(dynamic raw);
 
   @protected
   NovelSeries dco_decode_novel_series(dynamic raw);
@@ -132,6 +138,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   IllustDetail sse_decode_illust_detail(SseDeserializer deserializer);
 
   @protected
+  IllustPage sse_decode_illust_page(SseDeserializer deserializer);
+
+  @protected
   IllustSummary sse_decode_illust_summary(SseDeserializer deserializer);
 
   @protected
@@ -170,6 +179,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResult sse_decode_login_result(SseDeserializer deserializer);
+
+  @protected
+  NovelPage sse_decode_novel_page(SseDeserializer deserializer);
 
   @protected
   NovelSeries sse_decode_novel_series(SseDeserializer deserializer);
@@ -223,6 +235,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_illust_detail(IllustDetail self, SseSerializer serializer);
 
   @protected
+  void sse_encode_illust_page(IllustPage self, SseSerializer serializer);
+
+  @protected
   void sse_encode_illust_summary(IllustSummary self, SseSerializer serializer);
 
   @protected
@@ -272,6 +287,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_novel_page(NovelPage self, SseSerializer serializer);
 
   @protected
   void sse_encode_novel_series(NovelSeries self, SseSerializer serializer);

@@ -50,6 +50,10 @@ Future<UserListPage> fetchFollowerUsers({required PlatformInt64 userId}) =>
 Future<UserListPage> fetchMypixivUsers({required PlatformInt64 userId}) =>
     RustLib.instance.api.crateApiUserFetchMypixivUsers(userId: userId);
 
+/// 推荐用户货架。
+Future<UserListPage> fetchRecommendedUsers() =>
+    RustLib.instance.api.crateApiUserFetchRecommendedUsers();
+
 /// 按游标取下一页用户列表。
 Future<UserListPage> fetchNextUsers({required String nextUrl}) =>
     RustLib.instance.api.crateApiUserFetchNextUsers(nextUrl: nextUrl);

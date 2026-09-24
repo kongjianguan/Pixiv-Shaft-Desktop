@@ -18,6 +18,18 @@ Future<NovelSummary> fetchNovelDetail({required PlatformInt64 novelId}) =>
 Future<List<NovelSummary>> fetchRecommendedNovels() =>
     RustLib.instance.api.crateApiNovelFetchRecommendedNovels();
 
+/// 关注动态里的小说。
+Future<NovelPage> fetchFollowNovels({required String restrict}) =>
+    RustLib.instance.api.crateApiNovelFetchFollowNovels(restrict: restrict);
+
+/// 按游标取下一页小说列表。
+Future<NovelPage> fetchNextNovelPage({required String nextUrl}) =>
+    RustLib.instance.api.crateApiNovelFetchNextNovelPage(nextUrl: nextUrl);
+
+/// 带游标的小说列表。
+Future<NovelPage> fetchNovelPage({required String path}) =>
+    RustLib.instance.api.crateApiNovelFetchNovelPage(path: path);
+
 /// 自己收藏的小说。
 Future<List<NovelSummary>> fetchBookmarkedNovels() =>
     RustLib.instance.api.crateApiNovelFetchBookmarkedNovels();
@@ -41,6 +53,27 @@ Future<void> addNovelBookmark({
 
 Future<void> removeNovelBookmark({required PlatformInt64 novelId}) =>
     RustLib.instance.api.crateApiNovelRemoveNovelBookmark(novelId: novelId);
+
+/// 带游标的小说列表。
+class NovelPage {
+  final List<NovelSummary> novels;
+
+  /// 下一页游标，为空表示没有更多。
+  final String nextUrl;
+
+  const NovelPage({required this.novels, required this.nextUrl});
+
+  @override
+  int get hashCode => novels.hashCode ^ nextUrl.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NovelPage &&
+          runtimeType == other.runtimeType &&
+          novels == other.novels &&
+          nextUrl == other.nextUrl;
+}
 
 class NovelSeries {
   final PlatformInt64 id;
