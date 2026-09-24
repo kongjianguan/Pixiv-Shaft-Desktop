@@ -32,9 +32,31 @@ Future<List<IllustSummary>> fetchRelatedIllusts({
 }) =>
     RustLib.instance.api.crateApiIllustFetchRelatedIllusts(illustId: illustId);
 
+/// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
+Future<List<IllustSummary>> fetchUserIllusts({
+  required PlatformInt64 userId,
+  required String illustType,
+}) => RustLib.instance.api.crateApiIllustFetchUserIllusts(
+  userId: userId,
+  illustType: illustType,
+);
+
 /// 取回单个作品的详情。
 Future<IllustDetail> fetchIllustDetail({required PlatformInt64 illustId}) =>
     RustLib.instance.api.crateApiIllustFetchIllustDetail(illustId: illustId);
+
+/// 收藏一个作品。`restrict` 取 `public` 或 `private`。
+Future<void> addBookmark({
+  required PlatformInt64 illustId,
+  required String restrict,
+}) => RustLib.instance.api.crateApiIllustAddBookmark(
+  illustId: illustId,
+  restrict: restrict,
+);
+
+/// 取消收藏。
+Future<void> removeBookmark({required PlatformInt64 illustId}) =>
+    RustLib.instance.api.crateApiIllustRemoveBookmark(illustId: illustId);
 
 /// 详情页所需的信息。
 class IllustDetail {
