@@ -43,7 +43,7 @@ expect_file() {
     echo "期望存在且非空的文件不存在：$path" >&2
     exit 1
   fi
-  echo "文件已生成：$path（$(wc -c <"$path" | tr -d ' ') 字节）"
+  echo "文件已生成：${path}（$(wc -c <"$path" | tr -d ' ') 字节）"
 }
 
 rm -rf "$WORK"
