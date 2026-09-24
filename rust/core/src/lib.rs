@@ -8,6 +8,7 @@ pub mod api_client;
 pub mod auth;
 pub mod ech;
 pub mod image;
+pub mod quic;
 pub mod session;
 pub mod tls;
 

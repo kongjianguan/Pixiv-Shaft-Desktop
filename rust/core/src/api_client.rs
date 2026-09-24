@@ -101,7 +101,16 @@ pub async fn get_public(path: &str) -> Result<(u16, String), String> {
     request(path, None).await
 }
 
-/// 接口请求一律走 ECH 传输：国内网络下这些域名走普通 HTTPS 不通。
+/// 接口请求先走 ECH，失败再走 QUIC。
+///
+/// 两条通路的顺序与现有版本一致：ECH 是加密 SNI 的 TCP 直连，QUIC 走 UDP。
+/// 两条都不通时把各自的失败原因一并报出，便于判断是哪一层的问题。
 async fn request(path: &str, access_token: Option<&str>) -> Result<(u16, String), String> {
-    crate::ech::get(path, api_headers(access_token)).await
+    let headers = api_headers(access_token);
+    match crate::ech::get(path, headers.clone()).await {
+        Ok(result) => Ok(result),
+        Err(ech_error) => crate::quic::get(path, headers)
+            .await
+            .map_err(|quic_error| format!("{ech_error}；QUIC 同样失败：{quic_error}")),
+    }
 }

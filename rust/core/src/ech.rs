@@ -152,19 +152,10 @@ pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String
     eprintln!("ECH 被服务端拒绝，重新取一份配置再试");
     invalidate_client().await;
     let refreshed = client().await?;
-    match send(&refreshed, &url, headers.clone()).await {
-        Ok(result) => return Ok(result),
-        Err(failure) if !failure.ech_rejected => {
-            return Err(format!("ECH 请求 {url} 失败：{}", failure.message));
-        }
-        Err(_) => {}
+    match send(&refreshed, &url, headers).await {
+        Ok(result) => Ok(result),
+        Err(failure) => Err(format!("ECH 请求 {url} 失败：{}", failure.message)),
     }
-
-    eprintln!("新配置仍被拒绝，改用普通 TLS 重试");
-    let plain = plain_client()?;
-    send(&plain, &url, headers)
-        .await
-        .map_err(|e| format!("去掉 ECH 重试仍失败：{}", e.message))
 }
 
 struct Failure {
@@ -205,34 +196,6 @@ fn is_ech_rejection(error: &reqwest::Error) -> bool {
         source = current.source();
     }
     false
-}
-
-fn plain_client() -> Result<reqwest::Client, String> {
-    let mut roots = rustls::RootCertStore::empty();
-    roots.add_parsable_certificates(webpki_root_certs::TLS_SERVER_ROOT_CERTS.to_vec());
-    let tls = rustls::ClientConfig::builder_with_provider(Arc::new(
-        rustls::crypto::aws_lc_rs::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|e| format!("普通 TLS 协议版本装配失败：{e}"))?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
-
-    let mut builder = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(20))
-        .tls_backend_preconfigured(tls);
-    for host in PIXIV_HOSTS {
-        for ip in ECH_IPS {
-            let address: SocketAddr = format!("{ip}:443")
-                .parse()
-                .map_err(|e| format!("任播地址 {ip} 不合法：{e}"))?;
-            builder = builder.resolve(host, address);
-        }
-    }
-    builder
-        .build()
-        .map_err(|e| format!("构建普通 TLS 客户端失败：{e}"))
 }
 
 /// 把错误连同底层原因一起展开。只看最外层信息时无法判断是握手被拒、
