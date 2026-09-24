@@ -277,13 +277,16 @@
 | `RecommendScreen` | 推荐页（`feed_pages.dart`） | 推荐插画网格 |
 | `DiscoverScreen` | 排行页（`feed_pages.dart`） | 五种排行模式；最新作品、热门标签、Pixivision 未迁 |
 | `SearchScreen` | 搜索页（`search_profile_pages.dart`） | 插画搜索与搜索记录；小说、用户搜索与筛选未迁 |
-| `IllustDetailScreen` | `illust_detail_page.dart` | 多页浏览、缩放、页码、标签、简介、统计、收藏与取消收藏、相关作品；评论、动图、下载未迁 |
+| `IllustDetailScreen` | `illust_detail_page.dart` | 多页浏览、缩放、页码、标签、简介、统计、收藏与取消收藏、相关作品、评论区；动图、下载未迁 |
 | `ProfileScreen` | 收藏页（`search_profile_pages.dart`） | 收藏列表与退出登录；个人资料、作品与收藏分组未迁 |
-| `UserDetailScreen` | `user_page.dart` | 资料、作品列表、关注与取消关注 |
+| `UserDetailScreen` | `user_page.dart` | 资料、作品列表、关注与取消关注、进入用户列表 |
+| `CommentFullScreen` | `comments_section.dart` | 发表、回复、分页、删除自己的评论 |
+| `UserListScreen` | `user_list_page.dart` | 关注中、粉丝、好P友三栏与翻页 |
 
-尚未迁移的 17 个页面文件集中在收藏管理（4）、小说（3）、动态（2）、用户列表（1）、评论（1）、漫画（1）、下载（1）、Pixivision（1）、R18（1）、设置（1）。
+尚未迁移的 15 个页面文件集中在收藏管理（4）、小说（3）、动态（2）、漫画（1）、下载（1）、Pixivision（1）、R18（1）、设置（1）、评论全屏页的独立入口（1）。
 
-写操作（收藏、关注）走表单 POST，ECH 与 QUIC 两条通路都带请求体。
+写操作（收藏、关注、评论）走表单 POST，ECH 与 QUIC 两条通路都带请求体。
+评论分页用接口返回的 `next_url` 作游标，与现有版本一致。
 
 ### 6.6 剩余待验项
 
