@@ -274,19 +274,23 @@
 | 现有页面 | 新版本 | 覆盖范围 |
 |---|---|---|
 | `LoginScreen` | `login_screen.dart` | 授权流程完整 |
-| `RecommendScreen` | 推荐页（`feed_pages.dart`） | 推荐插画网格 |
+| `RecommendScreen` | 推荐页（`feed_pages.dart`、`novel_pages.dart`） | 推荐插画与推荐小说两栏 |
 | `DiscoverScreen` | 排行页（`feed_pages.dart`） | 五种排行模式；最新作品、热门标签、Pixivision 未迁 |
 | `SearchScreen` | 搜索页（`search_profile_pages.dart`） | 插画搜索与搜索记录；小说、用户搜索与筛选未迁 |
 | `IllustDetailScreen` | `illust_detail_page.dart` | 多页浏览、缩放、页码、标签、简介、统计、收藏与取消收藏、相关作品、评论区；动图、下载未迁 |
-| `ProfileScreen` | 收藏页（`search_profile_pages.dart`） | 收藏列表与退出登录；个人资料、作品与收藏分组未迁 |
+| `ProfileScreen` | 收藏页（`search_profile_pages.dart`） | 插画收藏与小说收藏两栏、退出登录；个人资料与收藏分组未迁 |
 | `UserDetailScreen` | `user_page.dart` | 资料、作品列表、关注与取消关注、进入用户列表 |
 | `CommentFullScreen` | `comments_section.dart` | 发表、回复、分页、删除自己的评论 |
 | `UserListScreen` | `user_list_page.dart` | 关注中、粉丝、好P友三栏与翻页 |
+| `NovelDetailScreen` | `novel_pages.dart` | 封面、信息、标签、简介、收藏、系列章节与翻页 |
+| `NovelSeriesScreen` | `novel_pages.dart` | 系列章节列表并入详情页 |
 
-尚未迁移的 15 个页面文件集中在收藏管理（4）、小说（3）、动态（2）、漫画（1）、下载（1）、Pixivision（1）、R18（1）、设置（1）、评论全屏页的独立入口（1）。
+尚未迁移的 13 个页面文件集中在收藏管理（4）、动态（2）、小说阅读器（1）、漫画（1）、下载（1）、Pixivision（1）、R18（1）、设置（1）、评论全屏页的独立入口（1）。
 
-写操作（收藏、关注、评论）走表单 POST，ECH 与 QUIC 两条通路都带请求体。
-评论分页用接口返回的 `next_url` 作游标，与现有版本一致。
+写操作（收藏、关注、评论、小说收藏）走表单 POST，ECH 与 QUIC 两条通路都带请求体。
+评论分页与小说系列的翻页都用接口返回的 `next_url` 作游标，与现有版本一致。
+
+**小说正文尚未接入。** `/webview/v2/novel` 返回的是 HTML，正文嵌在其中的一段 JavaScript 对象里。现有版本为此写了一个三百多行的手写解析器，这属于手写成熟格式的解析，按规则不移植；改用库来解析的方案还没定，因此阅读器留到单独一轮。
 
 ### 6.6 剩余待验项
 
