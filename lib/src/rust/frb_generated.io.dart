@@ -6,6 +6,7 @@
 import 'api/auth.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
+import 'api/store.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -33,10 +34,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  BrowseRecord dco_decode_browse_record(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
   IllustSummary dco_decode_illust_summary(dynamic raw);
+
+  @protected
+  List<BrowseRecord> dco_decode_list_browse_record(dynamic raw);
 
   @protected
   List<IllustSummary> dco_decode_list_illust_summary(dynamic raw);
@@ -45,7 +52,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SearchRecord> dco_decode_list_search_record(dynamic raw);
+
+  @protected
   LoginResult dco_decode_login_result(dynamic raw);
+
+  @protected
+  SearchRecord dco_decode_search_record(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -63,10 +76,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  BrowseRecord sse_decode_browse_record(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
   IllustSummary sse_decode_illust_summary(SseDeserializer deserializer);
+
+  @protected
+  List<BrowseRecord> sse_decode_list_browse_record(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<IllustSummary> sse_decode_list_illust_summary(
@@ -77,7 +98,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SearchRecord> sse_decode_list_search_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LoginResult sse_decode_login_result(SseDeserializer deserializer);
+
+  @protected
+  SearchRecord sse_decode_search_record(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -98,10 +127,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_browse_record(BrowseRecord self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
   void sse_encode_illust_summary(IllustSummary self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_browse_record(
+    List<BrowseRecord> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_illust_summary(
@@ -116,7 +154,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_search_record(
+    List<SearchRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_search_record(SearchRecord self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

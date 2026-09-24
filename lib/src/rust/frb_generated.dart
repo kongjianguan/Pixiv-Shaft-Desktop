@@ -6,6 +6,7 @@
 import 'api/auth.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
+import 'api/store.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -71,7 +72,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1639578937;
+  int get rustContentHash => -1842812397;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -83,10 +84,21 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<void> crateApiStoreClearBrowse();
+
+  Future<void> crateApiStoreClearSearches();
+
   Future<LoginResult> crateApiAuthCompleteLogin({
     required String pasted,
     required String codeVerifier,
   });
+
+  Future<void> crateApiStoreDeleteBrowse({
+    required String contentType,
+    required PlatformInt64 targetId,
+  });
+
+  Future<void> crateApiStoreDeleteSearch({required PlatformInt64 id});
 
   Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts();
 
@@ -98,11 +110,46 @@ abstract class RustLibApi extends BaseApi {
 
   Future<bool> crateApiAuthIsLoggedIn();
 
+  Future<List<BrowseRecord>> crateApiStoreListBrowse({
+    required String contentType,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  });
+
+  Future<List<SearchRecord>> crateApiStoreListSearches({
+    required PlatformInt64 recentLimit,
+  });
+
   Future<void> crateApiAuthLogout();
+
+  Future<void> crateApiStoreRecordBrowse({
+    required String contentType,
+    required PlatformInt64 targetId,
+    required String payloadJson,
+  });
+
+  Future<void> crateApiStoreRecordSearch({
+    required String keyword,
+    required PlatformInt64 searchType,
+  });
+
+  Future<void> crateApiStoreResetSetting({required String key});
 
   Future<List<IllustSummary>> crateApiIllustSearchIllusts({
     required String word,
   });
+
+  Future<void> crateApiStoreSetSearchPinned({
+    required PlatformInt64 id,
+    required bool pinned,
+  });
+
+  Future<void> crateApiStoreSetSetting({
+    required String key,
+    required String value,
+  });
+
+  Future<String> crateApiStoreSetting({required String key});
 
   Future<AuthSession> crateApiAuthStartLogin();
 }
@@ -114,6 +161,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required super.generalizedFrbRustBinding,
     required super.portManager,
   });
+
+  @override
+  Future<void> crateApiStoreClearBrowse() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreClearBrowseConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreClearBrowseConstMeta =>
+      const TaskConstMeta(debugName: "clear_browse", argNames: []);
+
+  @override
+  Future<void> crateApiStoreClearSearches() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreClearSearchesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreClearSearchesConstMeta =>
+      const TaskConstMeta(debugName: "clear_searches", argNames: []);
 
   @override
   Future<LoginResult> crateApiAuthCompleteLogin({
@@ -129,7 +230,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 3,
             port: port_,
           );
         },
@@ -150,6 +251,68 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiStoreDeleteBrowse({
+    required String contentType,
+    required PlatformInt64 targetId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(contentType, serializer);
+          sse_encode_i_64(targetId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreDeleteBrowseConstMeta,
+        argValues: [contentType, targetId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreDeleteBrowseConstMeta => const TaskConstMeta(
+    debugName: "delete_browse",
+    argNames: ["contentType", "targetId"],
+  );
+
+  @override
+  Future<void> crateApiStoreDeleteSearch({required PlatformInt64 id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreDeleteSearchConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreDeleteSearchConstMeta =>
+      const TaskConstMeta(debugName: "delete_search", argNames: ["id"]);
+
+  @override
   Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts() {
     return handler.executeNormal(
       NormalTask(
@@ -158,7 +321,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 6,
             port: port_,
           );
         },
@@ -186,7 +349,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 7,
             port: port_,
           );
         },
@@ -213,7 +376,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 8,
             port: port_,
           );
         },
@@ -240,7 +403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 9,
             port: port_,
           );
         },
@@ -267,7 +430,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 10,
             port: port_,
           );
         },
@@ -286,6 +449,74 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "is_logged_in", argNames: []);
 
   @override
+  Future<List<BrowseRecord>> crateApiStoreListBrowse({
+    required String contentType,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(contentType, serializer);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_i_64(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_browse_record,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreListBrowseConstMeta,
+        argValues: [contentType, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreListBrowseConstMeta => const TaskConstMeta(
+    debugName: "list_browse",
+    argNames: ["contentType", "limit", "offset"],
+  );
+
+  @override
+  Future<List<SearchRecord>> crateApiStoreListSearches({
+    required PlatformInt64 recentLimit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(recentLimit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_search_record,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreListSearchesConstMeta,
+        argValues: [recentLimit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreListSearchesConstMeta => const TaskConstMeta(
+    debugName: "list_searches",
+    argNames: ["recentLimit"],
+  );
+
+  @override
   Future<void> crateApiAuthLogout() {
     return handler.executeNormal(
       NormalTask(
@@ -294,7 +525,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 13,
             port: port_,
           );
         },
@@ -313,6 +544,104 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "logout", argNames: []);
 
   @override
+  Future<void> crateApiStoreRecordBrowse({
+    required String contentType,
+    required PlatformInt64 targetId,
+    required String payloadJson,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(contentType, serializer);
+          sse_encode_i_64(targetId, serializer);
+          sse_encode_String(payloadJson, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreRecordBrowseConstMeta,
+        argValues: [contentType, targetId, payloadJson],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreRecordBrowseConstMeta => const TaskConstMeta(
+    debugName: "record_browse",
+    argNames: ["contentType", "targetId", "payloadJson"],
+  );
+
+  @override
+  Future<void> crateApiStoreRecordSearch({
+    required String keyword,
+    required PlatformInt64 searchType,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(keyword, serializer);
+          sse_encode_i_64(searchType, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreRecordSearchConstMeta,
+        argValues: [keyword, searchType],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreRecordSearchConstMeta => const TaskConstMeta(
+    debugName: "record_search",
+    argNames: ["keyword", "searchType"],
+  );
+
+  @override
+  Future<void> crateApiStoreResetSetting({required String key}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreResetSettingConstMeta,
+        argValues: [key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreResetSettingConstMeta =>
+      const TaskConstMeta(debugName: "reset_setting", argNames: ["key"]);
+
+  @override
   Future<List<IllustSummary>> crateApiIllustSearchIllusts({
     required String word,
   }) {
@@ -324,7 +653,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 17,
             port: port_,
           );
         },
@@ -343,6 +672,101 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "search_illusts", argNames: ["word"]);
 
   @override
+  Future<void> crateApiStoreSetSearchPinned({
+    required PlatformInt64 id,
+    required bool pinned,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(id, serializer);
+          sse_encode_bool(pinned, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreSetSearchPinnedConstMeta,
+        argValues: [id, pinned],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreSetSearchPinnedConstMeta =>
+      const TaskConstMeta(
+        debugName: "set_search_pinned",
+        argNames: ["id", "pinned"],
+      );
+
+  @override
+  Future<void> crateApiStoreSetSetting({
+    required String key,
+    required String value,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(key, serializer);
+          sse_encode_String(value, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreSetSettingConstMeta,
+        argValues: [key, value],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreSetSettingConstMeta =>
+      const TaskConstMeta(debugName: "set_setting", argNames: ["key", "value"]);
+
+  @override
+  Future<String> crateApiStoreSetting({required String key}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiStoreSettingConstMeta,
+        argValues: [key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreSettingConstMeta =>
+      const TaskConstMeta(debugName: "setting", argNames: ["key"]);
+
+  @override
   Future<AuthSession> crateApiAuthStartLogin() {
     return handler.executeNormal(
       NormalTask(
@@ -351,7 +775,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 21,
             port: port_,
           );
         },
@@ -394,6 +818,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BrowseRecord dco_decode_browse_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BrowseRecord(
+      contentType: dco_decode_String(arr[0]),
+      targetId: dco_decode_i_64(arr[1]),
+      payloadJson: dco_decode_String(arr[2]),
+      viewedAt: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
@@ -413,6 +851,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BrowseRecord> dco_decode_list_browse_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_browse_record).toList();
+  }
+
+  @protected
   List<IllustSummary> dco_decode_list_illust_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_illust_summary).toList();
@@ -425,6 +869,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SearchRecord> dco_decode_list_search_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_search_record).toList();
+  }
+
+  @protected
   LoginResult dco_decode_login_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -433,6 +883,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return LoginResult(
       userId: dco_decode_i_64(arr[0]),
       userName: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  SearchRecord dco_decode_search_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SearchRecord(
+      id: dco_decode_i_64(arr[0]),
+      keyword: dco_decode_String(arr[1]),
+      searchTime: dco_decode_i_64(arr[2]),
+      searchType: dco_decode_i_64(arr[3]),
+      pinned: dco_decode_bool(arr[4]),
     );
   }
 
@@ -470,6 +935,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BrowseRecord sse_decode_browse_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_contentType = sse_decode_String(deserializer);
+    var var_targetId = sse_decode_i_64(deserializer);
+    var var_payloadJson = sse_decode_String(deserializer);
+    var var_viewedAt = sse_decode_i_64(deserializer);
+    return BrowseRecord(
+      contentType: var_contentType,
+      targetId: var_targetId,
+      payloadJson: var_payloadJson,
+      viewedAt: var_viewedAt,
+    );
+  }
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
@@ -482,6 +962,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_title = sse_decode_String(deserializer);
     var var_imageUrl = sse_decode_String(deserializer);
     return IllustSummary(id: var_id, title: var_title, imageUrl: var_imageUrl);
+  }
+
+  @protected
+  List<BrowseRecord> sse_decode_list_browse_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BrowseRecord>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_browse_record(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -506,11 +1000,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SearchRecord> sse_decode_list_search_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SearchRecord>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_search_record(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   LoginResult sse_decode_login_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_userId = sse_decode_i_64(deserializer);
     var var_userName = sse_decode_String(deserializer);
     return LoginResult(userId: var_userId, userName: var_userName);
+  }
+
+  @protected
+  SearchRecord sse_decode_search_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_keyword = sse_decode_String(deserializer);
+    var var_searchTime = sse_decode_i_64(deserializer);
+    var var_searchType = sse_decode_i_64(deserializer);
+    var var_pinned = sse_decode_bool(deserializer);
+    return SearchRecord(
+      id: var_id,
+      keyword: var_keyword,
+      searchTime: var_searchTime,
+      searchType: var_searchType,
+      pinned: var_pinned,
+    );
   }
 
   @protected
@@ -550,6 +1075,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_browse_record(BrowseRecord self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.contentType, serializer);
+    sse_encode_i_64(self.targetId, serializer);
+    sse_encode_String(self.payloadJson, serializer);
+    sse_encode_i_64(self.viewedAt, serializer);
+  }
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
@@ -561,6 +1095,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.id, serializer);
     sse_encode_String(self.title, serializer);
     sse_encode_String(self.imageUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_list_browse_record(
+    List<BrowseRecord> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_browse_record(item, serializer);
+    }
   }
 
   @protected
@@ -586,10 +1132,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_search_record(
+    List<SearchRecord> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_search_record(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.userId, serializer);
     sse_encode_String(self.userName, serializer);
+  }
+
+  @protected
+  void sse_encode_search_record(SearchRecord self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.keyword, serializer);
+    sse_encode_i_64(self.searchTime, serializer);
+    sse_encode_i_64(self.searchType, serializer);
+    sse_encode_bool(self.pinned, serializer);
   }
 
   @protected
