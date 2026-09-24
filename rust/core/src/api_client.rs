@@ -65,21 +65,31 @@ pub fn api_headers(access_token: Option<&str>) -> HeaderMap {
 
 /// 带签名头发起一次 GET，返回原始响应文本。
 pub async fn get_with_auth(path: &str, access_token: &str) -> Result<String, String> {
+    let (_, body) = request(path, Some(access_token)).await?;
+    Ok(body)
+}
+
+/// 不带凭据发起一次 GET，返回状态码与响应体。
+///
+/// 用来验证签名头本身是否被服务端接受：签名正确时缺少凭据应得到 401，
+/// 签名有问题则会得到别的错误，两者可以区分。
+pub async fn get_public(path: &str) -> Result<(u16, String), String> {
+    request(path, None).await
+}
+
+async fn request(path: &str, access_token: Option<&str>) -> Result<(u16, String), String> {
     let url = format!("{APP_API_HOST}{path}");
     let response = reqwest::Client::new()
         .get(&url)
-        .headers(api_headers(Some(access_token)))
+        .headers(api_headers(access_token))
         .send()
         .await
         .map_err(|e| format!("请求 {url} 失败：{e}"))?;
 
-    let status = response.status();
-    let text = response
+    let status = response.status().as_u16();
+    let body = response
         .text()
         .await
         .map_err(|e| format!("读取 {url} 响应失败：{e}"))?;
-    if !status.is_success() {
-        return Err(format!("请求 {url} 返回 {status}：{text}"));
-    }
-    Ok(text)
+    Ok((status, body))
 }

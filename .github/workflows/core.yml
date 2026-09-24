@@ -38,11 +38,20 @@ jobs:
         working-directory: rust/core
         run: cargo run --release --locked --bin fetch_probe 2>&1 | tee probe-output.txt
 
+      # 验证 PKCE 与接口签名头。签名正确时缺少凭据应得到 401，
+      # 签名有问题会得到别的错误，两者可区分。
+      # 这一步在不受干扰的网络上跑，国内网络下 app-api 需要走 QUIC（后续阶段接入）。
+      - name: Verify PKCE and API signature headers
+        working-directory: rust/core
+        run: cargo run --release --locked --bin api_probe 2>&1 | tee api-probe-output.txt
+
       - name: Upload verification output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fetch-probe-output
+          name: core-probe-output
           path: |
             rust/core/probe-output.txt
+            rust/core/api-probe-output.txt
             rust/core/fetched-image.bin
+          if-no-files-found: warn

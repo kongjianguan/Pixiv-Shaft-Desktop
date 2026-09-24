@@ -20,6 +20,7 @@ app/build/app-resources/
 # 新版本的 Rust 核心
 rust/core/target/
 rust/core/probe-output.txt
+rust/core/api-probe-output.txt
 rust/core/fetched-image.bin
 
 # 本机验证用的 cargo 缓存
