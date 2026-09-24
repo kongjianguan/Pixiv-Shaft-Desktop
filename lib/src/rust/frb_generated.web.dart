@@ -42,7 +42,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  IllustDetail dco_decode_illust_detail(dynamic raw);
+
+  @protected
   IllustSummary dco_decode_illust_summary(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
 
   @protected
   List<BrowseRecord> dco_decode_list_browse_record(dynamic raw);
@@ -84,7 +90,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  IllustDetail sse_decode_illust_detail(SseDeserializer deserializer);
+
+  @protected
   IllustSummary sse_decode_illust_summary(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<BrowseRecord> sse_decode_list_browse_record(
@@ -135,7 +147,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_illust_detail(IllustDetail self, SseSerializer serializer);
+
+  @protected
   void sse_encode_illust_summary(IllustSummary self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_browse_record(

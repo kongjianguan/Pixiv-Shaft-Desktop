@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueMoi,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1842812397;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 2143686306;
             
 
 // Section: executor
@@ -104,6 +104,15 @@ let api_target_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); mov
                          let output_ok = crate::api::illust::fetch_bookmarked_illusts().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__illust__fetch_illust_detail_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_illust_detail", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_illust_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::illust::fetch_illust_detail(api_illust_id).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__image__fetch_image_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_image", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -113,6 +122,15 @@ let api_target_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); mov
                          let output_ok = crate::api::image::fetch_image(api_url).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__illust__fetch_ranking_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_ranking", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_mode = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::illust::fetch_ranking(api_mode).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__illust__fetch_recommended_illusts_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_recommended_illusts", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -120,6 +138,15 @@ let api_target_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); mov
             deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::illust::fetch_recommended_illusts().await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__illust__fetch_related_illusts_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_related_illusts", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_illust_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::illust::fetch_related_illusts(api_illust_id).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__init_app_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -283,12 +310,41 @@ return crate::api::store::BrowseRecord{content_type: var_contentType, target_id:
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {deserializer.cursor.read_i64::<NativeEndian>().unwrap()}
                 }
                 
+                impl SseDecode for crate::api::illust::IllustDetail {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
+let mut var_title = <String>::sse_decode(deserializer);
+let mut var_authorId = <i64>::sse_decode(deserializer);
+let mut var_authorName = <String>::sse_decode(deserializer);
+let mut var_caption = <String>::sse_decode(deserializer);
+let mut var_pageCount = <i64>::sse_decode(deserializer);
+let mut var_width = <i64>::sse_decode(deserializer);
+let mut var_height = <i64>::sse_decode(deserializer);
+let mut var_totalBookmarks = <i64>::sse_decode(deserializer);
+let mut var_totalView = <i64>::sse_decode(deserializer);
+let mut var_isBookmarked = <bool>::sse_decode(deserializer);
+let mut var_tags = <Vec<String>>::sse_decode(deserializer);
+let mut var_imageUrls = <Vec<String>>::sse_decode(deserializer);
+return crate::api::illust::IllustDetail{id: var_id, title: var_title, author_id: var_authorId, author_name: var_authorName, caption: var_caption, page_count: var_pageCount, width: var_width, height: var_height, total_bookmarks: var_totalBookmarks, total_view: var_totalView, is_bookmarked: var_isBookmarked, tags: var_tags, image_urls: var_imageUrls};}
+                }
+                
                 impl SseDecode for crate::api::illust::IllustSummary {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
+let mut var_authorId = <i64>::sse_decode(deserializer);
+let mut var_authorName = <String>::sse_decode(deserializer);
+let mut var_pageCount = <i64>::sse_decode(deserializer);
 let mut var_imageUrl = <String>::sse_decode(deserializer);
-return crate::api::illust::IllustSummary{id: var_id, title: var_title, image_url: var_imageUrl};}
+return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id: var_authorId, author_name: var_authorName, page_count: var_pageCount, image_url: var_imageUrl};}
+                }
+                
+                impl SseDecode for Vec<String> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<String>::sse_decode(deserializer)); }
+        return ans_;}
                 }
                 
                 impl SseDecode for Vec<crate::api::store::BrowseRecord> {
@@ -369,21 +425,24 @@ return crate::api::store::SearchRecord{id: var_id, keyword: var_keyword, search_
 4 => wire__crate__api__store__delete_browse_impl(port, ptr, rust_vec_len, data_len),
 5 => wire__crate__api__store__delete_search_impl(port, ptr, rust_vec_len, data_len),
 6 => wire__crate__api__illust__fetch_bookmarked_illusts_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
-8 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
-9 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-10 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
-11 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
-12 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
-13 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
-14 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
-15 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
-16 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
-19 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
-21 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
+8 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__illust__fetch_ranking_impl(port, ptr, rust_vec_len, data_len),
+10 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
+11 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
+12 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+13 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
+15 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
+23 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
+24 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
                 }
@@ -437,11 +496,40 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::store::BrowseRecord> for crat
             }
         }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::illust::IllustDetail {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.id.into_into_dart().into_dart(),
+self.title.into_into_dart().into_dart(),
+self.author_id.into_into_dart().into_dart(),
+self.author_name.into_into_dart().into_dart(),
+self.caption.into_into_dart().into_dart(),
+self.page_count.into_into_dart().into_dart(),
+self.width.into_into_dart().into_dart(),
+self.height.into_into_dart().into_dart(),
+self.total_bookmarks.into_into_dart().into_dart(),
+self.total_view.into_into_dart().into_dart(),
+self.is_bookmarked.into_into_dart().into_dart(),
+self.tags.into_into_dart().into_dart(),
+self.image_urls.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::illust::IllustDetail {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::illust::IllustDetail> for crate::api::illust::IllustDetail {
+            fn into_into_dart(self) -> crate::api::illust::IllustDetail {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
             impl flutter_rust_bridge::IntoDart for crate::api::illust::IllustSummary {
                 fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
                     [
                     self.id.into_into_dart().into_dart(),
 self.title.into_into_dart().into_dart(),
+self.author_id.into_into_dart().into_dart(),
+self.author_name.into_into_dart().into_dart(),
+self.page_count.into_into_dart().into_dart(),
 self.image_url.into_into_dart().into_dart()
                 ].into_dart()
                 }
@@ -515,11 +603,37 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::store::SearchRecord> for crat
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {serializer.cursor.write_i64::<NativeEndian>(self).unwrap();}
                 }
                 
+                impl SseEncode for crate::api::illust::IllustDetail {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
+<String>::sse_encode(self.title, serializer);
+<i64>::sse_encode(self.author_id, serializer);
+<String>::sse_encode(self.author_name, serializer);
+<String>::sse_encode(self.caption, serializer);
+<i64>::sse_encode(self.page_count, serializer);
+<i64>::sse_encode(self.width, serializer);
+<i64>::sse_encode(self.height, serializer);
+<i64>::sse_encode(self.total_bookmarks, serializer);
+<i64>::sse_encode(self.total_view, serializer);
+<bool>::sse_encode(self.is_bookmarked, serializer);
+<Vec<String>>::sse_encode(self.tags, serializer);
+<Vec<String>>::sse_encode(self.image_urls, serializer);}
+                }
+                
                 impl SseEncode for crate::api::illust::IllustSummary {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.title, serializer);
+<i64>::sse_encode(self.author_id, serializer);
+<String>::sse_encode(self.author_name, serializer);
+<i64>::sse_encode(self.page_count, serializer);
 <String>::sse_encode(self.image_url, serializer);}
+                }
+                
+                impl SseEncode for Vec<String> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <String>::sse_encode(item, serializer); }}
                 }
                 
                 impl SseEncode for Vec<crate::api::store::BrowseRecord> {

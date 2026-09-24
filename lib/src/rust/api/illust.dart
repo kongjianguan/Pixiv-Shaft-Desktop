@@ -7,10 +7,10 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `encode_query`, `fetch_illusts`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `IllustListResponse`, `ImageUrls`, `RawIllust`
+// These functions are ignored because they are not marked as `pub`: `author_name`, `encode_query`, `fetch_illusts`, `page_urls`, `pick_original`, `summarize`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `IllustListResponse`, `ImageUrls`, `RawIllust`, `RawMetaPage`, `RawMetaSinglePage`, `RawTag`, `RawUser`, `SingleIllustResponse`
 
-/// 取回推荐插画。图片字节由界面层另行调用 `fetch_image` 经反墙链路获取。
+/// 取回推荐插画。
 Future<List<IllustSummary>> fetchRecommendedIllusts() =>
     RustLib.instance.api.crateApiIllustFetchRecommendedIllusts();
 
@@ -22,19 +22,116 @@ Future<List<IllustSummary>> searchIllusts({required String word}) =>
 Future<List<IllustSummary>> fetchBookmarkedIllusts() =>
     RustLib.instance.api.crateApiIllustFetchBookmarkedIllusts();
 
+/// 取回排行。`mode` 取现有版本的取值，例如 `day`、`week`、`month`、`day_manga`。
+Future<List<IllustSummary>> fetchRanking({required String mode}) =>
+    RustLib.instance.api.crateApiIllustFetchRanking(mode: mode);
+
+/// 取回相关作品。
+Future<List<IllustSummary>> fetchRelatedIllusts({
+  required PlatformInt64 illustId,
+}) =>
+    RustLib.instance.api.crateApiIllustFetchRelatedIllusts(illustId: illustId);
+
+/// 取回单个作品的详情。
+Future<IllustDetail> fetchIllustDetail({required PlatformInt64 illustId}) =>
+    RustLib.instance.api.crateApiIllustFetchIllustDetail(illustId: illustId);
+
+/// 详情页所需的信息。
+class IllustDetail {
+  final PlatformInt64 id;
+  final String title;
+  final PlatformInt64 authorId;
+  final String authorName;
+  final String caption;
+  final PlatformInt64 pageCount;
+  final PlatformInt64 width;
+  final PlatformInt64 height;
+  final PlatformInt64 totalBookmarks;
+  final PlatformInt64 totalView;
+  final bool isBookmarked;
+  final List<String> tags;
+
+  /// 每一页的图片地址，按页序排列。
+  final List<String> imageUrls;
+
+  const IllustDetail({
+    required this.id,
+    required this.title,
+    required this.authorId,
+    required this.authorName,
+    required this.caption,
+    required this.pageCount,
+    required this.width,
+    required this.height,
+    required this.totalBookmarks,
+    required this.totalView,
+    required this.isBookmarked,
+    required this.tags,
+    required this.imageUrls,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      authorId.hashCode ^
+      authorName.hashCode ^
+      caption.hashCode ^
+      pageCount.hashCode ^
+      width.hashCode ^
+      height.hashCode ^
+      totalBookmarks.hashCode ^
+      totalView.hashCode ^
+      isBookmarked.hashCode ^
+      tags.hashCode ^
+      imageUrls.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is IllustDetail &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          authorId == other.authorId &&
+          authorName == other.authorName &&
+          caption == other.caption &&
+          pageCount == other.pageCount &&
+          width == other.width &&
+          height == other.height &&
+          totalBookmarks == other.totalBookmarks &&
+          totalView == other.totalView &&
+          isBookmarked == other.isBookmarked &&
+          tags == other.tags &&
+          imageUrls == other.imageUrls;
+}
+
+/// 列表里一张作品卡片所需的信息。
 class IllustSummary {
   final PlatformInt64 id;
   final String title;
+  final PlatformInt64 authorId;
+  final String authorName;
+  final PlatformInt64 pageCount;
   final String imageUrl;
 
   const IllustSummary({
     required this.id,
     required this.title,
+    required this.authorId,
+    required this.authorName,
+    required this.pageCount,
     required this.imageUrl,
   });
 
   @override
-  int get hashCode => id.hashCode ^ title.hashCode ^ imageUrl.hashCode;
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      authorId.hashCode ^
+      authorName.hashCode ^
+      pageCount.hashCode ^
+      imageUrl.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -43,5 +140,8 @@ class IllustSummary {
           runtimeType == other.runtimeType &&
           id == other.id &&
           title == other.title &&
+          authorId == other.authorId &&
+          authorName == other.authorName &&
+          pageCount == other.pageCount &&
           imageUrl == other.imageUrl;
 }

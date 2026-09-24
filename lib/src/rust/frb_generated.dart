@@ -72,7 +72,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1842812397;
+  int get rustContentHash => 2143686306;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -102,9 +102,21 @@ abstract class RustLibApi extends BaseApi {
 
   Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts();
 
+  Future<IllustDetail> crateApiIllustFetchIllustDetail({
+    required PlatformInt64 illustId,
+  });
+
   Future<Uint8List> crateApiImageFetchImage({required String url});
 
+  Future<List<IllustSummary>> crateApiIllustFetchRanking({
+    required String mode,
+  });
+
   Future<List<IllustSummary>> crateApiIllustFetchRecommendedIllusts();
+
+  Future<List<IllustSummary>> crateApiIllustFetchRelatedIllusts({
+    required PlatformInt64 illustId,
+  });
 
   Future<void> crateApiInitApp();
 
@@ -340,6 +352,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_bookmarked_illusts", argNames: []);
 
   @override
+  Future<IllustDetail> crateApiIllustFetchIllustDetail({
+    required PlatformInt64 illustId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(illustId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_illust_detail,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiIllustFetchIllustDetailConstMeta,
+        argValues: [illustId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIllustFetchIllustDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_illust_detail",
+        argNames: ["illustId"],
+      );
+
+  @override
   Future<Uint8List> crateApiImageFetchImage({required String url}) {
     return handler.executeNormal(
       NormalTask(
@@ -349,7 +394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -368,6 +413,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_image", argNames: ["url"]);
 
   @override
+  Future<List<IllustSummary>> crateApiIllustFetchRanking({
+    required String mode,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(mode, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_illust_summary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiIllustFetchRankingConstMeta,
+        argValues: [mode],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIllustFetchRankingConstMeta =>
+      const TaskConstMeta(debugName: "fetch_ranking", argNames: ["mode"]);
+
+  @override
   Future<List<IllustSummary>> crateApiIllustFetchRecommendedIllusts() {
     return handler.executeNormal(
       NormalTask(
@@ -376,7 +451,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 10,
             port: port_,
           );
         },
@@ -395,6 +470,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_recommended_illusts", argNames: []);
 
   @override
+  Future<List<IllustSummary>> crateApiIllustFetchRelatedIllusts({
+    required PlatformInt64 illustId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(illustId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_illust_summary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiIllustFetchRelatedIllustsConstMeta,
+        argValues: [illustId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIllustFetchRelatedIllustsConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_related_illusts",
+        argNames: ["illustId"],
+      );
+
+  @override
   Future<void> crateApiInitApp() {
     return handler.executeNormal(
       NormalTask(
@@ -403,7 +511,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 12,
             port: port_,
           );
         },
@@ -430,7 +538,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 13,
             port: port_,
           );
         },
@@ -464,7 +572,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 14,
             port: port_,
           );
         },
@@ -496,7 +604,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 15,
             port: port_,
           );
         },
@@ -525,7 +633,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 16,
             port: port_,
           );
         },
@@ -559,7 +667,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 17,
             port: port_,
           );
         },
@@ -593,7 +701,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 18,
             port: port_,
           );
         },
@@ -623,7 +731,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 19,
             port: port_,
           );
         },
@@ -653,7 +761,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 20,
             port: port_,
           );
         },
@@ -685,7 +793,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 21,
             port: port_,
           );
         },
@@ -720,7 +828,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 22,
             port: port_,
           );
         },
@@ -748,7 +856,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 23,
             port: port_,
           );
         },
@@ -775,7 +883,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 24,
             port: port_,
           );
         },
@@ -838,16 +946,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  IllustDetail dco_decode_illust_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return IllustDetail(
+      id: dco_decode_i_64(arr[0]),
+      title: dco_decode_String(arr[1]),
+      authorId: dco_decode_i_64(arr[2]),
+      authorName: dco_decode_String(arr[3]),
+      caption: dco_decode_String(arr[4]),
+      pageCount: dco_decode_i_64(arr[5]),
+      width: dco_decode_i_64(arr[6]),
+      height: dco_decode_i_64(arr[7]),
+      totalBookmarks: dco_decode_i_64(arr[8]),
+      totalView: dco_decode_i_64(arr[9]),
+      isBookmarked: dco_decode_bool(arr[10]),
+      tags: dco_decode_list_String(arr[11]),
+      imageUrls: dco_decode_list_String(arr[12]),
+    );
+  }
+
+  @protected
   IllustSummary dco_decode_illust_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return IllustSummary(
       id: dco_decode_i_64(arr[0]),
       title: dco_decode_String(arr[1]),
-      imageUrl: dco_decode_String(arr[2]),
+      authorId: dco_decode_i_64(arr[2]),
+      authorName: dco_decode_String(arr[3]),
+      pageCount: dco_decode_i_64(arr[4]),
+      imageUrl: dco_decode_String(arr[5]),
     );
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -956,12 +1096,67 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  IllustDetail sse_decode_illust_detail(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_authorId = sse_decode_i_64(deserializer);
+    var var_authorName = sse_decode_String(deserializer);
+    var var_caption = sse_decode_String(deserializer);
+    var var_pageCount = sse_decode_i_64(deserializer);
+    var var_width = sse_decode_i_64(deserializer);
+    var var_height = sse_decode_i_64(deserializer);
+    var var_totalBookmarks = sse_decode_i_64(deserializer);
+    var var_totalView = sse_decode_i_64(deserializer);
+    var var_isBookmarked = sse_decode_bool(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_imageUrls = sse_decode_list_String(deserializer);
+    return IllustDetail(
+      id: var_id,
+      title: var_title,
+      authorId: var_authorId,
+      authorName: var_authorName,
+      caption: var_caption,
+      pageCount: var_pageCount,
+      width: var_width,
+      height: var_height,
+      totalBookmarks: var_totalBookmarks,
+      totalView: var_totalView,
+      isBookmarked: var_isBookmarked,
+      tags: var_tags,
+      imageUrls: var_imageUrls,
+    );
+  }
+
+  @protected
   IllustSummary sse_decode_illust_summary(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_i_64(deserializer);
     var var_title = sse_decode_String(deserializer);
+    var var_authorId = sse_decode_i_64(deserializer);
+    var var_authorName = sse_decode_String(deserializer);
+    var var_pageCount = sse_decode_i_64(deserializer);
     var var_imageUrl = sse_decode_String(deserializer);
-    return IllustSummary(id: var_id, title: var_title, imageUrl: var_imageUrl);
+    return IllustSummary(
+      id: var_id,
+      title: var_title,
+      authorId: var_authorId,
+      authorName: var_authorName,
+      pageCount: var_pageCount,
+      imageUrl: var_imageUrl,
+    );
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -1090,11 +1285,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_illust_detail(IllustDetail self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_i_64(self.authorId, serializer);
+    sse_encode_String(self.authorName, serializer);
+    sse_encode_String(self.caption, serializer);
+    sse_encode_i_64(self.pageCount, serializer);
+    sse_encode_i_64(self.width, serializer);
+    sse_encode_i_64(self.height, serializer);
+    sse_encode_i_64(self.totalBookmarks, serializer);
+    sse_encode_i_64(self.totalView, serializer);
+    sse_encode_bool(self.isBookmarked, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_list_String(self.imageUrls, serializer);
+  }
+
+  @protected
   void sse_encode_illust_summary(IllustSummary self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.id, serializer);
     sse_encode_String(self.title, serializer);
+    sse_encode_i_64(self.authorId, serializer);
+    sse_encode_String(self.authorName, serializer);
+    sse_encode_i_64(self.pageCount, serializer);
     sse_encode_String(self.imageUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected
