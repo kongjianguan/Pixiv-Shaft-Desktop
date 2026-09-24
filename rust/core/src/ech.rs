@@ -49,6 +49,15 @@ pub async fn client() -> Result<Arc<reqwest::Client>, String> {
     Ok(built)
 }
 
+/// 丢掉缓存的客户端，让下次取用重新拉一份 ECH 配置。
+///
+/// ECH 配置会轮换，缓存的配置在服务端滚动之后就会被拒；此时重新取一份通常
+/// 就能继续用，不需要整个进程重启。
+async fn invalidate_client() {
+    let cell = CLIENT.get_or_init(|| Mutex::new(None));
+    *cell.lock().await = None;
+}
+
 async fn lookup_ech_config() -> Result<Vec<u8>, String> {
     let response = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(8))
@@ -125,24 +134,37 @@ async fn build_client(ech_config: &[u8]) -> Result<reqwest::Client, String> {
 
 /// 发起一次 GET。
 ///
-/// ECH 被服务端拒绝属于正常情况：配置会轮换，边缘节点上可能已经失效。
-/// 规范要求此时去掉 ECH 重试，因此这里先试 ECH，被拒后改用普通 TLS 再试一次。
+/// ECH 被服务端拒绝属于正常情况：配置会轮换，缓存的配置在服务端滚动之后就失效。
+/// 因此先试 ECH；被拒时丢掉缓存、重新取一份配置再试；仍然被拒才改用普通 TLS。
+/// 普通 TLS 在国内会被中断，所以最后这一步只在不受干扰的网络上有效。
 pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
     let url = format!("https://app-api.pixiv.net{path}");
 
-    let client = client().await?;
-    match send(&client, &url, headers.clone()).await {
-        Ok(result) => Ok(result),
-        Err(failure) if failure.ech_rejected => {
-            eprintln!("ECH 被服务端拒绝，改用普通 TLS 重试");
-            let plain = plain_client()?;
-            let (status, body) = send(&plain, &url, headers)
-                .await
-                .map_err(|e| format!("去掉 ECH 重试仍失败：{}", e.message))?;
-            Ok((status, body))
+    let first = client().await?;
+    match send(&first, &url, headers.clone()).await {
+        Ok(result) => return Ok(result),
+        Err(failure) if !failure.ech_rejected => {
+            return Err(format!("ECH 请求 {url} 失败：{}", failure.message));
         }
-        Err(failure) => Err(format!("ECH 请求 {url} 失败：{}", failure.message)),
+        Err(_) => {}
     }
+
+    eprintln!("ECH 被服务端拒绝，重新取一份配置再试");
+    invalidate_client().await;
+    let refreshed = client().await?;
+    match send(&refreshed, &url, headers.clone()).await {
+        Ok(result) => return Ok(result),
+        Err(failure) if !failure.ech_rejected => {
+            return Err(format!("ECH 请求 {url} 失败：{}", failure.message));
+        }
+        Err(_) => {}
+    }
+
+    eprintln!("新配置仍被拒绝，改用普通 TLS 重试");
+    let plain = plain_client()?;
+    send(&plain, &url, headers)
+        .await
+        .map_err(|e| format!("去掉 ECH 重试仍失败：{}", e.message))
 }
 
 struct Failure {
