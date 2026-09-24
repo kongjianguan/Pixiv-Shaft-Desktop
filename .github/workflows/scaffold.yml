@@ -1,0 +1,60 @@
+name: Scaffold
+
+# 一次性引导任务：在云端用 flutter create 生成 macOS 工程骨架并提交回分支。
+# 本机不安装 Flutter。骨架生成后此工作流即作废，由 build.yml 接管。
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scaffold:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-flutter
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+
+      - name: Report Flutter version
+        run: flutter --version
+
+      - name: Generate scaffold into a scratch directory
+        run: |
+          set -euo pipefail
+          flutter create --platforms=macos --org ceui.pixiv --project-name pixiv_shaft scaffold-tmp
+
+      - name: Show generated gitignore for reference
+        run: |
+          echo "----- 生成的 .gitignore -----"
+          cat scaffold-tmp/.gitignore || true
+          echo "----- 生成的文件清单 -----"
+          find scaffold-tmp -type f -not -path '*/.git/*' | sort
+
+      - name: Move generated files to repository root
+        run: |
+          set -euo pipefail
+          for item in macos lib pubspec.yaml analysis_options.yaml .metadata; do
+            if [ -e "scaffold-tmp/$item" ]; then
+              rm -rf "$item"
+              mv "scaffold-tmp/$item" "$item"
+            fi
+          done
+          rm -rf scaffold-tmp
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "kongjianguan"
+          git config user.email "103617573+kongjianguan@users.noreply.github.com"
+          git add -A macos lib pubspec.yaml analysis_options.yaml .metadata
+          git status --short
+          git commit -m "chore: scaffold Flutter macOS project"
+          git push origin HEAD:rust-flutter
