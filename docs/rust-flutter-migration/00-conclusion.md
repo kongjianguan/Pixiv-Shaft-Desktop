@@ -265,7 +265,24 @@
 - **数据库与现有版本同址同结构**（`~/Library/Application Support/PixivShaft/shaft.db`，表 `download_queue`、`browse_history`、`search_table`），现有版本的下载队列与历史记录在新版本里直接可用；进程启动时把上次中断留下的 `DOWNLOADING` 改回 `QUEUED`。
 - **设置项放在同一个数据库里**。现有版本用 `java.util.prefs`，键名与默认值沿用现有一份，默认值由 Rust 侧持有，界面层不必重复维护。
 
-### 6.5 剩余待验项
+### 6.5 界面迁移进度
+
+现有版本的顶层页面文件是 **23 个**（`app/src/main/kotlin/ceui/pixiv/ui/screen/**/*Screen.kt`），目标里写的 40 是估算值，这里以实际文件数为准。
+
+已迁移并可运行：
+
+| 现有页面 | 新版本 | 覆盖范围 |
+|---|---|---|
+| `LoginScreen` | `login_screen.dart` | 授权流程完整 |
+| `RecommendScreen` | 推荐页（`feed_pages.dart`） | 推荐插画网格 |
+| `DiscoverScreen` | 排行页（`feed_pages.dart`） | 五种排行模式；最新作品、热门标签、Pixivision 未迁 |
+| `SearchScreen` | 搜索页（`search_profile_pages.dart`） | 插画搜索与搜索记录；小说、用户搜索与筛选未迁 |
+| `IllustDetailScreen` | `illust_detail_page.dart` | 多页浏览、缩放、页码、标签、简介、统计；评论、收藏操作、动图、相关作品行未迁 |
+| `ProfileScreen` | 收藏页（`search_profile_pages.dart`） | 收藏列表与退出登录；个人资料、作品与收藏分组未迁 |
+
+尚未迁移的 18 个页面文件集中在收藏管理（4）、小说（3）、动态（2）、用户（2）、评论（1）、漫画（1）、下载（1）、Pixivision（1）、R18（1）、设置（1）。
+
+### 6.6 剩余待验项
 
 | 项 | 验证方式 |
 |---|---|
@@ -287,7 +304,7 @@
 
 **代码生成也在云端**：`flutter_rust_bridge_codegen` 需要 `cargo expand`，而展开依赖 nightly 工具链，本机不装。生成产物提交进仓库，由工作流在接口或配置变更时重新生成，避免出现「改了 Rust 接口却忘记重新生成」的漂移。
 
-**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6.5](#65-剩余待验项) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
+**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6.6](#66-剩余待验项) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
 
 
 **签名与公证**：现有 DMG 既未签名也未公证（核对 `release.yml` 确认），所以这一步属于新增能力，与本次重构无关，可以单独决定是否要做。不做时构建链路不需要任何凭据；要做时需要 Apple Developer Program 会员资格与 7 项凭据。构建配置里给每一步加了条件守卫，未配置凭据时流水线不会失败。
