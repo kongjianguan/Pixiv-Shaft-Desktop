@@ -193,7 +193,7 @@
 
 ---
 
-## 6. 骨架阶段实测结果与剩余待验项
+## 6. 实测结果与剩余待验项
 
 ### 6.1 骨架阶段已在云端跑通（实测数据）
 
@@ -214,7 +214,20 @@
 - **Rust 产物是内嵌的动态框架，不是静态库。** `flutter_rust_bridge` 的 native-assets 钩子产出 `Contents/Frameworks/pixiv_core.framework`，通用二进制（arm64 与 x86_64），由构建流程随应用一并签名，不需要手工单独签名内层产物。
 - **`rust-toolchain.toml` 必须同时列出两种架构。** `flutter build macos` 按通用二进制构建，构建钩子对 arm64 与 x86_64 各调用一次；只列 arm64 会直接抛 `RustValidationException`。
 
-### 6.2 剩余待验项
+### 6.2 授权与接口层已在云端验证
+
+| 验收项 | 实测结果 |
+|---|---|
+| PKCE 符合 S256 定义 | verifier 长度 43，challenge 与 `base64url(sha256(verifier))` 一致 |
+| 授权地址参数完整 | 含 `client_id`、`response_type=code`、`code_challenge`、`code_challenge_method=S256` |
+| 接口签名头被服务端接受 | 不带凭据调用推荐接口返回 400 并带 `Error occurred at the OAuth process` 文案，即服务端只提示缺凭据，未拒绝签名 |
+| 正式包可启动 | 构建产物启动后保持存活 |
+
+一处实测暴露的关键事实：**`app-api.pixiv.net` 走普通 HTTPS 在国内网络不通**，本机请求直接失败。这正是现有版本要用 QUIC 发 API 请求的原因，因此国内可用的 API 通路要等 QUIC 接入（第三阶段）。上面的签名头验证在不受干扰的网络上跑通。
+
+另有一处流程改动：现有版本里的 `OAuthCallbackServer` 只有自身测试引用，是死代码。真实流程是打开系统浏览器、用户粘贴回调地址，因此新版本不起本地 HTTP 服务。
+
+### 6.3 剩余待验项
 
 | 项 | 验证方式 |
 |---|---|
@@ -236,7 +249,7 @@
 
 **代码生成也在云端**：`flutter_rust_bridge_codegen` 需要 `cargo expand`，而展开依赖 nightly 工具链，本机不装。生成产物提交进仓库，由工作流在接口或配置变更时重新生成，避免出现「改了 Rust 接口却忘记重新生成」的漂移。
 
-**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6.2](#62-剩余待验项) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
+**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6.3](#63-剩余待验项) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
 
 
 **签名与公证**：现有 DMG 既未签名也未公证（核对 `release.yml` 确认），所以这一步属于新增能力，与本次重构无关，可以单独决定是否要做。不做时构建链路不需要任何凭据；要做时需要 Apple Developer Program 会员资格与 7 项凭据。构建配置里给每一步加了条件守卫，未配置凭据时流水线不会失败。
