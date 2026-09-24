@@ -1,0 +1,169 @@
+//! 端到端验证：登录凭据与下载队列在进程重启后仍然保留。
+//!
+//! 每个子命令都在独立进程里运行，因此「重启后还在不在」是被真正验证的，
+//! 而不是同一个进程里读写一遍。
+//!
+//! 为了不动到真实的登录态与下载队列，这里用带 `probe_` 前缀的钥匙串键名，
+//! 并把 `HOME` 指到工作区内的目录，让数据库落在隔离的位置。
+//!
+//! 用法（由 verify 脚本驱动，也可手动按顺序执行）：
+//! ```text
+//! store_probe token-write
+//! store_probe token-verify
+//! store_probe token-clear
+//! store_probe enqueue <id>
+//! store_probe pause <id>
+//! store_probe expect <id> <状态>
+//! store_probe download
+//! store_probe clear-queue
+//! ```
+
+use pixiv_core::download;
+use pixiv_core::keychain;
+
+const KEY_ACCESS: &str = "probe_access_token";
+const KEY_REFRESH: &str = "probe_refresh_token";
+const KEY_USER: &str = "probe_user_json";
+
+const ACCESS_VALUE: &str = "probe-access-token-8f3a";
+const REFRESH_VALUE: &str = "probe-refresh-token-2b7c";
+const USER_VALUE: &str = r#"{"id":42,"name":"验证账号"}"#;
+
+/// 下载产物落在当前目录下，不使用系统临时目录。
+const DOWNLOAD_DIR: &str = "probe-downloads";
+
+#[tokio::main]
+async fn main() {
+    let command = std::env::args().nth(1).unwrap_or_default();
+    let result = match command.as_str() {
+        "token-write" => token_write(),
+        "token-verify" => token_verify(),
+        "token-clear" => token_clear(),
+        "enqueue" => enqueue(&argument(2)),
+        "pause" => set_state(&argument(2), download::STATUS_PAUSED),
+        "resume" => set_state(&argument(2), download::STATUS_QUEUED),
+        "expect" => expect_status(&argument(2), &argument(3)),
+        "download" => download_pending().await,
+        "list" => list_tasks(),
+        "clear-queue" => clear_queue(),
+        other => {
+            eprintln!("未知子命令：{other}");
+            std::process::exit(2);
+        }
+    };
+
+    if let Err(error) = result {
+        eprintln!("失败：{error}");
+        std::process::exit(1);
+    }
+}
+
+fn argument(index: usize) -> String {
+    std::env::args().nth(index).unwrap_or_else(|| {
+        eprintln!("缺少第 {index} 个参数");
+        std::process::exit(2);
+    })
+}
+
+fn token_write() -> Result<(), String> {
+    keychain::put(KEY_ACCESS, ACCESS_VALUE)?;
+    keychain::put(KEY_REFRESH, REFRESH_VALUE)?;
+    keychain::put(KEY_USER, USER_VALUE)?;
+    println!("已写入三项凭据");
+    Ok(())
+}
+
+fn token_verify() -> Result<(), String> {
+    let access = keychain::get(KEY_ACCESS)?;
+    let refresh = keychain::get(KEY_REFRESH)?;
+    let user = keychain::get(KEY_USER)?;
+
+    println!("access_token: {access:?}");
+    println!("refresh_token: {refresh:?}");
+    println!("user_json: {user:?}");
+
+    if access.as_deref() != Some(ACCESS_VALUE) {
+        return Err("access_token 与写入值不一致".into());
+    }
+    if refresh.as_deref() != Some(REFRESH_VALUE) {
+        return Err("refresh_token 与写入值不一致".into());
+    }
+    if user.as_deref() != Some(USER_VALUE) {
+        return Err("user_json 与写入值不一致".into());
+    }
+    println!("三项凭据与写入值一致");
+    Ok(())
+}
+
+fn token_clear() -> Result<(), String> {
+    keychain::remove(KEY_ACCESS)?;
+    keychain::remove(KEY_REFRESH)?;
+    keychain::remove(KEY_USER)?;
+
+    if keychain::get(KEY_ACCESS)?.is_some() {
+        return Err("删除后仍能读到 access_token".into());
+    }
+    println!("已删除三项凭据，且确认读不到了");
+    Ok(())
+}
+
+fn enqueue(id: &str) -> Result<(), String> {
+    std::fs::create_dir_all(DOWNLOAD_DIR).map_err(|e| format!("创建下载目录失败：{e}"))?;
+    download::enqueue_image(
+        id,
+        142389693,
+        0,
+        1,
+        "验证用作品",
+        "验证用作者",
+        "https://i.pximg.net/c/600x1200_90_webp/img-master/img/2026/03/17/00/37/51/142389693_p0_master1200.jpg",
+        DOWNLOAD_DIR,
+    )?;
+    println!("已加入队列：{id}");
+    Ok(())
+}
+
+fn set_state(id: &str, status: &str) -> Result<(), String> {
+    download::set_status(id, status, None)?;
+    println!("{id} 状态改为 {status}");
+    Ok(())
+}
+
+fn expect_status(id: &str, expected: &str) -> Result<(), String> {
+    let actual = download::status_of(id)?;
+    println!("{id} 当前状态：{actual:?}");
+    match actual.as_deref() {
+        Some(status) if status == expected => Ok(()),
+        other => Err(format!("期望状态 {expected}，实际 {other:?}")),
+    }
+}
+
+fn list_tasks() -> Result<(), String> {
+    for task in download::list()? {
+        println!(
+            "{} status={} bytes={}/{} output={}",
+            task.id, task.status, task.bytes_downloaded, task.total_bytes, task.output_path
+        );
+    }
+    Ok(())
+}
+
+async fn download_pending() -> Result<(), String> {
+    for (id, outcome) in download::process_queue().await? {
+        match outcome {
+            Ok(()) => println!("{id} 处理完成"),
+            Err(error) => println!("{id} 处理失败：{error}"),
+        }
+    }
+    Ok(())
+}
+
+fn clear_queue() -> Result<(), String> {
+    let tasks = download::list()?;
+    let count = tasks.len();
+    for task in tasks {
+        download::remove(&task.id)?;
+    }
+    println!("已清空 {count} 条任务");
+    Ok(())
+}

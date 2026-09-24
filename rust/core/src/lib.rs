@@ -6,8 +6,11 @@
 pub mod api;
 pub mod api_client;
 pub mod auth;
+pub mod db;
+pub mod download;
 pub mod ech;
 pub mod image;
+pub mod keychain;
 pub mod quic;
 pub mod session;
 pub mod tls;

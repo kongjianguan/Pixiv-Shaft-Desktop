@@ -21,6 +21,7 @@ app/build/app-resources/
 rust/core/target/
 rust/core/probe-output.txt
 rust/core/api-probe-output.txt
+rust/core/store-probe-output.txt
 rust/core/fetched-image.bin
 
 # 本机验证用的 cargo 缓存
@@ -36,3 +37,4 @@ __pycache__/
 # 迁移期间的临时验证目录（Flutter SDK、CARGO_HOME 等，体积以 GB 计）
 .verify/
 .probe/
+rust/core/.store-probe/
