@@ -1,0 +1,95 @@
+name: Build
+
+# 正式包在云端构建，本机不产出构建物。
+# 这一步同时验证三件事：Rust 构建钩子是否自动触发、关闭沙盒后的正式包能否联网、
+# 以及出 DMG 的链路是否成立。
+
+on:
+  push:
+    branches: [rust-flutter]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+
+      # Rust 工具链版本由 rust/core/rust-toolchain.toml 固定，rustup 会据此解析。
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/core
+
+      - name: Resolve Dart dependencies
+        run: flutter pub get
+
+      - name: Build release app
+        run: flutter build macos --release
+
+      - name: Report Rust build artifacts
+        run: |
+          echo "----- 构建钩子产出的 Rust 产物 -----"
+          find rust/core/target -maxdepth 3 -name '*.a' -o -maxdepth 3 -name '*.dylib' 2>/dev/null | sort || true
+
+      - name: Report app bundle structure and size
+        run: |
+          APP=build/macos/Build/Products/Release/PixivShaft.app
+          echo "----- 总体积 -----"
+          du -sh "$APP"
+          echo "----- 各子目录 -----"
+          du -sh "$APP/Contents"/* | sort -rh
+          echo "----- 可执行文件 -----"
+          ls -la "$APP/Contents/MacOS/"
+          echo "----- 是否残留独立动态库 -----"
+          find "$APP" -name '*.dylib' | sort || true
+
+      - name: Verify entitlements
+        run: |
+          APP=build/macos/Build/Products/Release/PixivShaft.app
+          echo "----- 正式包内嵌的权限声明 -----"
+          codesign -d --entitlements :- "$APP" 2>&1 | head -30
+
+      # 关闭沙盒后正式包能否联网，只能实跑验证：
+      # 权限声明缺失的问题只在正式构建出现，调试构建看不出来。
+      - name: Verify release app can reach the network
+        run: |
+          set -euo pipefail
+          APP=build/macos/Build/Products/Release/PixivShaft.app
+          "$APP/Contents/MacOS/PixivShaft" > probe.log 2>&1 &
+          PID=$!
+          for _ in $(seq 1 40); do
+            if grep -q '\[probe\]' probe.log; then break; fi
+            sleep 1
+          done
+          kill "$PID" 2>/dev/null || true
+          echo "----- 应用输出 -----"
+          cat probe.log
+          grep -q '\[probe\] 取回' probe.log
+
+      - name: Package DMG
+        run: |
+          set -euo pipefail
+          APP=build/macos/Build/Products/Release/PixivShaft.app
+          hdiutil create -volname PixivShaft -srcfolder "$APP" -ov -format UDZO PixivShaft.dmg
+          ls -lh PixivShaft.dmg
+
+      - name: Upload build outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: |
+            PixivShaft.dmg
+            probe.log
+          if-no-files-found: warn
