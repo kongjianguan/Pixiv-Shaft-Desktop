@@ -16,3 +16,22 @@ CLAUDE.md
 # Rust ECH 库构建产物
 rust/ech/target/
 app/build/app-resources/
+
+# 新版本的 Rust 核心
+rust/core/target/
+rust/core/probe-output.txt
+rust/core/fetched-image.bin
+
+# 本机验证用的 cargo 缓存
+.cargo-home/
+
+# 迁移验证产物（rustls/QUIC/ECH 实测代码与输出）
+docs/rust-flutter-migration/verify/*/target/
+docs/rust-flutter-migration/verify/.cargo-home/
+docs/rust-flutter-migration/verify/out/
+docs/rust-flutter-migration/verify/env.sh
+__pycache__/
+
+# 迁移期间的临时验证目录（Flutter SDK、CARGO_HOME 等，体积以 GB 计）
+.verify/
+.probe/

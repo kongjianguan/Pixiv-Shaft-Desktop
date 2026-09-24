@@ -1,0 +1,9 @@
+[package]
+name = "decode-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+image = { version = "0.25", features = ["jpeg", "png"] }
+jpeg-decoder = "0.3"
+fast_image_resize = "6.1"
