@@ -4,6 +4,10 @@
 //! 1. 不发 SNI 的 TLS（见 [`crate::tls`]）
 //! 2. 绕过本地 DNS 污染，直接连已知地址
 //! 3. 带 Referer 与伪装 User-Agent，否则 CDN 返回 403
+//!
+//! 地址不从公共解析服务取。实测 AliDNS 把 `i.pximg.net` 解析到 `118.184.26.113`，
+//! 该地址取不到图片（带 SNI 与不带 SNI 都失败），本地 DNS 的结果同样不可信，
+//! 因此沿用已知可用的 CDN 地址，与现有版本的 HttpDns 兜底列表一致。
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -13,7 +17,7 @@ use reqwest::header::{HeaderMap, HeaderValue, REFERER, USER_AGENT};
 /// 图片 CDN 域名。
 pub const IMAGE_HOST: &str = "i.pximg.net";
 
-/// 已知可用的 CDN 地址。对应 Kotlin 侧 HttpDns 的 fallback 列表。
+/// 已知可用的 CDN 地址。
 const IMAGE_HOST_IPS: &[&str] = &[
     "210.140.139.134",
     "210.140.139.133",
