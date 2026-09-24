@@ -312,7 +312,7 @@ YourApp.app/
 | **c. xcframework** | `xcodebuild -create-xcframework` 把多个架构的 Rust 静态库封成 `.xcframework` 加进 Xcode 工程 | 适合要多平台分发、要上架 App Store 的场景。单机自用偏重，且每次 Rust 改动都要重建 xcframework |
 | **d. CMake / 手动拷贝 + install_name_tool** | Cargo 产出 dylib 后手动拷进 bundle，用 `install_name_tool` 修 `@rpath` | 最底层，`flutter build` 之外还要自己串一条 CMake 或 shell 流水线 |
 
-注意四种方式都能落成 **静态库（`.a`，`-force_load` 链接）** 或 **动态库（`.dylib`，拷进 Frameworks）** 两种形态。FRB 的 cargokit 默认走**静态库**，这对本项目其实是好事：**静态链接进可执行文件，就绕开了「dylib 也要单独签名 + hardened runtime 拒加载未签名 dylib」这一整类麻烦**（见 §4.2）。
+注意四种方式都能落成 **静态库（`.a`，`-force_load` 链接）** 或 **动态库（`.dylib` 或 `.framework`，放进 `Contents/Frameworks`）** 两种形态。实测结论：**`flutter_rust_bridge` 2.13 的 native-assets 钩子产出动态框架**，由构建流程随应用一并签名，不需要手工先签内层产物（见 [00-conclusion.md §6.1](00-conclusion.md#61-骨架阶段已在云端跑通实测数据)）。
 
 ### 3.3 重要实测发现：Flutter 3.47 已弃用 CocoaPods，但 FRB 默认方案还依赖它
 
@@ -540,10 +540,12 @@ Release 签名要求 `--options runtime`（hardened runtime），它会启用**�
 
 也就是说：**如果 Rust 产物是 dylib 且没被单独签名，Release 包启动即崩溃**——症状和现在的「DMG 启动崩溃」一模一样，只是病因完全不同。
 
-规避办法有两个，推荐第一个：
+规避办法有两个：
 
-- **产物用静态库**（`.a`，`-force_load` link 进可执行文件）。静态库不是动态加载的，绕开整个库校验问题。**FRB 的 cargokit 默认就是静态库**，这条路已经是默认选项。
-- 若要 dylib：按 §3.4 第二步的规则，**先用同一身份签它再签外层 App**。
+- 产物用静态库（`.a`，`-force_load` link 进可执行文件）。静态库不是动态加载的，绕开整个库校验问题。
+- 产物用动态库时：按 §3.4 第二步的规则，**先用同一身份签它再签外层 App**。
+
+**实测该问题在当前集成下不出现**：native-assets 钩子产出的动态框架由构建流程随应用一并签名，正式包启动正常（见 [00-conclusion.md §6.1](00-conclusion.md#61-骨架阶段已在云端跑通实测数据)）。
 
 **坑 3：`flutter build macos` 强依赖完整 Xcode（新坑，本机已实证）**
 
@@ -574,7 +576,7 @@ debug = true
 
 **这个坑不会消失，因为它属于 Rust + macOS 链接器，不属于 JVM。** 迁移后 `rust/ech` 会被吸收进更大的 Rust 核心 crate，这个 `[profile.release]` 配置要原样搬过去。
 
-唯一的好消息：如果采用 **§4.2 坑 2 的静态库方案**，静态链接不经过 `dlopen`，**理论上不受这个 mis-aligned LINKEDIT 问题影响**（该问题只在动态加载时暴露）。这一条标【假设】——需要实机打个 release 静态 link 的 App 才能确认。**若验证成立，这 12MB 的 debuginfo 代价是可以省掉的。**
+**这条已由实测排除。** 迁移后的 release 构建产出动态框架且加载正常、应用可启动（见 [00-conclusion.md §6.1](00-conclusion.md#61-骨架阶段已在云端跑通实测数据)）。`rust/ech` 的 `[profile.release] debug = true` 属于旧集成路径的产物，新的核心 crate 不需要它。
 
 ### 4.4 诚实的总账
 

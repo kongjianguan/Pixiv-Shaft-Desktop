@@ -11,9 +11,9 @@
 
 | 原报告的判断 | 云端约束下的修正 |
 |---|---|
-| 「`flutter build macos` 能否产出 bundle」待验 | **放到 CI 上验**。`macos-latest` runner 预装完整 Xcode，这是 CI 的天然能力，不再是限制 |
-| 「Release entitlements 缺 `network.client` 是否阻断网络」待验 | 保持待验，但可以在 CI 里加一步 probe 自动判定（见 §5.3） |
-| 「静态链接是否规避 mis-aligned LINKEDIT」待验 | CI 上直接验：跑一次 release build 并启动，见 §5.2 |
+| 「`flutter build macos` 能否产出 bundle」待验 | **已在 CI 上验过**：构建成功，产出 51 MB 的应用包 |
+| 「Release entitlements 缺 `network.client` 是否阻断网络」待验 | **已验**：关闭沙盒后正式包实跑取回真实图片；内嵌声明为 `app-sandbox` = `false` |
+| 「静态链接是否规避 mis-aligned LINKEDIT」待验 | **已验，且结论不同**：钩子产出的是动态框架，加载正常（见 §1.3） |
 | 「签名与公证能否通过」 | **性质变了：这是新增能力，不是维持现状**。见 §4 开头的明确界定 |
 | 本机环境坑（受限 HOME、`~/.rustup` 不可写） | CI runner 上 HOME 可写，**这些坑在 CI 上不存在** |
 
@@ -44,18 +44,19 @@
 
 **选 native-assets 的实质收益是无条件的：cargokit 在 Flutter 3.47 上根本跑不起来**，其余都是顺带的。
 
-### 1.3 静态库 vs 动态库
+### 1.3 产物形态：实测为动态框架
 
-**推荐静态库（`.a`）。**
+先前建议用静态库，**实测结论与此不同**：`flutter_rust_bridge` 2.13 的 native-assets 钩子产出**动态框架** `Contents/Frameworks/pixiv_core.framework`（通用二进制，含 arm64 与 x86_64，12 MB），由构建流程随应用一并签名，**不需要手工先签内层产物**，CI 上也没有额外的签名步骤。
 
-差别在 CI 上落在两个地方：
+mis-aligned LINKEDIT 这个坑在实测中未出现：正式包启动正常并完成了真实取图（见 [00-conclusion.md §6.1](00-conclusion.md#61-骨架阶段已在云端跑通实测数据)）。因此 `rust/ech` 那条 `[profile.release] debug = true` 属于旧集成路径的产物，新的核心 crate 不需要它。
 
-| | 静态库 `.a` | 动态库 `.dylib` |
+| | 静态库 `.a` | 动态框架（实测走的这条） |
 |---|---|---|
-| 签名步骤 | **无需单独签名**，link 进可执行文件，随外层 App 一次签完 | 必须在签 App 之前**先单独签 dylib**，且要用同一个证书身份（hardened runtime 的库校验会拒绝加载未签名/异证书 dylib） |
-| mis-aligned LINKEDIT 坑 | 【假设】不经过 `dlopen`，**理论上不受影响**，可能因此省下 `rust/ech` 现在被迫留着的 12MB debuginfo | 受影响，必须保留 `debug = true` |
+| 签名步骤 | link 进可执行文件，随外层 App 一次签完 | 由构建流程随应用一并签名，无需手工处理 |
+| link 方式 | `-force_load` | `Contents/Frameworks` 下的内嵌框架 |
+| 本项目实测 | 未采用 | 采用，构建与启动均正常 |
 
-**这也是 §5.2 里要请 CI 验证的一条**：若静态链接确实验证了不受影响，就可以把 `[profile.release] debug = true` 去掉，产物能瘦约 8MB。
+**一条必须遵守的配置**：`rust-toolchain.toml` 要同时列出 `aarch64-apple-darwin` 与 `x86_64-apple-darwin`。`flutter build macos` 按通用二进制构建，构建钩子对两种架构各调用一次，只列一个会直接抛 `RustValidationException` 并中断构建。
 
 ---
 
@@ -575,18 +576,20 @@ jobs:
 
 ---
 
-## 7. 待验清单（全部可在 CI 上收敛）
+## 7. 待验清单
 
-| # | 待验项 | 在哪验 | 怎么判就是通过 |
+前七项已在 CI 上跑通并取得实测数据（见 [00-conclusion.md §6.1](00-conclusion.md#61-骨架阶段已在云端跑通实测数据)），此处保留判定标准备查。
+
+| # | 待验项 | 状态 | 怎么判就是通过 |
 |---|---|---|---|
-| 1 | `flutter build macos --release` 产出 bundle | §5.1 | artifact 里有 `.app` |
-| 2 | App bundle 真实结构与体积 | §5.1 | 打印 `Contents` 与 `du -sh`，对照 197MB 基线 |
-| 3 | native-assets hook 自动触发 cargo | §5.1 | 无额外 Rust 步骤仍能 link 成功 |
-| 4 | 静态链接是否消除独立 dylib | §5.2 | `find -name '*.dylib'` 无输出 |
-| 5 | 静态链接能否去掉 `debug = true` | §5.2 | 去掉后 App 仍能启动 |
-| 6 | Release entitlements 实际内容 | §5.2 | dump 结果与 expectations 对照 |
-| 7 | Release 包能否真的联网 | §5.3 | headless smoke 里 DoH + 图片请求成功 |
-| 8 | 签名 + 公证是否通过 | §5.4（可选） | `notarytool` 返回 Accepted，`spctl -a` 通过 |
-| 9 | DMG 能否挂载安装 | 人工 | 下载 release DMG 挂载并拖到 Applications |
+| 1 | `flutter build macos --release` 产出 bundle | **通过** | artifact 里有 `.app` |
+| 2 | App bundle 真实结构与体积 | **通过**，51 MB | 打印 `Contents` 与 `du -sh`，对照 197MB 基线 |
+| 3 | native-assets hook 自动触发 cargo | **通过** | 无额外 Rust 步骤仍能 link 成功 |
+| 4 | 产物是静态还是动态链接 | **动态框架**，见 §1.3 | `Contents/Frameworks` 下出现 `pixiv_core.framework` |
+| 5 | Release entitlements 实际内容 | **通过**，`app-sandbox` = `false` | dump 结果与 expectations 对照 |
+| 6 | Release 包能否真的联网 | **通过**，取回 130006 字节 | 正式包实跑并抓取输出 |
+| 7 | 无 SNI 取回真实图片并显示 | **通过** | 输出字节数与核心验证一致 |
+| 8 | 签名 + 公证是否通过 | 未做（新增能力） | `notarytool` 返回 Accepted，`spctl -a` 通过 |
+| 9 | DMG 能否挂载安装 | 待人工确认 | 下载 DMG 挂载并拖到 Applications |
 
 第 1–3 项是 **CI 第一次跑就能全部收敛**的，优先做完。它们收敛之后，本机没有完整 Xcode 这件事对本项目就不再有任何影响。

@@ -193,21 +193,36 @@
 
 ---
 
-## 6. 需要验证的清单
+## 6. 骨架阶段实测结果与剩余待验项
 
-以下项目在本次评估中未能完成验证，按「在云端 GitHub Actions 上跑一次即可收敛」排序。本机没有完整 Xcode 不构成障碍，因为 GitHub Actions 的 macOS 运行器预装完整 Xcode。
+### 6.1 骨架阶段已在云端跑通（实测数据）
 
-| 项 | 优先级 | 验证方式 |
-|---|---|---|
-| 正式构建能否产出应用包 | 第一 | CI 上跑 `flutter build macos --release` |
-| 应用包真实结构与体积 | 第一 | 第一步成功后打印目录结构与体积 |
-| Rust 构建钩子是否自动触发 | 第一 | 不写额外 Rust 步骤，看能否链接成功 |
-| 关闭沙盒后正式包能否正常联网 | 第一 | 这一步必须实跑，看配置定不了结论 |
-| 静态链接是否消除独立动态库 | 第二 | 打印动态库清单，并检查去掉 `debug = true` 后能否加载 |
-| 触控板翻页手感是否可接受 | 第二 | 真机确认 [§4](#4-触控板翻页的处理决定) 列出的三条行为：横向滑动与纵向滚动共存时的裁定、短促快甩能否翻页、慢速拖动是否回弹 |
-| 简介渲染库在桌面端的实际效果与链接点击 | 第二 | 真机验证 |
-| 日语输入法真机完整输入 | 第二 | 系统日语输入法输入多段长句并逐步转换 |
-| 签名与公证 | 可推迟 | 见 [§7](#7-云端构建) |
+`flutter build macos --release` 在 GitHub Actions 的 `macos-latest` 上跑通，五项验收全部成立：
+
+| 验收项 | 实测结果 |
+|---|---|
+| 正式包可构建 | 构建成功，产出 `PixivShaft.app` |
+| 目录结构与体积 | 应用包 **51 MB**：FlutterMacOS.framework 29 MB、pixiv_core.framework 12 MB、App.framework 8.8 MB；DMG **24 MB** |
+| Rust 构建钩子自动触发 | 未写任何额外 Rust 步骤，钩子自行解析 `Cargo.toml` 与 `rust-toolchain.toml` 并完成编译 |
+| 关闭沙盒后正式包可联网 | 正式包实跑输出 `[probe] 取回 130006 字节`，与本地核心验证同一张图片；内嵌权限声明实测为 `com.apple.security.app-sandbox` = `false` |
+| 无 SNI 取回真实图片并显示 | 同上，字节数一致，界面经 `Image.memory` 显示 |
+
+对照现有版本：应用包从 197 MB 降到 51 MB，DMG 从 131 MB 降到 24 MB。
+
+两处与先前判断不同的实测结论：
+
+- **Rust 产物是内嵌的动态框架，不是静态库。** `flutter_rust_bridge` 的 native-assets 钩子产出 `Contents/Frameworks/pixiv_core.framework`，通用二进制（arm64 与 x86_64），由构建流程随应用一并签名，不需要手工单独签名内层产物。
+- **`rust-toolchain.toml` 必须同时列出两种架构。** `flutter build macos` 按通用二进制构建，构建钩子对 arm64 与 x86_64 各调用一次；只列 arm64 会直接抛 `RustValidationException`。
+
+### 6.2 剩余待验项
+
+| 项 | 验证方式 |
+|---|---|
+| 触控板翻页手感是否可接受 | 真机确认 [§4](#4-触控板翻页的处理决定) 列出的三条行为：横向滑动与纵向滚动共存时的裁定、短促快甩能否翻页、慢速拖动是否回弹 |
+| 简介渲染库在桌面端的实际效果与链接点击 | 真机验证 |
+| 日语输入法真机完整输入 | 系统日语输入法输入多段长句并逐步转换 |
+| 关闭沙盒后能否开本地 OAuth 回调服务器、写入用户选择的下载目录 | 待这两条链路接入后按同样方式在正式包里实跑 |
+| 签名与公证 | 见 [§7](#7-云端构建) |
 
 日语输入法有一条硬版本约束：**Flutter 版本必须不低于 3.35.0**。低于此版本时，日语确定转换会重复后半句（[flutter/flutter#160935](https://github.com/flutter/flutter/issues/160935)，2025-06 修复）。另有一项仍开放的问题（[#190525](https://github.com/flutter/flutter/issues/190525)）：日语用回车确定转换时，回车会同时被快捷键系统收到，绑定「回车发送」的评论框每次确定都会误发送。补偿做法是在提交逻辑里判断输入法组合状态（`composing.isValid`）后再发送。
 
@@ -215,13 +230,14 @@
 
 ## 7. 云端构建
 
-构建全部放在 GitHub Actions，本机不产出构建物。仓库现有两个工作流已经跑在 `macos-latest` 上：`ci.yml` 已安装 Rust 工具链并构建 Rust 库，`release.yml` 在打标签时产出并上传 DMG。迁移后沿用它。
+构建全部放在 GitHub Actions，本机不产出构建物。
 
-**集成方式**：选 `native-assets`，不用 cargokit。cargokit 在当前 Flutter 上是死路（macOS 工程已切到 Swift Package Manager，没有 Podfile，而它仍生成 podspec）。native-assets 自 Flutter 3.38.0 起在正式版默认启用（[flutter/flutter#176285](https://github.com/flutter/flutter/pull/176285)），不需要额外开关。
+**集成方式**：`native-assets`，不用 cargokit。cargokit 在当前 Flutter 上是死路（macOS 工程已切到 Swift Package Manager，没有 Podfile，而它仍生成 podspec）。native-assets 自 Flutter 3.38.0 起在正式版默认启用（[flutter/flutter#176285](https://github.com/flutter/flutter/pull/176285)），不需要额外开关。钩子文件 `hook/build.dart` 用 `FlutterRustBridgeNativeAssetsBuilder`，`cratePath` 指向 `rust/core`。
 
-**Rust 产物用静态库**：链接进可执行文件后不需要单独签名，绕开加固运行时的动态库校验。附带可能省掉 `rust/ech` 现在为绕开链接器问题而保留的调试信息（约 12 MB）。
+**代码生成也在云端**：`flutter_rust_bridge_codegen` 需要 `cargo expand`，而展开依赖 nightly 工具链，本机不装。生成产物提交进仓库，由工作流在接口或配置变更时重新生成，避免出现「改了 Rust 接口却忘记重新生成」的漂移。
 
-**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6](#6-需要验证的清单) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
+**Flutter 版本锁死 3.47.5**，不写 `stable` 通道。理由见 [§6.2](#62-剩余待验项) 的输入法版本约束，通道漂移可能导致已修复的问题回归。
+
 
 **签名与公证**：现有 DMG 既未签名也未公证（核对 `release.yml` 确认），所以这一步属于新增能力，与本次重构无关，可以单独决定是否要做。不做时构建链路不需要任何凭据；要做时需要 Apple Developer Program 会员资格与 7 项凭据。构建配置里给每一步加了条件守卫，未配置凭据时流水线不会失败。
 
