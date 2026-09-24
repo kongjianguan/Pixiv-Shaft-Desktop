@@ -7,11 +7,20 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ImageUrls`, `RawIllust`, `RecommendResponse`
+// These functions are ignored because they are not marked as `pub`: `encode_query`, `fetch_illusts`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `IllustListResponse`, `ImageUrls`, `RawIllust`
 
 /// 取回推荐插画。图片字节由界面层另行调用 `fetch_image` 经反墙链路获取。
 Future<List<IllustSummary>> fetchRecommendedIllusts() =>
     RustLib.instance.api.crateApiIllustFetchRecommendedIllusts();
+
+/// 按关键词搜索插画。排序与匹配方式取现有版本的默认值。
+Future<List<IllustSummary>> searchIllusts({required String word}) =>
+    RustLib.instance.api.crateApiIllustSearchIllusts(word: word);
+
+/// 取回自己收藏的插画。
+Future<List<IllustSummary>> fetchBookmarkedIllusts() =>
+    RustLib.instance.api.crateApiIllustFetchBookmarkedIllusts();
 
 class IllustSummary {
   final PlatformInt64 id;

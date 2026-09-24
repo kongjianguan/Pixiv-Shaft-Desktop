@@ -71,7 +71,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -2088436626;
+  int get rustContentHash => -541121793;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -88,6 +88,8 @@ abstract class RustLibApi extends BaseApi {
     required String codeVerifier,
   });
 
+  Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts();
+
   Future<Uint8List> crateApiImageFetchImage({required String url});
 
   Future<List<IllustSummary>> crateApiIllustFetchRecommendedIllusts();
@@ -95,6 +97,10 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiInitApp();
 
   Future<bool> crateApiAuthIsLoggedIn();
+
+  Future<List<IllustSummary>> crateApiIllustSearchIllusts({
+    required String word,
+  });
 
   Future<AuthSession> crateApiAuthStartLogin();
 }
@@ -142,6 +148,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_illust_summary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiIllustFetchBookmarkedIllustsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIllustFetchBookmarkedIllustsConstMeta =>
+      const TaskConstMeta(debugName: "fetch_bookmarked_illusts", argNames: []);
+
+  @override
   Future<Uint8List> crateApiImageFetchImage({required String url}) {
     return handler.executeNormal(
       NormalTask(
@@ -151,7 +184,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 3,
             port: port_,
           );
         },
@@ -178,7 +211,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 4,
             port: port_,
           );
         },
@@ -205,7 +238,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -232,7 +265,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 6,
             port: port_,
           );
         },
@@ -251,6 +284,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "is_logged_in", argNames: []);
 
   @override
+  Future<List<IllustSummary>> crateApiIllustSearchIllusts({
+    required String word,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(word, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_illust_summary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiIllustSearchIllustsConstMeta,
+        argValues: [word],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIllustSearchIllustsConstMeta =>
+      const TaskConstMeta(debugName: "search_illusts", argNames: ["word"]);
+
+  @override
   Future<AuthSession> crateApiAuthStartLogin() {
     return handler.executeNormal(
       NormalTask(
@@ -259,7 +322,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
