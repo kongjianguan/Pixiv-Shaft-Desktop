@@ -2,9 +2,15 @@ name: Scaffold
 
 # 一次性引导任务：在云端用 flutter create 生成 macOS 工程骨架并提交回分支。
 # 本机不安装 Flutter。骨架生成后此工作流即作废，由 build.yml 接管。
+#
+# 用 push 而不是 workflow_dispatch 触发：手动触发要求工作流先存在于默认分支，
+# 而这个工作流只在迁移分支上。仅当本文件本身变更时触发，避免骨架生成后重复运行。
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [rust-flutter]
+    paths:
+      - '.github/workflows/scaffold.yml'
 
 jobs:
   scaffold:
