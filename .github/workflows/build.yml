@@ -26,19 +26,12 @@ on:
       - 'pubspec.lock'
       - 'flutter_rust_bridge.yaml'
       - '.github/workflows/build.yml'
-  # 代码生成工作流用默认令牌推送，那次推送不会再触发这里。
-  # 因此改为在它结束之后跑一遍，保证生成产物同样经过验证。
-  workflow_run:
-    workflows: ["Generate bridge"]
-    types: [completed]
 
 jobs:
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

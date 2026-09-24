@@ -1,0 +1,80 @@
+name: Core check
+
+# 核心能力的验证步骤放在这里，供两个入口复用：
+# - core.yml：rust/core 有改动时
+# - generate.yml：重新生成桥接产物之后
+#
+# 后一个入口是必要的：用默认令牌推送的生成提交不会再触发其他工作流，
+# 若不在这里补一遍，生成产物会处于未验证状态。
+
+on:
+  workflow_call:
+
+jobs:
+  core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/core
+
+      - name: Build core
+        working-directory: rust/core
+        run: cargo build --release --locked
+
+      # 端到端验证核心能力：不发送 SNI 的 TLS 能否取回真实图片。
+      # 失败时以非零码退出，同时把图片写盘供上传。
+      # pipefail 不能省：没有它，管道会把 cargo 的非零退出码换成 tee 的 0，
+      # 验证失败也会显示通过。
+      - name: Fetch a real image without SNI
+        working-directory: rust/core
+        run: |
+          set -o pipefail
+          cargo run --release --locked --bin fetch_probe 2>&1 | tee probe-output.txt
+
+      # 验证 PKCE、ECH 与 QUIC 两条通路、接口签名头与接口路径。
+      - name: Verify PKCE, transports and API signature headers
+        working-directory: rust/core
+        run: |
+          set -o pipefail
+          cargo run --release --locked --bin api_probe 2>&1 | tee api-probe-output.txt
+
+      # 无人应答的会话里，钥匙串访问会一直等待授权提示。这里先建一个已解锁的
+      # 专用钥匙串并设为默认，让验证过程无需人工应答。用的是真实的钥匙串，
+      # 只是换了一个而已。
+      - name: Prepare an unlocked keychain for verification
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/probe.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          security show-keychain-info "$KEYCHAIN"
+
+      # 验证凭据、下载队列、设置与历史记录跨进程保留。
+      # 脚本里每个调用都带超时，避免钥匙串访问在无人应答的会话里一直阻塞。
+      - name: Verify stored data survives a restart
+        working-directory: rust/core
+        run: |
+          set -o pipefail
+          verify/store-persistence.sh 2>&1 | tee store-probe-output.txt
+
+      - name: Upload verification output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-probe-output
+          path: |
+            rust/core/probe-output.txt
+            rust/core/api-probe-output.txt
+            rust/core/store-probe-output.txt
+            rust/core/fetched-image.bin
+          if-no-files-found: warn

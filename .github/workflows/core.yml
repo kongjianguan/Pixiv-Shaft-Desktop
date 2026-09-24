@@ -1,93 +1,21 @@
 name: Core
 
+# 验证步骤本身在 core-check.yml 里，这里只负责什么时候跑。
+
 on:
   push:
     branches: [rust-flutter]
     paths:
       - 'rust/core/**'
       - '.github/workflows/core.yml'
+      - '.github/workflows/core-check.yml'
   pull_request:
     paths:
       - 'rust/core/**'
       - '.github/workflows/core.yml'
-  # 代码生成工作流用默认令牌推送，那次推送不会再触发这里。
-  # 因此改为在它结束之后跑一遍，保证生成产物同样经过验证。
-  workflow_run:
-    workflows: ["Generate bridge"]
-    types: [completed]
+      - '.github/workflows/core-check.yml'
   workflow_dispatch:
 
 jobs:
   core:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust/core
-
-      - name: Build core
-        working-directory: rust/core
-        run: cargo build --release --locked
-
-      # 端到端验证核心能力：不发送 SNI 的 TLS 能否取回真实图片。
-      # 失败时以非零码退出，同时把图片写盘供上传。
-      # pipefail 不能省：没有它，管道会把 cargo 的非零退出码换成 tee 的 0，
-      # 验证失败也会显示通过。
-      - name: Fetch a real image without SNI
-        working-directory: rust/core
-        run: |
-          set -o pipefail
-          cargo run --release --locked --bin fetch_probe 2>&1 | tee probe-output.txt
-
-      # 验证 PKCE 与接口签名头。签名正确时缺少凭据应得到 401，
-      # 签名有问题会得到别的错误，两者可区分。
-      # 这一步在不受干扰的网络上跑，国内网络下 app-api 需要走 QUIC（后续阶段接入）。
-      - name: Verify PKCE and API signature headers
-        working-directory: rust/core
-        run: |
-          set -o pipefail
-          cargo run --release --locked --bin api_probe 2>&1 | tee api-probe-output.txt
-
-      # 无人应答的会话里，钥匙串访问会一直等待授权提示。这里先建一个已解锁的
-      # 专用钥匙串并设为默认，让验证过程无需人工应答。用的是真实的钥匙串，
-      # 只是换了一个而已。
-      - name: Prepare an unlocked keychain for verification
-        run: |
-          set -euo pipefail
-          KEYCHAIN="$RUNNER_TEMP/probe.keychain-db"
-          security create-keychain -p "" "$KEYCHAIN"
-          security set-keychain-settings "$KEYCHAIN"
-          security unlock-keychain -p "" "$KEYCHAIN"
-          security default-keychain -s "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN"
-          security show-keychain-info "$KEYCHAIN"
-
-      # 验证登录凭据与下载队列跨进程保留。脚本里每个调用都带超时，
-      # 避免钥匙串访问在无人应答的会话里一直阻塞。
-      - name: Verify credentials and download queue survive a restart
-        working-directory: rust/core
-        run: |
-          set -o pipefail
-          verify/store-persistence.sh 2>&1 | tee store-probe-output.txt
-
-      - name: Upload verification output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: core-probe-output
-          path: |
-            rust/core/probe-output.txt
-            rust/core/api-probe-output.txt
-            rust/core/store-probe-output.txt
-            rust/core/fetched-image.bin
-          if-no-files-found: warn
+    uses: ./.github/workflows/core-check.yml

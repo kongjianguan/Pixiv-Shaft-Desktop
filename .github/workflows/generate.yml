@@ -67,3 +67,38 @@ jobs:
             git commit -m "chore(bridge): regenerate flutter_rust_bridge artifacts"
             git push origin HEAD:rust-flutter
           fi
+
+  # 生成提交用默认令牌推送，那次推送不会再触发其他工作流，
+  # 因此在这里直接跑一遍核心检查，避免生成产物处于未验证状态。
+  verify:
+    needs: generate
+    uses: ./.github/workflows/core-check.yml
+
+  # 桥接签名变化会直接影响 Dart 侧能否编译，因此正式包也要在这里构建一次。
+  build:
+    needs: generate
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-flutter
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+          cache: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/core
+
+      - name: Build release app
+        run: |
+          flutter pub get
+          flutter build macos --release
