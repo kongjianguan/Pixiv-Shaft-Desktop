@@ -10,6 +10,7 @@ import 'api/auth.dart';
 import 'api/comment.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
+import 'api/novel.dart';
 import 'api/store.dart';
 import 'api/user.dart';
 
@@ -68,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<IllustSummary> dco_decode_list_illust_summary(dynamic raw);
 
   @protected
+  List<NovelSummary> dco_decode_list_novel_summary(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
@@ -78,6 +82,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResult dco_decode_login_result(dynamic raw);
+
+  @protected
+  NovelSeries dco_decode_novel_series(dynamic raw);
+
+  @protected
+  NovelSummary dco_decode_novel_summary(dynamic raw);
 
   @protected
   SearchRecord dco_decode_search_record(dynamic raw);
@@ -143,6 +153,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<NovelSummary> sse_decode_list_novel_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
@@ -155,6 +170,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResult sse_decode_login_result(SseDeserializer deserializer);
+
+  @protected
+  NovelSeries sse_decode_novel_series(SseDeserializer deserializer);
+
+  @protected
+  NovelSummary sse_decode_novel_summary(SseDeserializer deserializer);
 
   @protected
   SearchRecord sse_decode_search_record(SseDeserializer deserializer);
@@ -226,6 +247,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_novel_summary(
+    List<NovelSummary> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -245,6 +272,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_novel_series(NovelSeries self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_novel_summary(NovelSummary self, SseSerializer serializer);
 
   @protected
   void sse_encode_search_record(SearchRecord self, SseSerializer serializer);

@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueMoi,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2113689066;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -614604658;
             
 
 // Section: executor
@@ -67,6 +67,16 @@ let api_body = <String>::sse_decode(&mut deserializer);
 let api_parent_comment_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::comment::add_illust_comment(api_illust_id, api_body, api_parent_comment_id).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__novel__add_novel_bookmark_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "add_novel_bookmark", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_novel_id = <i64>::sse_decode(&mut deserializer);
+let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::add_novel_bookmark(api_novel_id, api_restrict).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__store__clear_browse_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -134,6 +144,15 @@ let api_target_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); mov
                          let output_ok = crate::api::illust::fetch_bookmarked_illusts().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__novel__fetch_bookmarked_novels_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_bookmarked_novels", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::fetch_bookmarked_novels().await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__user__fetch_follower_users_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_follower_users", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -198,6 +217,15 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
                          let output_ok = crate::api::comment::fetch_next_comments(api_next_url).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__novel__fetch_next_series_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_next_series", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_next_url = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::fetch_next_series(api_next_url).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__user__fetch_next_users_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_next_users", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -205,6 +233,24 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
             let api_next_url = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::user::fetch_next_users(api_next_url).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__novel__fetch_novel_detail_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_novel_detail", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_novel_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::fetch_novel_detail(api_novel_id).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__novel__fetch_novel_series_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_novel_series", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_series_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::fetch_novel_series(api_series_id).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__illust__fetch_ranking_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -223,6 +269,15 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
             deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::illust::fetch_recommended_illusts().await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__novel__fetch_recommended_novels_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_recommended_novels", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::fetch_recommended_novels().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__illust__fetch_related_illusts_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -338,6 +393,15 @@ let api_search_type = <i64>::sse_decode(&mut deserializer);deserializer.end(); m
             let api_illust_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::illust::remove_bookmark(api_illust_id).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__novel__remove_novel_bookmark_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "remove_novel_bookmark", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_novel_id = <i64>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::novel::remove_novel_bookmark(api_novel_id).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__store__reset_setting_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -531,6 +595,14 @@ return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id
         return ans_;}
                 }
                 
+                impl SseDecode for Vec<crate::api::novel::NovelSummary> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<crate::api::novel::NovelSummary>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
                 impl SseDecode for Vec<u8> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
@@ -560,6 +632,37 @@ return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_userId = <i64>::sse_decode(deserializer);
 let mut var_userName = <String>::sse_decode(deserializer);
 return crate::api::auth::LoginResult{user_id: var_userId, user_name: var_userName};}
+                }
+                
+                impl SseDecode for crate::api::novel::NovelSeries {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
+let mut var_title = <String>::sse_decode(deserializer);
+let mut var_caption = <String>::sse_decode(deserializer);
+let mut var_isConcluded = <bool>::sse_decode(deserializer);
+let mut var_isWatched = <bool>::sse_decode(deserializer);
+let mut var_chapters = <Vec<crate::api::novel::NovelSummary>>::sse_decode(deserializer);
+let mut var_nextUrl = <String>::sse_decode(deserializer);
+return crate::api::novel::NovelSeries{id: var_id, title: var_title, caption: var_caption, is_concluded: var_isConcluded, is_watched: var_isWatched, chapters: var_chapters, next_url: var_nextUrl};}
+                }
+                
+                impl SseDecode for crate::api::novel::NovelSummary {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
+let mut var_title = <String>::sse_decode(deserializer);
+let mut var_caption = <String>::sse_decode(deserializer);
+let mut var_createDate = <String>::sse_decode(deserializer);
+let mut var_textLength = <i64>::sse_decode(deserializer);
+let mut var_totalBookmarks = <i64>::sse_decode(deserializer);
+let mut var_totalView = <i64>::sse_decode(deserializer);
+let mut var_isBookmarked = <bool>::sse_decode(deserializer);
+let mut var_coverUrl = <String>::sse_decode(deserializer);
+let mut var_authorId = <i64>::sse_decode(deserializer);
+let mut var_authorName = <String>::sse_decode(deserializer);
+let mut var_seriesId = <i64>::sse_decode(deserializer);
+let mut var_seriesTitle = <String>::sse_decode(deserializer);
+let mut var_tags = <Vec<String>>::sse_decode(deserializer);
+return crate::api::novel::NovelSummary{id: var_id, title: var_title, caption: var_caption, create_date: var_createDate, text_length: var_textLength, total_bookmarks: var_totalBookmarks, total_view: var_totalView, is_bookmarked: var_isBookmarked, cover_url: var_coverUrl, author_id: var_authorId, author_name: var_authorName, series_id: var_seriesId, series_title: var_seriesTitle, tags: var_tags};}
                 }
                 
                 impl SseDecode for crate::api::store::SearchRecord {
@@ -629,43 +732,50 @@ return crate::api::user::UserProfile{id: var_id, name: var_name, account: var_ac
                     match func_id {
                         1 => wire__crate__api__illust__add_bookmark_impl(port, ptr, rust_vec_len, data_len),
 2 => wire__crate__api__comment__add_illust_comment_impl(port, ptr, rust_vec_len, data_len),
-3 => wire__crate__api__store__clear_browse_impl(port, ptr, rust_vec_len, data_len),
-4 => wire__crate__api__store__clear_searches_impl(port, ptr, rust_vec_len, data_len),
-5 => wire__crate__api__auth__complete_login_impl(port, ptr, rust_vec_len, data_len),
-6 => wire__crate__api__store__delete_browse_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__comment__delete_illust_comment_impl(port, ptr, rust_vec_len, data_len),
-8 => wire__crate__api__store__delete_search_impl(port, ptr, rust_vec_len, data_len),
-9 => wire__crate__api__illust__fetch_bookmarked_illusts_impl(port, ptr, rust_vec_len, data_len),
-10 => wire__crate__api__user__fetch_follower_users_impl(port, ptr, rust_vec_len, data_len),
-11 => wire__crate__api__user__fetch_following_users_impl(port, ptr, rust_vec_len, data_len),
-12 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
-13 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
-14 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
-15 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
-16 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__illust__fetch_ranking_impl(port, ptr, rust_vec_len, data_len),
-19 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
-21 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
-22 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
-23 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
-24 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-25 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
-26 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
-28 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
-31 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
-37 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
-38 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
-39 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
+3 => wire__crate__api__novel__add_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
+4 => wire__crate__api__store__clear_browse_impl(port, ptr, rust_vec_len, data_len),
+5 => wire__crate__api__store__clear_searches_impl(port, ptr, rust_vec_len, data_len),
+6 => wire__crate__api__auth__complete_login_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__store__delete_browse_impl(port, ptr, rust_vec_len, data_len),
+8 => wire__crate__api__comment__delete_illust_comment_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__store__delete_search_impl(port, ptr, rust_vec_len, data_len),
+10 => wire__crate__api__illust__fetch_bookmarked_illusts_impl(port, ptr, rust_vec_len, data_len),
+11 => wire__crate__api__novel__fetch_bookmarked_novels_impl(port, ptr, rust_vec_len, data_len),
+12 => wire__crate__api__user__fetch_follower_users_impl(port, ptr, rust_vec_len, data_len),
+13 => wire__crate__api__user__fetch_following_users_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
+15 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__novel__fetch_next_series_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__novel__fetch_novel_detail_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__novel__fetch_novel_series_impl(port, ptr, rust_vec_len, data_len),
+23 => wire__crate__api__illust__fetch_ranking_impl(port, ptr, rust_vec_len, data_len),
+24 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__novel__fetch_recommended_novels_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
+30 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+31 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
+33 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
+35 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
+36 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
+38 => wire__crate__api__novel__remove_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
+39 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
+41 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
+42 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
                 }
@@ -810,6 +920,53 @@ self.user_name.into_into_dart().into_dart()
             impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::auth::LoginResult {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::auth::LoginResult> for crate::api::auth::LoginResult {
             fn into_into_dart(self) -> crate::api::auth::LoginResult {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::novel::NovelSeries {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.id.into_into_dart().into_dart(),
+self.title.into_into_dart().into_dart(),
+self.caption.into_into_dart().into_dart(),
+self.is_concluded.into_into_dart().into_dart(),
+self.is_watched.into_into_dart().into_dart(),
+self.chapters.into_into_dart().into_dart(),
+self.next_url.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::novel::NovelSeries {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::novel::NovelSeries> for crate::api::novel::NovelSeries {
+            fn into_into_dart(self) -> crate::api::novel::NovelSeries {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::novel::NovelSummary {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.id.into_into_dart().into_dart(),
+self.title.into_into_dart().into_dart(),
+self.caption.into_into_dart().into_dart(),
+self.create_date.into_into_dart().into_dart(),
+self.text_length.into_into_dart().into_dart(),
+self.total_bookmarks.into_into_dart().into_dart(),
+self.total_view.into_into_dart().into_dart(),
+self.is_bookmarked.into_into_dart().into_dart(),
+self.cover_url.into_into_dart().into_dart(),
+self.author_id.into_into_dart().into_dart(),
+self.author_name.into_into_dart().into_dart(),
+self.series_id.into_into_dart().into_dart(),
+self.series_title.into_into_dart().into_dart(),
+self.tags.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::novel::NovelSummary {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::novel::NovelSummary> for crate::api::novel::NovelSummary {
+            fn into_into_dart(self) -> crate::api::novel::NovelSummary {
                 self
             }
         }
@@ -985,6 +1142,12 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
         for item in self { <crate::api::illust::IllustSummary>::sse_encode(item, serializer); }}
                 }
                 
+                impl SseEncode for Vec<crate::api::novel::NovelSummary> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <crate::api::novel::NovelSummary>::sse_encode(item, serializer); }}
+                }
+                
                 impl SseEncode for Vec<u8> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
@@ -1007,6 +1170,35 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.user_id, serializer);
 <String>::sse_encode(self.user_name, serializer);}
+                }
+                
+                impl SseEncode for crate::api::novel::NovelSeries {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
+<String>::sse_encode(self.title, serializer);
+<String>::sse_encode(self.caption, serializer);
+<bool>::sse_encode(self.is_concluded, serializer);
+<bool>::sse_encode(self.is_watched, serializer);
+<Vec<crate::api::novel::NovelSummary>>::sse_encode(self.chapters, serializer);
+<String>::sse_encode(self.next_url, serializer);}
+                }
+                
+                impl SseEncode for crate::api::novel::NovelSummary {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
+<String>::sse_encode(self.title, serializer);
+<String>::sse_encode(self.caption, serializer);
+<String>::sse_encode(self.create_date, serializer);
+<i64>::sse_encode(self.text_length, serializer);
+<i64>::sse_encode(self.total_bookmarks, serializer);
+<i64>::sse_encode(self.total_view, serializer);
+<bool>::sse_encode(self.is_bookmarked, serializer);
+<String>::sse_encode(self.cover_url, serializer);
+<i64>::sse_encode(self.author_id, serializer);
+<String>::sse_encode(self.author_name, serializer);
+<i64>::sse_encode(self.series_id, serializer);
+<String>::sse_encode(self.series_title, serializer);
+<Vec<String>>::sse_encode(self.tags, serializer);}
                 }
                 
                 impl SseEncode for crate::api::store::SearchRecord {
