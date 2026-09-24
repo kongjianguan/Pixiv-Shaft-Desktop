@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/auth.dart';
+import 'api/comment.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
 import 'api/store.dart';
@@ -38,6 +39,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BrowseRecord dco_decode_browse_record(dynamic raw);
 
   @protected
+  CommentEntry dco_decode_comment_entry(dynamic raw);
+
+  @protected
+  CommentPage dco_decode_comment_page(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -53,6 +60,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BrowseRecord> dco_decode_list_browse_record(dynamic raw);
 
   @protected
+  List<CommentEntry> dco_decode_list_comment_entry(dynamic raw);
+
+  @protected
   List<IllustSummary> dco_decode_list_illust_summary(dynamic raw);
 
   @protected
@@ -60,6 +70,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<SearchRecord> dco_decode_list_search_record(dynamic raw);
+
+  @protected
+  List<UserPreview> dco_decode_list_user_preview(dynamic raw);
 
   @protected
   LoginResult dco_decode_login_result(dynamic raw);
@@ -72,6 +85,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void dco_decode_unit(dynamic raw);
+
+  @protected
+  UserListPage dco_decode_user_list_page(dynamic raw);
+
+  @protected
+  UserPreview dco_decode_user_preview(dynamic raw);
 
   @protected
   UserProfile dco_decode_user_profile(dynamic raw);
@@ -87,6 +106,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BrowseRecord sse_decode_browse_record(SseDeserializer deserializer);
+
+  @protected
+  CommentEntry sse_decode_comment_entry(SseDeserializer deserializer);
+
+  @protected
+  CommentPage sse_decode_comment_page(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -106,6 +131,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<CommentEntry> sse_decode_list_comment_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<IllustSummary> sse_decode_list_illust_summary(
     SseDeserializer deserializer,
   );
@@ -119,6 +149,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<UserPreview> sse_decode_list_user_preview(SseDeserializer deserializer);
+
+  @protected
   LoginResult sse_decode_login_result(SseDeserializer deserializer);
 
   @protected
@@ -129,6 +162,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  UserListPage sse_decode_user_list_page(SseDeserializer deserializer);
+
+  @protected
+  UserPreview sse_decode_user_preview(SseDeserializer deserializer);
 
   @protected
   UserProfile sse_decode_user_profile(SseDeserializer deserializer);
@@ -149,6 +188,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_browse_record(BrowseRecord self, SseSerializer serializer);
 
   @protected
+  void sse_encode_comment_entry(CommentEntry self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_comment_page(CommentPage self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -163,6 +208,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_browse_record(
     List<BrowseRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_comment_entry(
+    List<CommentEntry> self,
     SseSerializer serializer,
   );
 
@@ -185,6 +236,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_user_preview(
+    List<UserPreview> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer);
 
   @protected
@@ -195,6 +252,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_user_list_page(UserListPage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_user_preview(UserPreview self, SseSerializer serializer);
 
   @protected
   void sse_encode_user_profile(UserProfile self, SseSerializer serializer);

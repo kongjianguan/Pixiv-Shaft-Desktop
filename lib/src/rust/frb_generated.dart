@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/auth.dart';
+import 'api/comment.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
 import 'api/store.dart';
@@ -73,7 +74,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -781016554;
+  int get rustContentHash => -2113689066;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -90,6 +91,12 @@ abstract class RustLibApi extends BaseApi {
     required String restrict,
   });
 
+  Future<void> crateApiCommentAddIllustComment({
+    required PlatformInt64 illustId,
+    required String body,
+    required PlatformInt64 parentCommentId,
+  });
+
   Future<void> crateApiStoreClearBrowse();
 
   Future<void> crateApiStoreClearSearches();
@@ -104,15 +111,42 @@ abstract class RustLibApi extends BaseApi {
     required PlatformInt64 targetId,
   });
 
+  Future<void> crateApiCommentDeleteIllustComment({
+    required PlatformInt64 commentId,
+  });
+
   Future<void> crateApiStoreDeleteSearch({required PlatformInt64 id});
 
   Future<List<IllustSummary>> crateApiIllustFetchBookmarkedIllusts();
+
+  Future<UserListPage> crateApiUserFetchFollowerUsers({
+    required PlatformInt64 userId,
+  });
+
+  Future<UserListPage> crateApiUserFetchFollowingUsers({
+    required PlatformInt64 userId,
+    required String restrict,
+  });
+
+  Future<CommentPage> crateApiCommentFetchIllustComments({
+    required PlatformInt64 illustId,
+  });
 
   Future<IllustDetail> crateApiIllustFetchIllustDetail({
     required PlatformInt64 illustId,
   });
 
   Future<Uint8List> crateApiImageFetchImage({required String url});
+
+  Future<UserListPage> crateApiUserFetchMypixivUsers({
+    required PlatformInt64 userId,
+  });
+
+  Future<CommentPage> crateApiCommentFetchNextComments({
+    required String nextUrl,
+  });
+
+  Future<UserListPage> crateApiUserFetchNextUsers({required String nextUrl});
 
   Future<List<IllustSummary>> crateApiIllustFetchRanking({
     required String mode,
@@ -172,6 +206,8 @@ abstract class RustLibApi extends BaseApi {
   Future<List<IllustSummary>> crateApiIllustSearchIllusts({
     required String word,
   });
+
+  Future<PlatformInt64> crateApiUserSelfUserId();
 
   Future<void> crateApiStoreSetSearchPinned({
     required PlatformInt64 id,
@@ -233,6 +269,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiCommentAddIllustComment({
+    required PlatformInt64 illustId,
+    required String body,
+    required PlatformInt64 parentCommentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(illustId, serializer);
+          sse_encode_String(body, serializer);
+          sse_encode_i_64(parentCommentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiCommentAddIllustCommentConstMeta,
+        argValues: [illustId, body, parentCommentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCommentAddIllustCommentConstMeta =>
+      const TaskConstMeta(
+        debugName: "add_illust_comment",
+        argNames: ["illustId", "body", "parentCommentId"],
+      );
+
+  @override
   Future<void> crateApiStoreClearBrowse() {
     return handler.executeNormal(
       NormalTask(
@@ -241,7 +314,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 3,
             port: port_,
           );
         },
@@ -268,7 +341,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 4,
             port: port_,
           );
         },
@@ -300,7 +373,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -334,7 +407,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 6,
             port: port_,
           );
         },
@@ -355,6 +428,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiCommentDeleteIllustComment({
+    required PlatformInt64 commentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(commentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiCommentDeleteIllustCommentConstMeta,
+        argValues: [commentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCommentDeleteIllustCommentConstMeta =>
+      const TaskConstMeta(
+        debugName: "delete_illust_comment",
+        argNames: ["commentId"],
+      );
+
+  @override
   Future<void> crateApiStoreDeleteSearch({required PlatformInt64 id}) {
     return handler.executeNormal(
       NormalTask(
@@ -364,7 +470,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
@@ -391,7 +497,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 9,
             port: port_,
           );
         },
@@ -410,6 +516,107 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_bookmarked_illusts", argNames: []);
 
   @override
+  Future<UserListPage> crateApiUserFetchFollowerUsers({
+    required PlatformInt64 userId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(userId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_user_list_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUserFetchFollowerUsersConstMeta,
+        argValues: [userId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUserFetchFollowerUsersConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_follower_users",
+        argNames: ["userId"],
+      );
+
+  @override
+  Future<UserListPage> crateApiUserFetchFollowingUsers({
+    required PlatformInt64 userId,
+    required String restrict,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(userId, serializer);
+          sse_encode_String(restrict, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_user_list_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUserFetchFollowingUsersConstMeta,
+        argValues: [userId, restrict],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUserFetchFollowingUsersConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_following_users",
+        argNames: ["userId", "restrict"],
+      );
+
+  @override
+  Future<CommentPage> crateApiCommentFetchIllustComments({
+    required PlatformInt64 illustId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(illustId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_comment_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiCommentFetchIllustCommentsConstMeta,
+        argValues: [illustId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCommentFetchIllustCommentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_illust_comments",
+        argNames: ["illustId"],
+      );
+
+  @override
   Future<IllustDetail> crateApiIllustFetchIllustDetail({
     required PlatformInt64 illustId,
   }) {
@@ -421,7 +628,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 13,
             port: port_,
           );
         },
@@ -452,7 +659,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 14,
             port: port_,
           );
         },
@@ -471,6 +678,100 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_image", argNames: ["url"]);
 
   @override
+  Future<UserListPage> crateApiUserFetchMypixivUsers({
+    required PlatformInt64 userId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(userId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_user_list_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUserFetchMypixivUsersConstMeta,
+        argValues: [userId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUserFetchMypixivUsersConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_mypixiv_users",
+        argNames: ["userId"],
+      );
+
+  @override
+  Future<CommentPage> crateApiCommentFetchNextComments({
+    required String nextUrl,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(nextUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_comment_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiCommentFetchNextCommentsConstMeta,
+        argValues: [nextUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCommentFetchNextCommentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_next_comments",
+        argNames: ["nextUrl"],
+      );
+
+  @override
+  Future<UserListPage> crateApiUserFetchNextUsers({required String nextUrl}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(nextUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_user_list_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUserFetchNextUsersConstMeta,
+        argValues: [nextUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUserFetchNextUsersConstMeta =>
+      const TaskConstMeta(debugName: "fetch_next_users", argNames: ["nextUrl"]);
+
+  @override
   Future<List<IllustSummary>> crateApiIllustFetchRanking({
     required String mode,
   }) {
@@ -482,7 +783,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 18,
             port: port_,
           );
         },
@@ -509,7 +810,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 19,
             port: port_,
           );
         },
@@ -539,7 +840,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 20,
             port: port_,
           );
         },
@@ -572,7 +873,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 21,
             port: port_,
           );
         },
@@ -604,7 +905,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 22,
             port: port_,
           );
         },
@@ -639,7 +940,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 23,
             port: port_,
           );
         },
@@ -668,7 +969,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 24,
             port: port_,
           );
         },
@@ -695,7 +996,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 25,
             port: port_,
           );
         },
@@ -729,7 +1030,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 26,
             port: port_,
           );
         },
@@ -761,7 +1062,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 27,
             port: port_,
           );
         },
@@ -790,7 +1091,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 28,
             port: port_,
           );
         },
@@ -824,7 +1125,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 29,
             port: port_,
           );
         },
@@ -858,7 +1159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 30,
             port: port_,
           );
         },
@@ -888,7 +1189,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 31,
             port: port_,
           );
         },
@@ -916,7 +1217,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 32,
             port: port_,
           );
         },
@@ -946,7 +1247,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 33,
             port: port_,
           );
         },
@@ -965,6 +1266,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "search_illusts", argNames: ["word"]);
 
   @override
+  Future<PlatformInt64> crateApiUserSelfUserId() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 34,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUserSelfUserIdConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUserSelfUserIdConstMeta =>
+      const TaskConstMeta(debugName: "self_user_id", argNames: []);
+
+  @override
   Future<void> crateApiStoreSetSearchPinned({
     required PlatformInt64 id,
     required bool pinned,
@@ -978,7 +1306,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1013,7 +1341,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1041,7 +1369,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1068,7 +1396,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1096,7 +1424,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1149,6 +1477,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       targetId: dco_decode_i_64(arr[1]),
       payloadJson: dco_decode_String(arr[2]),
       viewedAt: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
+  CommentEntry dco_decode_comment_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return CommentEntry(
+      id: dco_decode_i_64(arr[0]),
+      body: dco_decode_String(arr[1]),
+      date: dco_decode_String(arr[2]),
+      authorId: dco_decode_i_64(arr[3]),
+      authorName: dco_decode_String(arr[4]),
+      avatarUrl: dco_decode_String(arr[5]),
+      hasReplies: dco_decode_bool(arr[6]),
+    );
+  }
+
+  @protected
+  CommentPage dco_decode_comment_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return CommentPage(
+      comments: dco_decode_list_comment_entry(arr[0]),
+      nextUrl: dco_decode_String(arr[1]),
     );
   }
 
@@ -1210,6 +1567,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<CommentEntry> dco_decode_list_comment_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_comment_entry).toList();
+  }
+
+  @protected
   List<IllustSummary> dco_decode_list_illust_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_illust_summary).toList();
@@ -1225,6 +1588,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<SearchRecord> dco_decode_list_search_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_search_record).toList();
+  }
+
+  @protected
+  List<UserPreview> dco_decode_list_user_preview(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_user_preview).toList();
   }
 
   @protected
@@ -1264,6 +1633,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
+  }
+
+  @protected
+  UserListPage dco_decode_user_list_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return UserListPage(
+      users: dco_decode_list_user_preview(arr[0]),
+      nextUrl: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  UserPreview dco_decode_user_preview(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return UserPreview(
+      id: dco_decode_i_64(arr[0]),
+      name: dco_decode_String(arr[1]),
+      account: dco_decode_String(arr[2]),
+      avatarUrl: dco_decode_String(arr[3]),
+      isFollowed: dco_decode_bool(arr[4]),
+      latestIllustUrl: dco_decode_String(arr[5]),
+    );
   }
 
   @protected
@@ -1319,6 +1716,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       payloadJson: var_payloadJson,
       viewedAt: var_viewedAt,
     );
+  }
+
+  @protected
+  CommentEntry sse_decode_comment_entry(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_body = sse_decode_String(deserializer);
+    var var_date = sse_decode_String(deserializer);
+    var var_authorId = sse_decode_i_64(deserializer);
+    var var_authorName = sse_decode_String(deserializer);
+    var var_avatarUrl = sse_decode_String(deserializer);
+    var var_hasReplies = sse_decode_bool(deserializer);
+    return CommentEntry(
+      id: var_id,
+      body: var_body,
+      date: var_date,
+      authorId: var_authorId,
+      authorName: var_authorName,
+      avatarUrl: var_avatarUrl,
+      hasReplies: var_hasReplies,
+    );
+  }
+
+  @protected
+  CommentPage sse_decode_comment_page(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_comments = sse_decode_list_comment_entry(deserializer);
+    var var_nextUrl = sse_decode_String(deserializer);
+    return CommentPage(comments: var_comments, nextUrl: var_nextUrl);
   }
 
   @protected
@@ -1406,6 +1832,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<CommentEntry> sse_decode_list_comment_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CommentEntry>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_comment_entry(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<IllustSummary> sse_decode_list_illust_summary(
     SseDeserializer deserializer,
   ) {
@@ -1436,6 +1876,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <SearchRecord>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_search_record(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<UserPreview> sse_decode_list_user_preview(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <UserPreview>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_user_preview(deserializer));
     }
     return ans_;
   }
@@ -1474,6 +1926,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  UserListPage sse_decode_user_list_page(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_users = sse_decode_list_user_preview(deserializer);
+    var var_nextUrl = sse_decode_String(deserializer);
+    return UserListPage(users: var_users, nextUrl: var_nextUrl);
+  }
+
+  @protected
+  UserPreview sse_decode_user_preview(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_account = sse_decode_String(deserializer);
+    var var_avatarUrl = sse_decode_String(deserializer);
+    var var_isFollowed = sse_decode_bool(deserializer);
+    var var_latestIllustUrl = sse_decode_String(deserializer);
+    return UserPreview(
+      id: var_id,
+      name: var_name,
+      account: var_account,
+      avatarUrl: var_avatarUrl,
+      isFollowed: var_isFollowed,
+      latestIllustUrl: var_latestIllustUrl,
+    );
   }
 
   @protected
@@ -1536,6 +2015,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_comment_entry(CommentEntry self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.body, serializer);
+    sse_encode_String(self.date, serializer);
+    sse_encode_i_64(self.authorId, serializer);
+    sse_encode_String(self.authorName, serializer);
+    sse_encode_String(self.avatarUrl, serializer);
+    sse_encode_bool(self.hasReplies, serializer);
+  }
+
+  @protected
+  void sse_encode_comment_page(CommentPage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_comment_entry(self.comments, serializer);
+    sse_encode_String(self.nextUrl, serializer);
+  }
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
@@ -1592,6 +2090,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_comment_entry(
+    List<CommentEntry> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_comment_entry(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_illust_summary(
     List<IllustSummary> self,
     SseSerializer serializer,
@@ -1626,6 +2136,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_user_preview(
+    List<UserPreview> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_user_preview(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_login_result(LoginResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.userId, serializer);
@@ -1651,6 +2173,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  void sse_encode_user_list_page(UserListPage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_user_preview(self.users, serializer);
+    sse_encode_String(self.nextUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_user_preview(UserPreview self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.account, serializer);
+    sse_encode_String(self.avatarUrl, serializer);
+    sse_encode_bool(self.isFollowed, serializer);
+    sse_encode_String(self.latestIllustUrl, serializer);
   }
 
   @protected

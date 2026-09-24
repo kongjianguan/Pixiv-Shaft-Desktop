@@ -7,11 +7,19 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `RawProfileImage`, `RawProfile`, `UserDetailResponse`
+// These functions are ignored because they are not marked as `pub`: `fetch_user_list`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `RawListUser`, `RawPreviewIllust`, `RawPreviewImageUrls`, `RawProfile`, `RawSelfUser`, `RawUserPreview`, `SelfStateResponse`, `UserDetailResponse`, `UserPreviewResponse`
 
 /// 取回用户资料。
 Future<UserProfile> fetchUserDetail({required PlatformInt64 userId}) =>
     RustLib.instance.api.crateApiUserFetchUserDetail(userId: userId);
+
+/// 取回当前登录用户的 id，用于判断哪些内容属于自己。
+///
+/// 登录时已经拿到过，进程内缓存；从钥匙串恢复的会话没有这个值，
+/// 因此这里按需取一次并写回会话。
+Future<PlatformInt64> selfUserId() =>
+    RustLib.instance.api.crateApiUserSelfUserId();
 
 /// 关注一个用户。`restrict` 取 `public` 或 `private`。
 Future<void> followUser({
@@ -24,6 +32,89 @@ Future<void> followUser({
 
 Future<void> unfollowUser({required PlatformInt64 userId}) =>
     RustLib.instance.api.crateApiUserUnfollowUser(userId: userId);
+
+/// 关注中。`restrict` 取 `public` 或 `private`。
+Future<UserListPage> fetchFollowingUsers({
+  required PlatformInt64 userId,
+  required String restrict,
+}) => RustLib.instance.api.crateApiUserFetchFollowingUsers(
+  userId: userId,
+  restrict: restrict,
+);
+
+/// 粉丝。
+Future<UserListPage> fetchFollowerUsers({required PlatformInt64 userId}) =>
+    RustLib.instance.api.crateApiUserFetchFollowerUsers(userId: userId);
+
+/// 好P友。
+Future<UserListPage> fetchMypixivUsers({required PlatformInt64 userId}) =>
+    RustLib.instance.api.crateApiUserFetchMypixivUsers(userId: userId);
+
+/// 按游标取下一页用户列表。
+Future<UserListPage> fetchNextUsers({required String nextUrl}) =>
+    RustLib.instance.api.crateApiUserFetchNextUsers(nextUrl: nextUrl);
+
+class UserListPage {
+  final List<UserPreview> users;
+
+  /// 下一页游标，为空表示没有更多。
+  final String nextUrl;
+
+  const UserListPage({required this.users, required this.nextUrl});
+
+  @override
+  int get hashCode => users.hashCode ^ nextUrl.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UserListPage &&
+          runtimeType == other.runtimeType &&
+          users == other.users &&
+          nextUrl == other.nextUrl;
+}
+
+/// 用户列表里的一项。
+class UserPreview {
+  final PlatformInt64 id;
+  final String name;
+  final String account;
+  final String avatarUrl;
+  final bool isFollowed;
+
+  /// 该用户最近一张作品的缩略图，没有则为空。
+  final String latestIllustUrl;
+
+  const UserPreview({
+    required this.id,
+    required this.name,
+    required this.account,
+    required this.avatarUrl,
+    required this.isFollowed,
+    required this.latestIllustUrl,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      account.hashCode ^
+      avatarUrl.hashCode ^
+      isFollowed.hashCode ^
+      latestIllustUrl.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UserPreview &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          account == other.account &&
+          avatarUrl == other.avatarUrl &&
+          isFollowed == other.isFollowed &&
+          latestIllustUrl == other.latestIllustUrl;
+}
 
 class UserProfile {
   final PlatformInt64 id;
