@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:pixiv_shaft/src/rust/frb_generated.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/home_shell.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
 
 Future<void> main() async {
   await RustLib.init();
+  // 主题与布局参数取自数据库，启动时读一次。
+  await AppSettings.instance.load();
   runApp(const PixivShaftApp());
 }
 
@@ -14,10 +17,16 @@ class PixivShaftApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PixivShaft',
-      theme: ThemeData(colorSchemeSeed: Colors.blue, useMaterial3: true),
-      home: const AuthGate(),
+    final settings = AppSettings.instance;
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) => MaterialApp(
+        title: 'PixivShaft',
+        theme: settings.theme(Brightness.light),
+        darkTheme: settings.theme(Brightness.dark),
+        themeMode: settings.themeMode,
+        home: const AuthGate(),
+      ),
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/novel.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/user_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
+import 'package:pixiv_shaft/src/ui/widgets/layout.dart';
 import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
 
 /// 小说网格。封面、标题、作者与字数。
@@ -22,58 +24,66 @@ class NovelGrid extends StatelessWidget {
     if (novels.isEmpty) {
       return Center(child: Text(emptyLabel));
     }
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 240,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.62,
-      ),
-      itemCount: novels.length,
-      itemBuilder: (context, index) {
-        final novel = novels[index];
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => onOpen(novel),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: RustImage(url: novel.coverUrl)),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        novel.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        novel.authorName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                      ),
-                      if (novel.textLength > 0)
-                        Text(
-                          '${novel.textLength} 字',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    final settings = AppSettings.instance;
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) => GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: gridColumns(
+            context,
+            settings.novelMaxColumnWidth,
+            settings.novelMaxColumns,
           ),
-        );
-      },
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.62,
+        ),
+        itemCount: novels.length,
+        itemBuilder: (context, index) {
+          final novel = novels[index];
+          return Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => onOpen(novel),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: RustImage(url: novel.coverUrl)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          novel.title,
+                          maxLines: settings.novelTitleMaxLines,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          novel.authorName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                        ),
+                        if (novel.textLength > 0)
+                          Text(
+                            '${novel.textLength} 字',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

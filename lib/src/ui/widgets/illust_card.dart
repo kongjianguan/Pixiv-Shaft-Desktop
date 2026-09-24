@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
+import 'package:pixiv_shaft/src/ui/widgets/layout.dart';
 import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
 
 /// 作品列表里的一张卡片。
 class IllustCard extends StatelessWidget {
-  const IllustCard({super.key, required this.illust, this.onTap});
+  const IllustCard({
+    super.key,
+    required this.illust,
+    this.onTap,
+    this.titleMaxLines = 1,
+  });
 
   final IllustSummary illust;
   final VoidCallback? onTap;
+  final int titleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +47,7 @@ class IllustCard extends StatelessWidget {
                 children: [
                   Text(
                     illust.title,
-                    maxLines: 2,
+                    maxLines: titleMaxLines,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
@@ -88,6 +96,8 @@ class _Badge extends StatelessWidget {
 }
 
 /// 作品网格。列表为空或出错时给出对应提示。
+///
+/// 列宽与列数取自设置，改设置后立即重排。
 class IllustGrid extends StatelessWidget {
   const IllustGrid({
     super.key,
@@ -105,18 +115,27 @@ class IllustGrid extends StatelessWidget {
     if (illusts.isEmpty) {
       return Center(child: Text(emptyLabel));
     }
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 240,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.68,
-      ),
-      itemCount: illusts.length,
-      itemBuilder: (context, index) => IllustCard(
-        illust: illusts[index],
-        onTap: () => onOpen(illusts[index]),
+    final settings = AppSettings.instance;
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) => GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: gridColumns(
+            context,
+            settings.workMaxColumnWidth,
+            settings.workMaxColumns,
+          ),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.68,
+        ),
+        itemCount: illusts.length,
+        itemBuilder: (context, index) => IllustCard(
+          illust: illusts[index],
+          titleMaxLines: settings.workTitleMaxLines,
+          onTap: () => onOpen(illusts[index]),
+        ),
       ),
     );
   }

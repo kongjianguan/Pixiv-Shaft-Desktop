@@ -5,6 +5,7 @@ import 'package:pixiv_shaft/src/rust/api/novel.dart';
 import 'package:pixiv_shaft/src/rust/api/store.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
 import 'package:pixiv_shaft/src/ui/novel_pages.dart';
+import 'package:pixiv_shaft/src/ui/settings_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 
 /// 搜索：关键词搜索插画，未输入时展示搜索记录。
@@ -186,6 +187,13 @@ class _ProfilePageState extends State<ProfilePage>
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 tabs: const [Tab(text: '插画'), Tab(text: '小说')],
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+                ),
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: '设置',
               ),
               TextButton(onPressed: _logout, child: const Text('退出登录')),
             ],
