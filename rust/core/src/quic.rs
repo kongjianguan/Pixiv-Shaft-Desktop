@@ -44,11 +44,21 @@ fn client_config() -> Result<quinn::ClientConfig, String> {
     Ok(config)
 }
 
-/// 经 QUIC 发起一次 GET，返回状态码与响应体。
+/// 经 QUIC 发起一次 GET。
 pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
+    request("GET", path, headers, None).await
+}
+
+/// 经 QUIC 发起一次请求。两个任播地址依次尝试。
+pub async fn request(
+    method: &str,
+    path: &str,
+    headers: HeaderMap,
+    body: Option<String>,
+) -> Result<(u16, String), String> {
     let mut last_error = String::from("QUIC 地址列表为空");
     for ip in CF_IPS {
-        match get_via(ip, path, headers.clone()).await {
+        match request_via(ip, method, path, headers.clone(), body.clone()).await {
             Ok(result) => return Ok(result),
             Err(error) => last_error = format!("{ip}：{error}"),
         }
@@ -56,7 +66,13 @@ pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String
     Err(format!("QUIC 请求 {path} 失败：{last_error}"))
 }
 
-async fn get_via(ip: &str, path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
+async fn request_via(
+    ip: &str,
+    method: &str,
+    path: &str,
+    headers: HeaderMap,
+    body: Option<String>,
+) -> Result<(u16, String), String> {
     let remote: SocketAddr = format!("{ip}:443")
         .parse()
         .map_err(|e| format!("地址 {ip} 不合法：{e}"))?;
@@ -85,7 +101,7 @@ async fn get_via(ip: &str, path: &str, headers: HeaderMap) -> Result<(u16, Strin
             std::future::poll_fn(|cx| driver.poll_close(cx)).await;
     });
 
-    let result = send(path, &headers, &mut send_request).await;
+    let result = send(method, path, &headers, body, &mut send_request).await;
 
     drive.abort();
     endpoint.wait_idle().await;
@@ -93,16 +109,18 @@ async fn get_via(ip: &str, path: &str, headers: HeaderMap) -> Result<(u16, Strin
 }
 
 async fn send(
+    method: &str,
     path: &str,
     headers: &HeaderMap,
+    body: Option<String>,
     send_request: &mut h3::client::SendRequest<h3_quinn::OpenStreams, bytes::Bytes>,
 ) -> Result<(u16, String), String> {
     let mut builder = http::Request::builder()
-        .method("GET")
+        .method(method)
         .uri(format!("https://{AUTHORITY}{path}"))
         .header("host", AUTHORITY);
     for (name, value) in headers {
-        // reqwest 自己管理的头交给 QUIC 这一层自己决定。
+        // 这些头由 QUIC 这一层自己决定。
         let lower = name.as_str().to_ascii_lowercase();
         if matches!(
             lower.as_str(),
@@ -120,6 +138,12 @@ async fn send(
         .send_request(request)
         .await
         .map_err(|e| format!("发起请求流失败：{e}"))?;
+    if let Some(payload) = body {
+        stream
+            .send_data(bytes::Bytes::from(payload))
+            .await
+            .map_err(|e| format!("发送请求体失败：{e}"))?;
+    }
     stream
         .finish()
         .await

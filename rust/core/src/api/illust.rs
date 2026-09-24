@@ -128,16 +128,22 @@ pub async fn fetch_related_illusts(illust_id: i64) -> Result<Vec<IllustSummary>,
     fetch_illusts(&format!("/v2/illust/related?illust_id={illust_id}")).await
 }
 
+/// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
+pub async fn fetch_user_illusts(
+    user_id: i64,
+    illust_type: String,
+) -> Result<Vec<IllustSummary>, String> {
+    fetch_illusts(&format!(
+        "/v1/user/illusts?filter=for_ios&user_id={user_id}&type={}",
+        encode_query(&illust_type)
+    ))
+    .await
+}
+
 /// 取回单个作品的详情。
 pub async fn fetch_illust_detail(illust_id: i64) -> Result<IllustDetail, String> {
-    let session = crate::session::get()
-        .await
-        .ok_or_else(|| "尚未登录，请先完成授权".to_string())?;
-    let text = crate::api_client::get_with_auth(
-        &format!("/v1/illust/detail?illust_id={illust_id}"),
-        &session.access_token,
-    )
-    .await?;
+    let text =
+        crate::api_client::get_authed(&format!("/v1/illust/detail?illust_id={illust_id}")).await?;
 
     let parsed: SingleIllustResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析作品详情失败：{e}"))?;
@@ -171,6 +177,29 @@ pub async fn fetch_illust_detail(illust_id: i64) -> Result<IllustDetail, String>
         tags,
         image_urls,
     })
+}
+
+/// 收藏一个作品。`restrict` 取 `public` 或 `private`。
+pub async fn add_bookmark(illust_id: i64, restrict: String) -> Result<(), String> {
+    crate::api_client::post_with_auth(
+        "/v2/illust/bookmark/add",
+        &[
+            ("illust_id", &illust_id.to_string()),
+            ("restrict", &restrict),
+        ],
+    )
+    .await
+    .map(|_| ())
+}
+
+/// 取消收藏。
+pub async fn remove_bookmark(illust_id: i64) -> Result<(), String> {
+    crate::api_client::post_with_auth(
+        "/v1/illust/bookmark/delete",
+        &[("illust_id", &illust_id.to_string())],
+    )
+    .await
+    .map(|_| ())
 }
 
 /// 每一页的地址。单页作品在 `meta_single_page` 里，多页作品在 `meta_pages` 里。
@@ -216,25 +245,11 @@ fn author_name(user: &Option<RawUser>) -> String {
 
 /// 只转义查询串里必须转义的字符。
 fn encode_query(value: &str) -> String {
-    let mut out = String::with_capacity(value.len());
-    for byte in value.as_bytes() {
-        match byte {
-            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(*byte as char)
-            }
-            b' ' => out.push_str("%20"),
-            other => out.push_str(&format!("%{other:02X}")),
-        }
-    }
-    out
+    crate::api_client::encode_component(value)
 }
 
 async fn fetch_illusts(path: &str) -> Result<Vec<IllustSummary>, String> {
-    let session = crate::session::get()
-        .await
-        .ok_or_else(|| "尚未登录，请先完成授权".to_string())?;
-
-    let text = crate::api_client::get_with_auth(path, &session.access_token).await?;
+    let text = crate::api_client::get_authed(path).await?;
     let parsed: IllustListResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析作品列表失败：{e}"))?;
 

@@ -73,11 +73,11 @@ fn is_token_error(body: &str) -> bool {
 
 /// 带签名头发起一次 GET。令牌失效时刷新一次并重试。
 pub async fn get_with_auth(path: &str, access_token: &str) -> Result<String, String> {
-    let (status, body) = request(path, Some(access_token)).await?;
+    let (status, body) = request("GET", path, Some(access_token), None).await?;
 
     if !(200..300).contains(&status) && is_token_error(&body) {
         if let Some(refreshed) = crate::session::refresh_access_token(access_token).await {
-            let (retry_status, retry_body) = request(path, Some(&refreshed)).await?;
+            let (retry_status, retry_body) = request("GET", path, Some(&refreshed), None).await?;
             if !(200..300).contains(&retry_status) {
                 return Err(format!(
                     "刷新令牌后重试仍失败：{retry_status} {retry_body}"
@@ -98,18 +98,95 @@ pub async fn get_with_auth(path: &str, access_token: &str) -> Result<String, Str
 /// 用来验证签名头本身是否被服务端接受：签名正确时缺少凭据会得到带
 /// token 报错文案的响应，签名有问题则会得到别的错误，两者可以区分。
 pub async fn get_public(path: &str) -> Result<(u16, String), String> {
-    request(path, None).await
+    request("GET", path, None, None).await
+}
+
+/// 用当前会话发起一次 GET。
+pub async fn get_authed(path: &str) -> Result<String, String> {
+    let session = crate::session::get()
+        .await
+        .ok_or_else(|| "尚未登录，请先完成授权".to_string())?;
+    get_with_auth(path, &session.access_token).await
+}
+
+/// 带签名头发起一次表单 POST。令牌失效时刷新一次并重试。
+///
+/// 收藏、关注这类写操作都是表单 POST，服务端要求
+/// `application/x-www-form-urlencoded`。
+pub async fn post_with_auth(path: &str, fields: &[(&str, &str)]) -> Result<String, String> {
+    let session = crate::session::get()
+        .await
+        .ok_or_else(|| "尚未登录，请先完成授权".to_string())?;
+    let body = form_body(fields);
+
+    let (status, response) = request(
+        "POST",
+        path,
+        Some(&session.access_token),
+        Some(body.clone()),
+    )
+    .await?;
+
+    if !(200..300).contains(&status) && is_token_error(&response) {
+        if let Some(refreshed) = crate::session::refresh_access_token(&session.access_token).await {
+            let (retry_status, retry_body) =
+                request("POST", path, Some(&refreshed), Some(body)).await?;
+            if !(200..300).contains(&retry_status) {
+                return Err(format!("刷新令牌后重试仍失败：{retry_status} {retry_body}"));
+            }
+            return Ok(retry_body);
+        }
+    }
+
+    if !(200..300).contains(&status) {
+        return Err(format!("请求 {path} 返回 {status}：{response}"));
+    }
+    Ok(response)
+}
+
+fn form_body(fields: &[(&str, &str)]) -> String {
+    fields
+        .iter()
+        .map(|(key, value)| format!("{}={}", encode_component(key), encode_component(value)))
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+/// 只转义查询串与表单里必须转义的字符。
+pub fn encode_component(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for byte in value.as_bytes() {
+        match byte {
+            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(*byte as char)
+            }
+            b' ' => out.push_str("%20"),
+            other => out.push_str(&format!("%{other:02X}")),
+        }
+    }
+    out
 }
 
 /// 接口请求先走 ECH，失败再走 QUIC。
 ///
 /// 两条通路的顺序与现有版本一致：ECH 是加密 SNI 的 TCP 直连，QUIC 走 UDP。
 /// 两条都不通时把各自的失败原因一并报出，便于判断是哪一层的问题。
-async fn request(path: &str, access_token: Option<&str>) -> Result<(u16, String), String> {
-    let headers = api_headers(access_token);
-    match crate::ech::get(path, headers.clone()).await {
+async fn request(
+    method: &str,
+    path: &str,
+    access_token: Option<&str>,
+    body: Option<String>,
+) -> Result<(u16, String), String> {
+    let mut headers = api_headers(access_token);
+    if body.is_some() {
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            reqwest::header::HeaderValue::from_static("application/x-www-form-urlencoded"),
+        );
+    }
+    match crate::ech::request(method, path, headers.clone(), body.clone()).await {
         Ok(result) => Ok(result),
-        Err(ech_error) => crate::quic::get(path, headers)
+        Err(ech_error) => crate::quic::request(method, path, headers, body)
             .await
             .map_err(|quic_error| format!("{ech_error}；QUIC 同样失败：{quic_error}")),
     }

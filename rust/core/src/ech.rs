@@ -133,15 +133,25 @@ async fn build_client(ech_config: &[u8]) -> Result<reqwest::Client, String> {
 }
 
 /// 发起一次 GET。
+pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
+    request("GET", path, headers, None).await
+}
+
+/// 发起一次请求。
 ///
 /// ECH 被服务端拒绝属于正常情况：配置会轮换，缓存的配置在服务端滚动之后就失效。
-/// 因此先试 ECH；被拒时丢掉缓存、重新取一份配置再试；仍然被拒才改用普通 TLS。
-/// 普通 TLS 在国内会被中断，所以最后这一步只在不受干扰的网络上有效。
-pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
+/// 因此先试 ECH；被拒时丢掉缓存、重新取一份配置再试；仍然被拒就交给调用方
+/// 换别的通路。
+pub async fn request(
+    method: &str,
+    path: &str,
+    headers: HeaderMap,
+    body: Option<String>,
+) -> Result<(u16, String), String> {
     let url = format!("https://app-api.pixiv.net{path}");
 
     let first = client().await?;
-    match send(&first, &url, headers.clone()).await {
+    match send(&first, method, &url, headers.clone(), body.clone()).await {
         Ok(result) => return Ok(result),
         Err(failure) if !failure.ech_rejected => {
             return Err(format!("ECH 请求 {url} 失败：{}", failure.message));
@@ -152,7 +162,7 @@ pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String
     eprintln!("ECH 被服务端拒绝，重新取一份配置再试");
     invalidate_client().await;
     let refreshed = client().await?;
-    match send(&refreshed, &url, headers).await {
+    match send(&refreshed, method, &url, headers, body).await {
         Ok(result) => Ok(result),
         Err(failure) => Err(format!("ECH 请求 {url} 失败：{}", failure.message)),
     }
@@ -165,25 +175,34 @@ struct Failure {
 
 async fn send(
     client: &reqwest::Client,
+    method: &str,
     url: &str,
     headers: HeaderMap,
+    body: Option<String>,
 ) -> Result<(u16, String), Failure> {
-    let response = client
-        .get(url)
-        .headers(headers)
-        .send()
-        .await
-        .map_err(|e| Failure {
-            ech_rejected: is_ech_rejection(&e),
-            message: describe(&e),
-        })?;
+    let mut builder = client.request(
+        reqwest::Method::from_bytes(method.as_bytes()).map_err(|e| Failure {
+            ech_rejected: false,
+            message: format!("请求方法 {method} 不合法：{e}"),
+        })?,
+        url,
+    );
+    builder = builder.headers(headers);
+    if let Some(payload) = body {
+        builder = builder.body(payload);
+    }
+
+    let response = builder.send().await.map_err(|e| Failure {
+        ech_rejected: is_ech_rejection(&e),
+        message: describe(&e),
+    })?;
 
     let status = response.status().as_u16();
-    let body = response.text().await.map_err(|e| Failure {
+    let text = response.text().await.map_err(|e| Failure {
         ech_rejected: false,
         message: describe(&e),
     })?;
-    Ok((status, body))
+    Ok((status, text))
 }
 
 /// 判断失败是否来自「服务端拒绝了 ECH」。
