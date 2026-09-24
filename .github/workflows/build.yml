@@ -7,7 +7,25 @@ name: Build
 on:
   push:
     branches: [rust-flutter]
+    paths:
+      - 'lib/**'
+      - 'rust/**'
+      - 'macos/**'
+      - 'hook/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'flutter_rust_bridge.yaml'
+      - '.github/workflows/build.yml'
   pull_request:
+    paths:
+      - 'lib/**'
+      - 'rust/**'
+      - 'macos/**'
+      - 'hook/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'flutter_rust_bridge.yaml'
+      - '.github/workflows/build.yml'
 
 jobs:
   macos:
