@@ -1,0 +1,48 @@
+name: Core
+
+on:
+  push:
+    branches: [rust-flutter]
+    paths:
+      - 'rust/core/**'
+      - '.github/workflows/core.yml'
+  pull_request:
+    paths:
+      - 'rust/core/**'
+      - '.github/workflows/core.yml'
+  workflow_dispatch:
+
+jobs:
+  core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/core
+
+      - name: Build core
+        working-directory: rust/core
+        run: cargo build --release --locked
+
+      # 端到端验证核心能力：不发送 SNI 的 TLS 能否取回真实图片。
+      # 失败时以非零码退出，同时把图片写盘供上传。
+      - name: Fetch a real image without SNI
+        working-directory: rust/core
+        run: cargo run --release --locked --bin fetch_probe 2>&1 | tee probe-output.txt
+
+      - name: Upload verification output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetch-probe-output
+          path: |
+            rust/core/probe-output.txt
+            rust/core/fetched-image.bin
