@@ -25,7 +25,6 @@ h3-quinn = "0.0.10"
 http = "1"
 quinn = "0.11"
 rusqlite = { version = "0.32", features = ["bundled"] }
-security-framework = "3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
