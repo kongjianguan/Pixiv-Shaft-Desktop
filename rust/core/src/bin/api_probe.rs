@@ -55,10 +55,13 @@ async fn main() {
             let snippet: String = body.chars().take(200).collect();
             println!("状态码: {status}");
             println!("响应片段: {snippet}");
-            if status == 401 {
-                println!("签名头被接受，仅缺少凭据");
+            // 签名头被接受时，缺凭据表现为 Pixiv 的 OAuth 报错（400 或 401）。
+            // 签名本身有问题会得到别的错误，因此用这条已知文案作为判据。
+            let missing_credentials = body.contains("OAuth process") || status == 401;
+            if missing_credentials {
+                println!("签名头被接受，服务端只是在提示缺少凭据");
             } else {
-                eprintln!("期望 401（签名被接受），实际 {status}");
+                eprintln!("签名头可能有问题：既非 401，也没有出现缺少凭据的提示");
                 failed = true;
             }
         }
