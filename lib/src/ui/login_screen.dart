@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pixiv_shaft/src/ui/home_screen.dart';
+import 'package:pixiv_shaft/src/ui/home_shell.dart';
 
 /// Pixiv 授权登录。
 ///
@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       await Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+        MaterialPageRoute<void>(builder: (_) => const HomeShell()),
       );
     } catch (error) {
       if (!mounted) return;
