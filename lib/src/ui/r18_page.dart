@@ -29,6 +29,7 @@ class _R18PageState extends State<R18Page> {
   void initState() {
     super.initState();
     _settings.addListener(_onSettingsChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onSettingsChanged());
   }
 
   @override
