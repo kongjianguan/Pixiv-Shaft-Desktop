@@ -108,9 +108,8 @@ fun main() {
         ) {
             val authState by AppContainer.authState.collectAsState()
 
-            // 登出时清空所有悬挂请求：AppMenu 的「我的」「设置」菜单项在登出后仍留在
-            // 系统菜单栏（不随 Compose 组合销毁），点击会留下请求；不清空则下次登录时
-            // MainScreen 重新组合会意外消费（自动跳个人页/弹出覆盖页）
+            // 登出时清空所有悬挂请求：系统菜单栏里的「设置」不随 Compose 组合销毁，
+            // 登出期间的点击不能在下一次登录后被 MainScreen 消费。
             LaunchedEffect(authState) {
                 if (authState is AuthState.LoggedOut) {
                     mainNavigationRequest.value = null
@@ -124,18 +123,11 @@ fun main() {
             }
 
             if (authState is AuthState.LoggedIn) {
-                // 「我的」「设置」已移入系统应用菜单（AppMenu），此处只负责安装。
+                // 「设置」已移入系统应用菜单（AppMenu），此处只负责安装。
                 // 首次安装可能赶上应用菜单尚未就绪（mainMenu 为 nil），失败后每秒重试，最多 10 次
                 LaunchedEffect(Unit) {
                     repeat(10) {
                         AppMenu.install(
-                            // AppMenu 在登出后仍保留在系统菜单栏；回调读取实时登录态，避免
-                            // 登出期间的点击成为下次登录后才被消费的悬挂导航请求。
-                            onProfile = {
-                                if (AppContainer.authState.value is AuthState.LoggedIn) {
-                                    mainNavigationRequest.value = MainNavigationTarget.PROFILE
-                                }
-                            },
                             onSettings = {
                                 if (AppContainer.authState.value is AuthState.LoggedIn) {
                                     mainSettingsRequest.value++
@@ -165,14 +157,20 @@ fun main() {
                             shortcut = KeyShortcut(Key.Three, meta = true),
                         )
                         Item(
+                            "我的",
+                            onClick = { mainNavigationRequest.value = MainNavigationTarget.PROFILE },
+                            shortcut = KeyShortcut(Key.Four, meta = true),
+                        )
+                        Item(
                             "动态",
                             onClick = { mainNavigationRequest.value = MainNavigationTarget.DYNAMIC },
                             shortcut = KeyShortcut(Key.Five, meta = true),
                         )
+                        Separator()
                         Item(
                             "浏览记录",
                             onClick = { mainHistoryRequest.value++ },
-                            shortcut = KeyShortcut(Key.Six, meta = true),
+                            shortcut = KeyShortcut(Key.Y, meta = true),
                         )
                         val showR18 by AppContainer.settingsStore.isShowR18Flow.collectAsState()
                         if (showR18) {
@@ -181,6 +179,7 @@ fun main() {
                                 onClick = { mainR18Request.value++ },
                             )
                         }
+                        Separator()
                         Item(
                             "Pixivision",
                             onClick = { mainPixivisionRequest.value++ },
@@ -195,16 +194,19 @@ fun main() {
                         )
                     }
 
-                    Menu("操作", mnemonic = 'A') {
+                    Menu("显示", mnemonic = 'V') {
                         Item(
                             "刷新当前页面",
                             onClick = { mainRefreshRequest.value++ },
                             shortcut = KeyShortcut(Key.R, meta = true),
                         )
-                        Separator()
+                    }
+
+                    Menu("窗口", mnemonic = 'W') {
                         Item(
                             "下载管理",
                             onClick = { mainDownloadsRequest.value++ },
+                            shortcut = KeyShortcut(Key.J, meta = true),
                         )
                     }
                 }

@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Puts "我的" and "设置" items into the macOS application menu — the first
+ * Puts "设置" item into the macOS application menu — the first
  * menu on the menu bar, titled with the app name next to the Apple logo.
  *
  * The JVM application menu (About/Hide/Quit) is created by the runtime at
@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicReference
  *  - A menu item's action must be an Objective-C method, not a C function.
  *
  * Both are solved with a tiny private ObjC class (PixivShaftMenuExecutor)
- * whose three methods (javaProfileClicked: / javaSettingsClicked: /
- * javaInstallTask:) are implemented by JNA Callback stubs via class_addMethod.
+ * whose two methods (javaSettingsClicked: and javaInstallTask:) are
+ * implemented by JNA Callback stubs via class_addMethod.
  * From any Java thread we submit work with
  * performSelectorOnMainThread:withObject:waitUntilDone:, which runs the
  * selector on the AppKit main thread.
@@ -42,18 +42,14 @@ object AppMenu {
         fun invoke(self: Pointer?, cmd: Pointer?, sender: Pointer?)
     }
 
-    private val profileAction = AtomicReference<(() -> Unit)?>(null)
     private val settingsAction = AtomicReference<(() -> Unit)?>(null)
 
     // Strong refs: JNA keeps the native closure alive only while the Callback
     // object is reachable. The executor target is retained by the menu items.
-    private var profileCallback: MenuActionCallback? = null
     private var settingsCallback: MenuActionCallback? = null
     private var taskCallback: MenuActionCallback? = null
     private var executor: Pointer? = null
-    // 已成功插入的菜单项，重试前先移除，避免两次 insertItem: 之间失败造成重复项。
-    // 只有 insertItem: 成功后才记录，指针才指向被菜单 retain 的合法对象。
-    private var insertedProfileItem: Pointer? = null
+    // 已成功插入的设置项，重试前先移除，避免重复项。
     private var insertedSettingsItem: Pointer? = null
     @Volatile private var installed = false
     /** javaInstallTask: 回调在 AppKit 主线程置位；waitUntilDone 保证 install() 能同步读到结果 */
@@ -84,9 +80,8 @@ object AppMenu {
     }
 
     /** Idempotent. Installs the items on the AppKit main thread. */
-    fun install(onProfile: () -> Unit, onSettings: () -> Unit) {
+    fun install(onSettings: () -> Unit) {
         if (installed) return
-        profileAction.set(onProfile)
         settingsAction.set(onSettings)
         try {
             ensureExecutor()
@@ -124,11 +119,6 @@ object AppMenu {
             arrayOf<Any>(cls("NSObject"), "PixivShaftMenuExecutor", 0)
         )!!
 
-        val cbProfile = object : MenuActionCallback {
-            override fun invoke(self: Pointer?, cmd: Pointer?, sender: Pointer?) {
-                profileAction.get()?.invoke()
-            }
-        }
         val cbSettings = object : MenuActionCallback {
             override fun invoke(self: Pointer?, cmd: Pointer?, sender: Pointer?) {
                 settingsAction.get()?.invoke()
@@ -143,13 +133,9 @@ object AppMenu {
                 }
             }
         }
-        profileCallback = cbProfile
         settingsCallback = cbSettings
         taskCallback = cbTask
 
-        addMethod.invokePointer(
-            arrayOf<Any>(execClass, sel("javaProfileClicked:"),
-                CallbackReference.getFunctionPointer(cbProfile), OBJC_VOID_1ARG))
         addMethod.invokePointer(
             arrayOf<Any>(execClass, sel("javaSettingsClicked:"),
                 CallbackReference.getFunctionPointer(cbSettings), OBJC_VOID_1ARG))
@@ -168,22 +154,15 @@ object AppMenu {
         val appMenuItem = msgSend(mainMenu, "itemAtIndex:", 0)
         val appMenu = msgSend(appMenuItem, "submenu")
 
-        // 上一次重试可能已在两次 insertItem: 之间失败（我的 已插入而 设置 未插入），
         // 先移除已插入的残留项，使重试幂等、不产生重复菜单项。
-        insertedProfileItem?.let { msgSendVoid(appMenu, "removeItem:", it) }
         insertedSettingsItem?.let { msgSendVoid(appMenu, "removeItem:", it) }
-        insertedProfileItem = null
         insertedSettingsItem = null
 
-        val itemProfile = newMenuItem("我的", sel("javaProfileClicked:"), "4")
         val itemSettings = newMenuItem("设置", sel("javaSettingsClicked:"), ",")
-        msgSendVoid(itemProfile, "setTarget:", executor)
         msgSendVoid(itemSettings, "setTarget:", executor)
 
-        // Insert right after "About".
-        msgSendVoid(appMenu, "insertItem:atIndex:", itemProfile, 1)
-        insertedProfileItem = itemProfile
-        msgSendVoid(appMenu, "insertItem:atIndex:", itemSettings, 2)
+        // Insert right after "About" (index 1).
+        msgSendVoid(appMenu, "insertItem:atIndex:", itemSettings, 1)
         insertedSettingsItem = itemSettings
     }
 

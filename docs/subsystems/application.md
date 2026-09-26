@@ -28,7 +28,7 @@ Keep network and persistence construction in `AppContainer` and screen models. A
 
 The root application observes authentication state and replaces the navigation tree after login or logout. The global Escape dispatcher in `Main.kt` lets the navigation layer close full-screen image mode or pop the active nested navigator when Compose focus dispatch is insufficient.
 
-The macOS application menu is installed through [`AppMenu`](../../app/src/main/kotlin/ceui/pixiv/platform/AppMenu.kt). Menu callbacks guard the current authentication state so a click made while logged out does not become a stale navigation request after a later login.
+The macOS application menu installs the system-level Settings item (`⌘,`) through [`AppMenu`](../../app/src/main/kotlin/ceui/pixiv/platform/AppMenu.kt). Primary tab navigation (`⌘1`–`⌘5`) and secondary views live under the standard `Go` (前往), `View` (显示), and `Window` (窗口) menu bars. Menu callbacks guard the current authentication state so a click made while logged out does not become a stale navigation request after a later login.
 
 ## Verification
 

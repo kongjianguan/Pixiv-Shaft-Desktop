@@ -28,7 +28,7 @@ Screen model 负责异步加载，并向 Compose 暴露 `StateFlow`。通用 `Ui
 
 根应用观察认证状态，并在登录或退出登录后替换导航树。`Main.kt` 中的全局 Escape dispatcher 允许导航层关闭全屏图片模式，或在 Compose focus dispatch 不足时弹出当前嵌套导航器。
 
-macOS 应用菜单通过 [`AppMenu`](../../app/src/main/kotlin/ceui/pixiv/platform/AppMenu.kt) 安装。菜单回调会检查当前认证状态，因此用户在退出登录时点击菜单，不会在之后重新登录时变成过期的导航请求。
+macOS 应用菜单通过 [`AppMenu`](../../app/src/main/kotlin/ceui/pixiv/platform/AppMenu.kt) 安装系统级偏好设置（`⌘,`）。主标签页导航（`⌘1`～`⌘5`）及辅助视图则位于标准「前往」、「显示」和「窗口」菜单栏。菜单回调会检查当前认证状态，因此用户在退出登录时点击菜单，不会在之后重新登录时变成过期的导航请求。
 
 ## 验证
 
