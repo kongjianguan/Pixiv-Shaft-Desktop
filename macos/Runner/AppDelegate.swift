@@ -7,7 +7,7 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
     super.applicationDidFinishLaunching(notification)
-    mainFlutterWindow.delegate = self
+    mainFlutterWindow!.delegate = self
     installStatusItem()
   }
 
@@ -58,7 +58,7 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
   }
 
   @objc private func showWindow() {
-    mainFlutterWindow.makeKeyAndOrderFront(nil)
+    mainFlutterWindow!.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
   }
 

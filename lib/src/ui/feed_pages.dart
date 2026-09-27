@@ -76,59 +76,76 @@ class _RecommendedPageState extends State<RecommendedPage>
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
                 opacity: _showTabs ? 1 : 0,
-                child: IgnorePointer(
-                  ignoring: !_showTabs,
-                  child: MouseRegion(
-                    onEnter: (_) => _revealTabs(),
-                    onExit: (_) => _scheduleHideTabs(),
-                    child: Material(
-                      elevation: 8,
-                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.98),
-                      borderRadius: BorderRadius.circular(18),
-                      clipBehavior: Clip.antiAlias,
-                      child: AnimatedBuilder(
-                        animation: _tabs,
-                        builder: (context, _) {
-                          final colors = Theme.of(context).colorScheme;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                for (var index = 0; index < _pageLabels.length; index++) ...[
-                                  if (index > 0) const SizedBox(width: 2),
-                                  Material(
-                                    color: _tabs.index == index
-                                        ? colors.primaryContainer
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(14),
-                                      onTap: () {
-                                        _revealTabs();
-                                        _tabs.animateTo(index);
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 6,
-                                        ),
-                                        child: Text(
-                                          _pageLabels[index],
-                                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                            color: _tabs.index == index
-                                                ? colors.onPrimaryContainer
-                                                : colors.onSurfaceVariant,
+                child: ExcludeSemantics(
+                  excluding: !_showTabs,
+                  child: IgnorePointer(
+                    ignoring: !_showTabs,
+                    child: MouseRegion(
+                      onEnter: (_) => _revealTabs(),
+                      onExit: (_) => _scheduleHideTabs(),
+                      child: Material(
+                        elevation: 8,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surface
+                            .withValues(alpha: 0.98),
+                        borderRadius: BorderRadius.circular(18),
+                        clipBehavior: Clip.antiAlias,
+                        child: AnimatedBuilder(
+                          animation: _tabs,
+                          builder: (context, _) {
+                            final colors = Theme.of(context).colorScheme;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var index = 0;
+                                      index < _pageLabels.length;
+                                      index++) ...[
+                                    if (index > 0) const SizedBox(width: 2),
+                                    Semantics(
+                                      selected: _tabs.index == index,
+                                      child: Material(
+                                        color: _tabs.index == index
+                                            ? colors.primaryContainer
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(14),
+                                          onTap: () {
+                                            _revealTabs();
+                                            _tabs.animateTo(index);
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 6,
+                                            ),
+                                            child: Text(
+                                              _pageLabels[index],
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelLarge
+                                                  ?.copyWith(
+                                                    color: _tabs.index == index
+                                                        ? colors.onPrimaryContainer
+                                                        : colors.onSurfaceVariant,
+                                                  ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          );
-                        },
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
