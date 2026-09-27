@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-Flutter 首页在顶部居中放置四个按内容宽度排列的胶囊按钮，沿用 Compose 的间距、文字样式、选中颜色和圆角容器。按钮初始可见，鼠标离开后隐藏，移到窗口顶部时重新出现。按钮与页面滑动共用现有的 `TabController` 选择状态。macOS Runner 使用 AppKit 创建带圆形 P 标记的模板状态栏图标，提供 Show 和 Exit 操作。关闭主窗口时只隐藏窗口，保留 Flutter 页面状态。应用运行期间保留状态栏图标。
+Flutter 首页在顶部居中放置四个按内容宽度排列的胶囊按钮，沿用 Compose 的间距、文字样式、选中颜色和圆角容器。按钮初始可见，鼠标离开后隐藏，移到窗口顶部时重新出现。按钮与页面滑动共用现有的 `TabController` 选择状态。主窗口加载完成时，macOS Runner 安装窗口事件处理对象和 AppKit 模板状态栏图标。图标带圆形 P 标记，提供 Show 和 Exit 操作。关闭主窗口时只隐藏窗口，保留 Flutter 页面状态。应用运行期间保留状态栏图标。
 
 ## Alternatives considered
 

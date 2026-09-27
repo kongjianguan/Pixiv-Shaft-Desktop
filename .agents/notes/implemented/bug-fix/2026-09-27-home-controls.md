@@ -10,7 +10,7 @@ The full-window feed needs the compact, discoverable mode switch used by the Com
 
 ## Decision
 
-The Flutter home feed places four content-sized pills at the top center, with the Compose spacing, typography, selected colors, and rounded surface. The pills start visible, hide after the pointer leaves, and reappear when the pointer reaches the top edge. They use the feed's existing `TabController`, so clicks and page swipes share one selection state. The macOS Runner owns an AppKit template status item with the circular P mark and Show / Exit actions. Closing the main window hides it while retaining the Flutter page state. The status item stays available while the application runs.
+The Flutter home feed places four content-sized pills at the top center, with the Compose spacing, typography, selected colors, and rounded surface. The pills start visible, hide after the pointer leaves, and reappear when the pointer reaches the top edge. They use the feed's existing `TabController`, so clicks and page swipes share one selection state. The macOS Runner installs the window delegate and an AppKit template status item when the main window finishes loading. The item carries the circular P mark and Show / Exit actions. Closing the main window hides it while retaining the Flutter page state. The status item stays available while the application runs.
 
 ## Alternatives considered
 

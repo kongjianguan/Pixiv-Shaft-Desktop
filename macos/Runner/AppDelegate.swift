@@ -7,8 +7,14 @@ class AppDelegate: FlutterAppDelegate, NSWindowDelegate {
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
     super.applicationDidFinishLaunching(notification)
-    mainFlutterWindow!.delegate = self
-    installStatusItem()
+    installWindowServices(for: mainFlutterWindow!)
+  }
+
+  func installWindowServices(for window: NSWindow) {
+    window.delegate = self
+    if statusItem == nil {
+      installStatusItem()
+    }
   }
 
   func windowShouldClose(_ sender: NSWindow) -> Bool {

@@ -18,5 +18,6 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: windowUtilsController.flutterViewController)
 
     super.awakeFromNib()
+    (NSApp.delegate as! AppDelegate).installWindowServices(for: self)
   }
 }
