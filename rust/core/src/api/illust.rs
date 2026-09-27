@@ -78,6 +78,9 @@ pub struct IllustSummary {
     pub author_id: i64,
     pub author_name: String,
     pub page_count: i64,
+    pub width: i64,
+    pub height: i64,
+    pub total_bookmarks: i64,
     pub image_url: String,
 }
 
@@ -99,12 +102,20 @@ pub struct IllustDetail {
     pub image_urls: Vec<String>,
 }
 
-/// 取回推荐插画。
-pub async fn fetch_recommended_illusts() -> Result<Vec<IllustSummary>, String> {
-    fetch_illusts(
-        "/v1/illust/recommended?include_ranking_illusts=false&include_privacy_policy=true&filter=for_ios",
-    )
+/// 推荐页的插画或漫画作品流，保留后续分页地址。
+pub async fn fetch_home_page(illust_type: String) -> Result<IllustPage, String> {
+    if illust_type != "illust" && illust_type != "manga" {
+        return Err(format!("不支持的推荐分类：{illust_type}"));
+    }
+    fetch_illust_page(&format!(
+        "/v1/{illust_type}/recommended?include_ranking_illusts=false&include_privacy_policy=true&filter=for_ios"
+    ))
     .await
+}
+
+/// 推荐页的最新作品流。
+pub async fn fetch_latest_page() -> Result<IllustPage, String> {
+    fetch_illust_page("/v1/walkthrough/illusts").await
 }
 
 /// 按关键词搜索插画。排序与匹配方式取现有版本的默认值。
@@ -298,7 +309,7 @@ fn summarize(raw: RawIllust) -> IllustSummary {
     let image_url = raw
         .image_urls
         .as_ref()
-        .and_then(|urls| urls.large.clone().or(urls.medium.clone()))
+        .and_then(|urls| urls.medium.clone().or(urls.large.clone()))
         .unwrap_or_default();
     IllustSummary {
         id: raw.id,
@@ -306,6 +317,9 @@ fn summarize(raw: RawIllust) -> IllustSummary {
         author_id: raw.user.as_ref().map(|u| u.id).unwrap_or(0),
         author_name: author_name(&raw.user),
         page_count: raw.page_count.unwrap_or(1),
+        width: raw.width.unwrap_or(0),
+        height: raw.height.unwrap_or(0),
+        total_bookmarks: raw.total_bookmarks.unwrap_or(0),
         image_url,
     }
 }

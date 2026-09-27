@@ -9,6 +9,7 @@ on:
     branches: [rust-flutter]
     paths:
       - 'lib/**'
+      - 'integration_test/**'
       - 'rust/**'
       - 'macos/**'
       - 'hook/**'
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - 'lib/**'
+      - 'integration_test/**'
       - 'rust/**'
       - 'macos/**'
       - 'hook/**'
@@ -52,6 +54,11 @@ jobs:
 
       - name: Resolve Dart dependencies
         run: flutter pub get
+
+      - name: Verify real image request and display on macOS
+        run: |
+          set -o pipefail
+          flutter test integration_test/image_pipeline_test.dart -d macos -r expanded 2>&1 | tee image-pipeline.log
 
       - name: Build release app
         run: flutter build macos --release
@@ -111,4 +118,5 @@ jobs:
           path: |
             PixivShaft.dmg
             probe.log
+            image-pipeline.log
           if-no-files-found: warn

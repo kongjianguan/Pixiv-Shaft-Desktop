@@ -6,6 +6,8 @@ import 'package:pixiv_shaft/src/ui/home_shell.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 128 * 1024 * 1024;
   await RustLib.init();
   // 主题与布局参数取自数据库，启动时读一次。
   await AppSettings.instance.load();

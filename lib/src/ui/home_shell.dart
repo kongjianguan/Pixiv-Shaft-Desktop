@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/dynamic_page.dart';
 import 'package:pixiv_shaft/src/ui/feed_pages.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
+import 'package:pixiv_shaft/src/ui/r18_page.dart';
 import 'package:pixiv_shaft/src/ui/search_profile_pages.dart';
+import 'package:pixiv_shaft/src/ui/settings_page.dart';
 
-/// 主界面骨架：左侧导航栏加内容区。
-///
-/// 导航入口与现有版本一致：推荐、发现、搜索、我的。动态与设置尚未迁移，
-/// 迁移完成后再加入。
+/// 作品流使用完整窗口；主要页面从 macOS 系统菜单切换。
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -17,53 +18,129 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  final Set<int> _visited = {0};
+  final List<int> _refreshTicks = List.filled(5, 0);
+
+  void _selectPage(int index) {
+    if (_index == index) {
+      _refresh();
+      return;
+    }
+    setState(() {
+      _index = index;
+      _visited.add(index);
+    });
+  }
+
+  void _refresh() {
+    setState(() => _refreshTicks[_index]++);
+  }
+
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+    );
+  }
+
+  void _openR18() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const R18Page()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _index,
-            onDestinationSelected: (index) => setState(() => _index = index),
-            labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: Text('推荐'),
+    return AnimatedBuilder(
+      animation: AppSettings.instance,
+      builder: (context, _) => PlatformMenuBar(
+        menus: [
+          PlatformMenu(
+            label: 'PixivShaft',
+            menus: [
+              PlatformMenuItem(
+                label: '关于 PixivShaft',
+                onSelected: () => showAboutDialog(context: context),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.star_outline),
-                selectedIcon: Icon(Icons.star),
-                label: Text('发现'),
+              PlatformMenuItemGroup(members: [
+                PlatformMenuItem(
+                  label: '设置',
+                  shortcut: const SingleActivator(
+                    LogicalKeyboardKey.comma,
+                    meta: true,
+                  ),
+                  onSelected: _openSettings,
+                ),
+              ]),
+              if (PlatformProvidedMenuItem.hasMenu(PlatformProvidedMenuItemType.quit))
+                const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.quit),
+            ],
+          ),
+          PlatformMenu(
+            label: '前往',
+            menus: [
+              PlatformMenuItem(
+                label: '推荐',
+                shortcut: const SingleActivator(LogicalKeyboardKey.digit1, meta: true),
+                onSelected: () => _selectPage(0),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.search_outlined),
-                selectedIcon: Icon(Icons.search),
-                label: Text('搜索'),
+              PlatformMenuItem(
+                label: '发现',
+                shortcut: const SingleActivator(LogicalKeyboardKey.digit2, meta: true),
+                onSelected: () => _selectPage(1),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people_alt_outlined),
-                selectedIcon: Icon(Icons.people_alt),
-                label: Text('动态'),
+              PlatformMenuItem(
+                label: '搜索',
+                shortcut: const SingleActivator(LogicalKeyboardKey.digit3, meta: true),
+                onSelected: () => _selectPage(2),
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: Text('我的'),
+              PlatformMenuItem(
+                label: '我的',
+                shortcut: const SingleActivator(LogicalKeyboardKey.digit4, meta: true),
+                onSelected: () => _selectPage(4),
+              ),
+              PlatformMenuItem(
+                label: '动态',
+                shortcut: const SingleActivator(LogicalKeyboardKey.digit5, meta: true),
+                onSelected: () => _selectPage(3),
+              ),
+              if (AppSettings.instance.showR18)
+                PlatformMenuItem(label: 'R18 排行', onSelected: _openR18),
+            ],
+          ),
+          PlatformMenu(
+            label: '显示',
+            menus: [
+              PlatformMenuItem(
+                label: '刷新当前页面',
+                shortcut: const SingleActivator(LogicalKeyboardKey.keyR, meta: true),
+                onSelected: _refresh,
               ),
             ],
           ),
-          const VerticalDivider(width: 1),
-          Expanded(child: _page()),
         ],
+        child: Scaffold(
+          body: Stack(
+            children: [
+              for (final index in _visited)
+                Offstage(
+                  offstage: index != _index,
+                  child: TickerMode(
+                    enabled: index == _index,
+                    child: KeyedSubtree(
+                      key: ValueKey('page-$index-${_refreshTicks[index]}'),
+                      child: _page(index),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _page() {
-    switch (_index) {
+  Widget _page(int index) {
+    switch (index) {
       case 0:
         return const RecommendedPage();
       case 1:

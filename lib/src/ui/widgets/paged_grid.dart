@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
+import 'package:pixiv_shaft/src/ui/widgets/layout.dart';
 
 /// 一页数据：条目加下一页游标。
 typedef FeedPage<T> = ({List<T> items, String nextUrl});
@@ -10,15 +13,17 @@ class PagedGrid<T> extends StatefulWidget {
     required this.loadFirst,
     required this.loadNext,
     required this.itemBuilder,
-    required this.delegate,
+    this.delegate,
+    this.masonry = false,
     this.emptyLabel = '没有内容',
     this.padding = const EdgeInsets.all(12),
-  });
+  }) : assert(masonry || delegate != null);
 
   final Future<FeedPage<T>> Function() loadFirst;
   final Future<FeedPage<T>> Function(String nextUrl) loadNext;
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
-  final SliverGridDelegate delegate;
+  final SliverGridDelegate? delegate;
+  final bool masonry;
   final String emptyLabel;
   final EdgeInsets padding;
 
@@ -70,6 +75,7 @@ class PagedGridState<T> extends State<PagedGrid<T>> {
         _nextUrl = page.nextUrl;
         _loading = false;
       });
+      _checkLoadMoreAfterLayout();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -90,6 +96,7 @@ class PagedGridState<T> extends State<PagedGrid<T>> {
         _nextUrl = page.nextUrl;
         _loadingMore = false;
       });
+      _checkLoadMoreAfterLayout();
     } catch (error) {
       if (!mounted) return;
       setState(() => _loadingMore = false);
@@ -97,6 +104,15 @@ class PagedGridState<T> extends State<PagedGrid<T>> {
         SnackBar(content: Text('加载更多失败：$error')),
       );
     }
+  }
+
+  void _checkLoadMoreAfterLayout() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
+        _loadMore();
+      }
+    });
   }
 
   @override
@@ -122,10 +138,34 @@ class PagedGridState<T> extends State<PagedGrid<T>> {
     if (_items.isEmpty) {
       return Center(child: Text(widget.emptyLabel));
     }
+    if (widget.masonry) {
+      final settings = AppSettings.instance;
+      return AnimatedBuilder(
+        animation: settings,
+        builder: (context, _) => LayoutBuilder(
+          builder: (context, constraints) => MasonryGridView.builder(
+            controller: _scroll,
+            padding: widget.padding,
+            gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: responsiveColumns(
+                constraints.maxWidth,
+                settings.workMaxColumnWidth,
+                settings.workMaxColumns,
+              ),
+            ),
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            itemCount: _items.length,
+            itemBuilder: (context, index) =>
+                widget.itemBuilder(context, _items[index], index),
+          ),
+        ),
+      );
+    }
     return GridView.builder(
       controller: _scroll,
       padding: widget.padding,
-      gridDelegate: widget.delegate,
+      gridDelegate: widget.delegate!,
       itemCount: _items.length,
       itemBuilder: (context, index) => widget.itemBuilder(context, _items[index], index),
     );

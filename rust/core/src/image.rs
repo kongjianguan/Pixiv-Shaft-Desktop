@@ -10,6 +10,7 @@
 //! 因此沿用已知可用的 CDN 地址，与现有版本的 HttpDns 兜底列表一致。
 
 use std::net::SocketAddr;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, USER_AGENT};
@@ -58,7 +59,9 @@ pub fn image_client(enable_sni: bool) -> reqwest::Client {
 
 /// 取回一张图片的原始字节。
 pub async fn fetch_image(url: &str) -> Result<Vec<u8>, String> {
-    let response = image_client(false)
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    let client = CLIENT.get_or_init(|| image_client(false));
+    let response = client
         .get(url)
         .send()
         .await

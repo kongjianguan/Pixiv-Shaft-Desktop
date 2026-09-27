@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/widgets/layout.dart';
@@ -20,28 +21,33 @@ class IllustCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: illust.width > 0 && illust.height > 0
+                  ? illust.width / illust.height
+                  : 1,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   RustImage(url: illust.imageUrl),
                   if (illust.pageCount > 1)
                     Positioned(
-                      right: 6,
-                      top: 6,
-                      child: _Badge(label: '${illust.pageCount} 页'),
+                      right: 8,
+                      top: 8,
+                      child: _Badge(label: '${illust.pageCount}P'),
                     ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -51,17 +57,22 @@ class IllustCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  if (illust.authorName.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      illust.authorName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                    ),
-                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          illust.authorName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      Text(
+                        '♥ ${illust.totalBookmarks}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -118,23 +129,24 @@ class IllustGrid extends StatelessWidget {
     final settings = AppSettings.instance;
     return AnimatedBuilder(
       animation: settings,
-      builder: (context, _) => GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: gridColumns(
-            context,
-            settings.workMaxColumnWidth,
-            settings.workMaxColumns,
+      builder: (context, _) => LayoutBuilder(
+        builder: (context, constraints) => MasonryGridView.builder(
+          padding: const EdgeInsets.all(4),
+          gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: responsiveColumns(
+              constraints.maxWidth,
+              settings.workMaxColumnWidth,
+              settings.workMaxColumns,
+            ),
           ),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.68,
-        ),
-        itemCount: illusts.length,
-        itemBuilder: (context, index) => IllustCard(
-          illust: illusts[index],
-          titleMaxLines: settings.workTitleMaxLines,
-          onTap: () => onOpen(illusts[index]),
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          itemCount: illusts.length,
+          itemBuilder: (context, index) => IllustCard(
+            illust: illusts[index],
+            titleMaxLines: settings.workTitleMaxLines,
+            onTap: () => onOpen(illusts[index]),
+          ),
         ),
       ),
     );
