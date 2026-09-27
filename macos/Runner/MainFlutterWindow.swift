@@ -1,14 +1,21 @@
 import Cocoa
 import FlutterMacOS
+import macos_window_utils
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
-    let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
-    self.contentViewController = flutterViewController
+    let windowUtilsController = MacOSWindowUtilsViewController()
+    self.contentViewController = windowUtilsController
     self.setFrame(windowFrame, display: true)
 
-    RegisterGeneratedPlugins(registry: flutterViewController)
+    MainFlutterWindowManipulator.start(mainFlutterWindow: self)
+    self.styleMask.insert(.fullSizeContentView)
+    self.titlebarAppearsTransparent = true
+    self.titleVisibility = .hidden
+    self.minSize = NSSize(width: 480, height: 400)
+
+    RegisterGeneratedPlugins(registry: windowUtilsController.flutterViewController)
 
     super.awakeFromNib()
   }

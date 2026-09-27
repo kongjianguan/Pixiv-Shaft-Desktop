@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:macos_window_utils/macos_window_utils.dart';
 import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:pixiv_shaft/src/rust/frb_generated.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/home_shell.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
+import 'package:pixiv_shaft/src/ui/window_chrome.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PaintingBinding.instance.imageCache.maximumSizeBytes = 128 * 1024 * 1024;
+  await WindowManipulator.initialize();
+  final titlebarHeight = await WindowManipulator.getTitlebarHeight();
   await RustLib.init();
   // 主题与布局参数取自数据库，启动时读一次。
   await AppSettings.instance.load();
-  runApp(const PixivShaftApp());
+  runApp(PixivShaftApp(initialTitlebarHeight: titlebarHeight));
 }
 
 class PixivShaftApp extends StatelessWidget {
-  const PixivShaftApp({super.key});
+  const PixivShaftApp({super.key, required this.initialTitlebarHeight});
+
+  final double initialTitlebarHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +33,10 @@ class PixivShaftApp extends StatelessWidget {
         theme: settings.theme(Brightness.light),
         darkTheme: settings.theme(Brightness.dark),
         themeMode: settings.themeMode,
+        builder: (context, child) => WindowChrome(
+          initialTitlebarHeight: initialTitlebarHeight,
+          child: child!,
+        ),
         home: const AuthGate(),
       ),
     );

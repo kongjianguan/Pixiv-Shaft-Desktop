@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:macos_window_utils/widgets/macos_toolbar_passthrough.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
@@ -10,7 +11,9 @@ import 'package:pixiv_shaft/src/ui/widgets/paged_grid.dart';
 
 /// 推荐：与旧版一致的推荐、漫画、小说、最新四个作品流。
 class RecommendedPage extends StatefulWidget {
-  const RecommendedPage({super.key});
+  const RecommendedPage({super.key, required this.active});
+
+  final bool active;
 
   @override
   State<RecommendedPage> createState() => _RecommendedPageState();
@@ -44,6 +47,7 @@ class _RecommendedPageState extends State<RecommendedPage>
 
   @override
   Widget build(BuildContext context) {
+    final acceptsTitlebarInput = widget.active && ModalRoute.of(context)!.isCurrent;
     return Stack(
       children: [
         Positioned.fill(
@@ -62,7 +66,17 @@ class _RecommendedPageState extends State<RecommendedPage>
           left: 0,
           right: 0,
           height: 20,
-          child: MouseRegion(onEnter: (_) => _revealTabs()),
+          child: Center(
+            child: SizedBox(
+              width: 280,
+              height: 20,
+              child: acceptsTitlebarInput
+                  ? MacosToolbarPassthrough(
+                      child: MouseRegion(onEnter: (_) => _revealTabs()),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
         ),
         Positioned(
           top: 8,
@@ -80,74 +94,9 @@ class _RecommendedPageState extends State<RecommendedPage>
                   excluding: !_showTabs,
                   child: IgnorePointer(
                     ignoring: !_showTabs,
-                    child: MouseRegion(
-                      onEnter: (_) => _revealTabs(),
-                      onExit: (_) => _scheduleHideTabs(),
-                      child: Material(
-                        elevation: 8,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surface
-                            .withValues(alpha: 0.98),
-                        borderRadius: BorderRadius.circular(18),
-                        clipBehavior: Clip.antiAlias,
-                        child: AnimatedBuilder(
-                          animation: _tabs,
-                          builder: (context, _) {
-                            final colors = Theme.of(context).colorScheme;
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (var index = 0;
-                                      index < _pageLabels.length;
-                                      index++) ...[
-                                    if (index > 0) const SizedBox(width: 2),
-                                    Semantics(
-                                      selected: _tabs.index == index,
-                                      child: Material(
-                                        color: _tabs.index == index
-                                            ? colors.primaryContainer
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(14),
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(14),
-                                          onTap: () {
-                                            _revealTabs();
-                                            _tabs.animateTo(index);
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 6,
-                                            ),
-                                            child: Text(
-                                              _pageLabels[index],
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelLarge
-                                                  ?.copyWith(
-                                                    color: _tabs.index == index
-                                                        ? colors.onPrimaryContainer
-                                                        : colors.onSurfaceVariant,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                    child: acceptsTitlebarInput && _showTabs
+                        ? MacosToolbarPassthrough(child: _tabSurface(context))
+                        : _tabSurface(context),
                   ),
                 ),
               ),
@@ -155,6 +104,66 @@ class _RecommendedPageState extends State<RecommendedPage>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _tabSurface(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => _revealTabs(),
+      onExit: (_) => _scheduleHideTabs(),
+      child: Material(
+        elevation: 8,
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: AnimatedBuilder(
+          animation: _tabs,
+          builder: (context, _) {
+            final colors = Theme.of(context).colorScheme;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var index = 0; index < _pageLabels.length; index++) ...[
+                    if (index > 0) const SizedBox(width: 2),
+                    Semantics(
+                      selected: _tabs.index == index,
+                      child: Material(
+                        color: _tabs.index == index
+                            ? colors.primaryContainer
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            _revealTabs();
+                            _tabs.animateTo(index);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            child: Text(
+                              _pageLabels[index],
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: _tabs.index == index
+                                    ? colors.onPrimaryContainer
+                                    : colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

@@ -96,6 +96,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final titlebarHeight = MediaQuery.paddingOf(context).top;
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) => PlatformMenuBar(
@@ -174,21 +175,30 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
         ],
-        child: Scaffold(
-          body: Stack(
-            children: [
-              for (final index in _visited)
-                Offstage(
-                  offstage: index != _index,
-                  child: TickerMode(
-                    enabled: index == _index,
-                    child: KeyedSubtree(
-                      key: ValueKey('page-$index-${_refreshTicks[index]}'),
-                      child: _page(index),
+        child: MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          child: Scaffold(
+            body: Stack(
+              children: [
+                for (final index in _visited)
+                  Offstage(
+                    offstage: index != _index,
+                    child: TickerMode(
+                      enabled: index == _index,
+                      child: KeyedSubtree(
+                        key: ValueKey('page-$index-${_refreshTicks[index]}'),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            top: index == 0 ? 0 : titlebarHeight,
+                          ),
+                          child: _page(index),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -198,7 +208,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _page(int index) {
     switch (index) {
       case 0:
-        return const RecommendedPage();
+        return RecommendedPage(active: _index == 0);
       case 1:
         return const DiscoverPage();
       case 2:
