@@ -158,7 +158,11 @@ pub async fn fetch_novel_page(path: &str) -> Result<NovelPage, String> {
 
 /// 自己收藏的小说。
 pub async fn fetch_bookmarked_novels() -> Result<Vec<NovelSummary>, String> {
-    fetch_list("/v1/user/bookmarks/novel?filter=for_ios&restrict=public").await
+    let user_id = crate::api::user::self_user_id().await?;
+    fetch_list(&format!(
+        "/v1/user/bookmarks/novel?filter=for_ios&restrict=public&user_id={user_id}"
+    ))
+    .await
 }
 
 /// 取回系列及其章节。

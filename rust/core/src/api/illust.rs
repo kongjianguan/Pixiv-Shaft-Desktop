@@ -130,7 +130,11 @@ pub async fn search_illusts(word: String) -> Result<Vec<IllustSummary>, String> 
 
 /// 取回自己收藏的插画。
 pub async fn fetch_bookmarked_illusts() -> Result<Vec<IllustSummary>, String> {
-    fetch_illusts("/v1/user/bookmarks/illust?filter=for_ios&restrict=public").await
+    let user_id = crate::api::user::self_user_id().await?;
+    fetch_illusts(&format!(
+        "/v1/user/bookmarks/illust?filter=for_ios&restrict=public&user_id={user_id}"
+    ))
+    .await
 }
 
 /// 取回排行。`mode` 取现有版本的取值，例如 `day`、`week`、`month`、`day_manga`。

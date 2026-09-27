@@ -83,7 +83,7 @@ pub async fn fetch_user_detail(user_id: i64) -> Result<UserProfile, String> {
 /// 因此这里按需取一次并写回会话。
 pub async fn self_user_id() -> Result<i64, String> {
     if let Some(session) = crate::session::get().await {
-        if session.user_id != 0 {
+        if session.user_id > 0 {
             return Ok(session.user_id);
         }
     }
@@ -91,13 +91,15 @@ pub async fn self_user_id() -> Result<i64, String> {
     let text = crate::api_client::get_authed("/v1/user/me/state").await?;
     let parsed: SelfStateResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析自己的资料失败：{e}"))?;
-    let id = parsed.profile.map(|user| user.id).unwrap_or(0);
+    let id = parsed
+        .profile
+        .and_then(|user| user.user_id.filter(|id| *id > 0).or(user.id))
+        .filter(|id| *id > 0)
+        .ok_or_else(|| "当前用户资料缺少有效用户编号".to_string())?;
 
-    if id != 0 {
-        if let Some(mut session) = crate::session::get().await {
-            session.user_id = id;
-            crate::session::set(session).await;
-        }
+    if let Some(mut session) = crate::session::get().await {
+        session.user_id = id;
+        crate::session::set(session).await;
     }
     Ok(id)
 }
@@ -109,7 +111,8 @@ struct SelfStateResponse {
 
 #[derive(Deserialize)]
 struct RawSelfUser {
-    id: i64,
+    user_id: Option<i64>,
+    id: Option<i64>,
 }
 
 /// 关注一个用户。`restrict` 取 `public` 或 `private`。

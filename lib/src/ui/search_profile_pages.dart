@@ -155,8 +155,23 @@ class _ProfilePageState extends State<ProfilePage>
   late final TabController _tabs = TabController(length: 4, vsync: this);
   late Future<UserProfile> _profile = _loadProfile();
   late Future<List<IllustSummary>> _bookmarks = fetchBookmarkedIllusts();
-  late Future<List<NovelSummary>> _novels = fetchBookmarkedNovels();
-  late Future<List<IllustSummary>> _works = _loadWorks();
+  Future<List<NovelSummary>>? _novels;
+  Future<List<IllustSummary>>? _works;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs.addListener(_loadSelectedTab);
+  }
+
+  void _loadSelectedTab() {
+    if (_tabs.index == 1 && _novels == null) {
+      setState(() => _novels = fetchBookmarkedNovels());
+    }
+    if (_tabs.index == 2 && _works == null) {
+      setState(() => _works = _loadWorks());
+    }
+  }
 
   Future<UserProfile> _loadProfile() async {
     final userId = await selfUserId();
@@ -171,6 +186,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   void dispose() {
+    _tabs.removeListener(_loadSelectedTab);
     _tabs.dispose();
     super.dispose();
   }
@@ -178,9 +194,9 @@ class _ProfilePageState extends State<ProfilePage>
   void _reload() {
     setState(() {
       _profile = _loadProfile();
-      _bookmarks = fetchBookmarkedIllusts();
-      _novels = fetchBookmarkedNovels();
-      _works = _loadWorks();
+      if (_tabs.index == 0) _bookmarks = fetchBookmarkedIllusts();
+      if (_tabs.index == 1) _novels = fetchBookmarkedNovels();
+      if (_tabs.index == 2) _works = _loadWorks();
     });
   }
 
@@ -275,8 +291,10 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                 ),
               ),
-              AsyncSection<List<NovelSummary>>(
-                future: _novels,
+              if (_novels == null)
+                const SizedBox.shrink()
+              else AsyncSection<List<NovelSummary>>(
+                future: _novels!,
                 onRetry: _reload,
                 errorLabel: '加载收藏小说失败',
                 builder: (context, novels) => NovelGrid(
@@ -292,8 +310,10 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                 ),
               ),
-              AsyncSection<List<IllustSummary>>(
-                future: _works,
+              if (_works == null)
+                const SizedBox.shrink()
+              else AsyncSection<List<IllustSummary>>(
+                future: _works!,
                 onRetry: _reload,
                 errorLabel: '加载我的作品失败',
                 builder: (context, illusts) => IllustGrid(
