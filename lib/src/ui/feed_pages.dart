@@ -18,6 +18,7 @@ class RecommendedPage extends StatefulWidget {
 
 class _RecommendedPageState extends State<RecommendedPage>
     with SingleTickerProviderStateMixin {
+  static const _pageLabels = ['推荐', '漫画', '小说', '最新'];
   late final TabController _tabs = TabController(length: 4, vsync: this);
   Timer? _hideTimer;
   bool _showTabs = true;
@@ -69,35 +70,66 @@ class _RecommendedPageState extends State<RecommendedPage>
           right: 0,
           child: Center(
             child: AnimatedSlide(
-              duration: const Duration(milliseconds: 150),
-              offset: _showTabs ? Offset.zero : const Offset(0, -1.5),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              offset: _showTabs ? Offset.zero : const Offset(0, -1),
               child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
+                duration: const Duration(milliseconds: 300),
                 opacity: _showTabs ? 1 : 0,
-                child: MouseRegion(
-                  onEnter: (_) => _revealTabs(),
-                  onExit: (_) => _scheduleHideTabs(),
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(18),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: TabBar(
-                      controller: _tabs,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      dividerColor: Colors.transparent,
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      indicator: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(14),
+                child: IgnorePointer(
+                  ignoring: !_showTabs,
+                  child: MouseRegion(
+                    onEnter: (_) => _revealTabs(),
+                    onExit: (_) => _scheduleHideTabs(),
+                    child: Material(
+                      elevation: 8,
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.98),
+                      borderRadius: BorderRadius.circular(18),
+                      clipBehavior: Clip.antiAlias,
+                      child: AnimatedBuilder(
+                        animation: _tabs,
+                        builder: (context, _) {
+                          final colors = Theme.of(context).colorScheme;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var index = 0; index < _pageLabels.length; index++) ...[
+                                  if (index > 0) const SizedBox(width: 2),
+                                  Material(
+                                    color: _tabs.index == index
+                                        ? colors.primaryContainer
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () {
+                                        _revealTabs();
+                                        _tabs.animateTo(index);
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 6,
+                                        ),
+                                        child: Text(
+                                          _pageLabels[index],
+                                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                            color: _tabs.index == index
+                                                ? colors.onPrimaryContainer
+                                                : colors.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      tabs: const [
-                        Tab(text: '推荐'),
-                        Tab(text: '漫画'),
-                        Tab(text: '小说'),
-                        Tab(text: '最新'),
-                      ],
                     ),
                   ),
                 ),

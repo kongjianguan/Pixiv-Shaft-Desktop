@@ -60,6 +60,11 @@ jobs:
           set -o pipefail
           flutter test integration_test/image_pipeline_test.dart -d macos -r expanded 2>&1 | tee image-pipeline.log
 
+      - name: Verify home controls on macOS
+        run: |
+          set -o pipefail
+          flutter test integration_test/home_controls_test.dart -d macos -r expanded 2>&1 | tee home-controls.log
+
       - name: Build release app
         run: flutter build macos --release
 
@@ -119,4 +124,5 @@ jobs:
             PixivShaft.dmg
             probe.log
             image-pipeline.log
+            home-controls.log
           if-no-files-found: warn
