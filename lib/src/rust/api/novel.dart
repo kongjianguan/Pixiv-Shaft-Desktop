@@ -131,6 +131,8 @@ class NovelSeries {
 class NovelSummary {
   final PlatformInt64 id;
   final String title;
+  final PlatformInt64 xRestrict;
+  final PlatformInt64 aiType;
   final String caption;
   final String createDate;
   final PlatformInt64 textLength;
@@ -147,6 +149,8 @@ class NovelSummary {
   const NovelSummary({
     required this.id,
     required this.title,
+    required this.xRestrict,
+    required this.aiType,
     required this.caption,
     required this.createDate,
     required this.textLength,
@@ -165,6 +169,8 @@ class NovelSummary {
   int get hashCode =>
       id.hashCode ^
       title.hashCode ^
+      xRestrict.hashCode ^
+      aiType.hashCode ^
       caption.hashCode ^
       createDate.hashCode ^
       textLength.hashCode ^
@@ -185,6 +191,8 @@ class NovelSummary {
           runtimeType == other.runtimeType &&
           id == other.id &&
           title == other.title &&
+          xRestrict == other.xRestrict &&
+          aiType == other.aiType &&
           caption == other.caption &&
           createDate == other.createDate &&
           textLength == other.textLength &&

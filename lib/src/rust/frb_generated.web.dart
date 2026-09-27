@@ -12,6 +12,7 @@ import 'api/discovery.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
 import 'api/novel.dart';
+import 'api/search.dart';
 import 'api/store.dart';
 import 'api/user.dart';
 
@@ -79,7 +80,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SearchOption> dco_decode_list_search_option(dynamic raw);
+
+  @protected
   List<SearchRecord> dco_decode_list_search_record(dynamic raw);
+
+  @protected
+  List<SearchSuggestion> dco_decode_list_search_suggestion(dynamic raw);
 
   @protected
   List<SpotlightArticle> dco_decode_list_spotlight_article(dynamic raw);
@@ -106,7 +113,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  SearchOption dco_decode_search_option(dynamic raw);
+
+  @protected
+  SearchOptions dco_decode_search_options(dynamic raw);
+
+  @protected
   SearchRecord dco_decode_search_record(dynamic raw);
+
+  @protected
+  SearchSuggestion dco_decode_search_suggestion(dynamic raw);
 
   @protected
   SpotlightArticle dco_decode_spotlight_article(dynamic raw);
@@ -189,7 +205,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SearchOption> sse_decode_list_search_option(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<SearchRecord> sse_decode_list_search_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<SearchSuggestion> sse_decode_list_search_suggestion(
     SseDeserializer deserializer,
   );
 
@@ -220,7 +246,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  SearchOption sse_decode_search_option(SseDeserializer deserializer);
+
+  @protected
+  SearchOptions sse_decode_search_options(SseDeserializer deserializer);
+
+  @protected
   SearchRecord sse_decode_search_record(SseDeserializer deserializer);
+
+  @protected
+  SearchSuggestion sse_decode_search_suggestion(SseDeserializer deserializer);
 
   @protected
   SpotlightArticle sse_decode_spotlight_article(SseDeserializer deserializer);
@@ -313,8 +348,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_search_option(
+    List<SearchOption> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_search_record(
     List<SearchRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_search_suggestion(
+    List<SearchSuggestion> self,
     SseSerializer serializer,
   );
 
@@ -352,7 +399,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_search_option(SearchOption self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_search_options(SearchOptions self, SseSerializer serializer);
+
+  @protected
   void sse_encode_search_record(SearchRecord self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_search_suggestion(
+    SearchSuggestion self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_spotlight_article(

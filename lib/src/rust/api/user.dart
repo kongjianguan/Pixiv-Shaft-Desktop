@@ -54,6 +54,10 @@ Future<UserListPage> fetchMypixivUsers({required PlatformInt64 userId}) =>
 Future<UserListPage> fetchRecommendedUsers() =>
     RustLib.instance.api.crateApiUserFetchRecommendedUsers();
 
+/// 按关键词搜索用户。
+Future<UserListPage> searchUsers({required String word}) =>
+    RustLib.instance.api.crateApiUserSearchUsers(word: word);
+
 /// 按游标取下一页用户列表。
 Future<UserListPage> fetchNextUsers({required String nextUrl}) =>
     RustLib.instance.api.crateApiUserFetchNextUsers(nextUrl: nextUrl);

@@ -173,6 +173,8 @@ class IllustPage {
 class IllustSummary {
   final PlatformInt64 id;
   final String title;
+  final PlatformInt64 xRestrict;
+  final PlatformInt64 aiType;
   final PlatformInt64 authorId;
   final String authorName;
   final PlatformInt64 pageCount;
@@ -184,6 +186,8 @@ class IllustSummary {
   const IllustSummary({
     required this.id,
     required this.title,
+    required this.xRestrict,
+    required this.aiType,
     required this.authorId,
     required this.authorName,
     required this.pageCount,
@@ -197,6 +201,8 @@ class IllustSummary {
   int get hashCode =>
       id.hashCode ^
       title.hashCode ^
+      xRestrict.hashCode ^
+      aiType.hashCode ^
       authorId.hashCode ^
       authorName.hashCode ^
       pageCount.hashCode ^
@@ -212,6 +218,8 @@ class IllustSummary {
           runtimeType == other.runtimeType &&
           id == other.id &&
           title == other.title &&
+          xRestrict == other.xRestrict &&
+          aiType == other.aiType &&
           authorId == other.authorId &&
           authorName == other.authorName &&
           pageCount == other.pageCount &&

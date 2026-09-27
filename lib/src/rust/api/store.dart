@@ -72,6 +72,9 @@ Future<void> deleteSearch({required PlatformInt64 id}) =>
 Future<void> clearSearches() =>
     RustLib.instance.api.crateApiStoreClearSearches();
 
+Future<void> clearSearchesGroup({required bool pinned}) =>
+    RustLib.instance.api.crateApiStoreClearSearchesGroup(pinned: pinned);
+
 class BrowseRecord {
   final String contentType;
   final PlatformInt64 targetId;

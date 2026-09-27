@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueMoi,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1572092504;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 457890439;
             
 
 // Section: executor
@@ -95,6 +95,15 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
             deserializer.end(); move |context|  {
                     transform_result_sse::<_, String>((move ||  {
                          let output_ok = crate::api::store::clear_searches()?;   std::result::Result::Ok(output_ok)
+                    })())
+                } })
+            }fn wire__crate__api__store__clear_searches_group_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "clear_searches_group", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_pinned = <bool>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
+                    transform_result_sse::<_, String>((move ||  {
+                         let output_ok = crate::api::store::clear_searches_group(api_pinned)?;   std::result::Result::Ok(output_ok)
                     })())
                 } })
             }fn wire__crate__api__auth__complete_login_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -390,6 +399,25 @@ let api_date = <Option<String>>::sse_decode(&mut deserializer);deserializer.end(
                          let output_ok = crate::api::illust::fetch_related_illusts(api_illust_id).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__search__fetch_search_options_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_search_options", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_word = <String>::sse_decode(&mut deserializer);
+let api_target = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::search::fetch_search_options(api_word, api_target).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__search__fetch_search_suggestions_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_search_suggestions", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_word = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::search::fetch_search_suggestions(api_word).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__discovery__fetch_spotlight_page_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_spotlight_page", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -541,6 +569,15 @@ let api_search_type = <i64>::sse_decode(&mut deserializer);deserializer.end(); m
                          let output_ok = crate::api::illust::search_illusts(api_word).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__user__search_users_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "search_users", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_word = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::user::search_users(api_word).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__user__self_user_id_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "self_user_id", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -682,6 +719,8 @@ return crate::api::illust::IllustPage{illusts: var_illusts, next_url: var_nextUr
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
+let mut var_xRestrict = <i64>::sse_decode(deserializer);
+let mut var_aiType = <i64>::sse_decode(deserializer);
 let mut var_authorId = <i64>::sse_decode(deserializer);
 let mut var_authorName = <String>::sse_decode(deserializer);
 let mut var_pageCount = <i64>::sse_decode(deserializer);
@@ -689,7 +728,7 @@ let mut var_width = <i64>::sse_decode(deserializer);
 let mut var_height = <i64>::sse_decode(deserializer);
 let mut var_totalBookmarks = <i64>::sse_decode(deserializer);
 let mut var_imageUrl = <String>::sse_decode(deserializer);
-return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id: var_authorId, author_name: var_authorName, page_count: var_pageCount, width: var_width, height: var_height, total_bookmarks: var_totalBookmarks, image_url: var_imageUrl};}
+return crate::api::illust::IllustSummary{id: var_id, title: var_title, x_restrict: var_xRestrict, ai_type: var_aiType, author_id: var_authorId, author_name: var_authorName, page_count: var_pageCount, width: var_width, height: var_height, total_bookmarks: var_totalBookmarks, image_url: var_imageUrl};}
                 }
                 
                 impl SseDecode for Vec<String> {
@@ -740,11 +779,27 @@ return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id
         return ans_;}
                 }
                 
+                impl SseDecode for Vec<crate::api::search::SearchOption> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<crate::api::search::SearchOption>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
                 impl SseDecode for Vec<crate::api::store::SearchRecord> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ { ans_.push(<crate::api::store::SearchRecord>::sse_decode(deserializer)); }
+        return ans_;}
+                }
+                
+                impl SseDecode for Vec<crate::api::search::SearchSuggestion> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ { ans_.push(<crate::api::search::SearchSuggestion>::sse_decode(deserializer)); }
         return ans_;}
                 }
                 
@@ -802,6 +857,8 @@ return crate::api::novel::NovelSeries{id: var_id, title: var_title, caption: var
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
 let mut var_title = <String>::sse_decode(deserializer);
+let mut var_xRestrict = <i64>::sse_decode(deserializer);
+let mut var_aiType = <i64>::sse_decode(deserializer);
 let mut var_caption = <String>::sse_decode(deserializer);
 let mut var_createDate = <String>::sse_decode(deserializer);
 let mut var_textLength = <i64>::sse_decode(deserializer);
@@ -814,7 +871,7 @@ let mut var_authorName = <String>::sse_decode(deserializer);
 let mut var_seriesId = <i64>::sse_decode(deserializer);
 let mut var_seriesTitle = <String>::sse_decode(deserializer);
 let mut var_tags = <Vec<String>>::sse_decode(deserializer);
-return crate::api::novel::NovelSummary{id: var_id, title: var_title, caption: var_caption, create_date: var_createDate, text_length: var_textLength, total_bookmarks: var_totalBookmarks, total_view: var_totalView, is_bookmarked: var_isBookmarked, cover_url: var_coverUrl, author_id: var_authorId, author_name: var_authorName, series_id: var_seriesId, series_title: var_seriesTitle, tags: var_tags};}
+return crate::api::novel::NovelSummary{id: var_id, title: var_title, x_restrict: var_xRestrict, ai_type: var_aiType, caption: var_caption, create_date: var_createDate, text_length: var_textLength, total_bookmarks: var_totalBookmarks, total_view: var_totalView, is_bookmarked: var_isBookmarked, cover_url: var_coverUrl, author_id: var_authorId, author_name: var_authorName, series_id: var_seriesId, series_title: var_seriesTitle, tags: var_tags};}
                 }
                 
                 impl SseDecode for Option<String> {
@@ -826,6 +883,22 @@ return crate::api::novel::NovelSummary{id: var_id, title: var_title, caption: va
             }}
                 }
                 
+                impl SseDecode for crate::api::search::SearchOption {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_value = <String>::sse_decode(deserializer);
+let mut var_label = <String>::sse_decode(deserializer);
+return crate::api::search::SearchOption{value: var_value, label: var_label};}
+                }
+                
+                impl SseDecode for crate::api::search::SearchOptions {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_tools = <Vec<String>>::sse_decode(deserializer);
+let mut var_illustLanguages = <Vec<crate::api::search::SearchOption>>::sse_decode(deserializer);
+let mut var_novelLanguages = <Vec<crate::api::search::SearchOption>>::sse_decode(deserializer);
+let mut var_genres = <Vec<crate::api::search::SearchOption>>::sse_decode(deserializer);
+return crate::api::search::SearchOptions{tools: var_tools, illust_languages: var_illustLanguages, novel_languages: var_novelLanguages, genres: var_genres};}
+                }
+                
                 impl SseDecode for crate::api::store::SearchRecord {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_id = <i64>::sse_decode(deserializer);
@@ -834,6 +907,13 @@ let mut var_searchTime = <i64>::sse_decode(deserializer);
 let mut var_searchType = <i64>::sse_decode(deserializer);
 let mut var_pinned = <bool>::sse_decode(deserializer);
 return crate::api::store::SearchRecord{id: var_id, keyword: var_keyword, search_time: var_searchTime, search_type: var_searchType, pinned: var_pinned};}
+                }
+                
+                impl SseDecode for crate::api::search::SearchSuggestion {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {let mut var_tag = <String>::sse_decode(deserializer);
+let mut var_translatedName = <String>::sse_decode(deserializer);
+return crate::api::search::SearchSuggestion{tag: var_tag, translated_name: var_translatedName};}
                 }
                 
                 impl SseDecode for crate::api::discovery::SpotlightArticle {
@@ -922,60 +1002,64 @@ return crate::api::user::UserProfile{id: var_id, name: var_name, account: var_ac
 3 => wire__crate__api__novel__add_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
 4 => wire__crate__api__store__clear_browse_impl(port, ptr, rust_vec_len, data_len),
 5 => wire__crate__api__store__clear_searches_impl(port, ptr, rust_vec_len, data_len),
-6 => wire__crate__api__auth__complete_login_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__store__delete_browse_impl(port, ptr, rust_vec_len, data_len),
-8 => wire__crate__api__comment__delete_illust_comment_impl(port, ptr, rust_vec_len, data_len),
-9 => wire__crate__api__store__delete_search_impl(port, ptr, rust_vec_len, data_len),
-10 => wire__crate__api__illust__fetch_bookmarked_illusts_impl(port, ptr, rust_vec_len, data_len),
-11 => wire__crate__api__novel__fetch_bookmarked_novels_impl(port, ptr, rust_vec_len, data_len),
-12 => wire__crate__api__illust__fetch_follow_illusts_impl(port, ptr, rust_vec_len, data_len),
-13 => wire__crate__api__novel__fetch_follow_novels_impl(port, ptr, rust_vec_len, data_len),
-14 => wire__crate__api__user__fetch_follower_users_impl(port, ptr, rust_vec_len, data_len),
-15 => wire__crate__api__user__fetch_following_users_impl(port, ptr, rust_vec_len, data_len),
-16 => wire__crate__api__illust__fetch_home_page_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
-19 => wire__crate__api__illust__fetch_illust_page_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
-21 => wire__crate__api__illust__fetch_latest_page_impl(port, ptr, rust_vec_len, data_len),
-22 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
-23 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
-24 => wire__crate__api__illust__fetch_next_illust_page_impl(port, ptr, rust_vec_len, data_len),
-25 => wire__crate__api__novel__fetch_next_novel_page_impl(port, ptr, rust_vec_len, data_len),
-26 => wire__crate__api__novel__fetch_next_series_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__discovery__fetch_next_spotlight_page_impl(port, ptr, rust_vec_len, data_len),
-28 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__illust__fetch_nice_friend_illusts_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__novel__fetch_novel_detail_impl(port, ptr, rust_vec_len, data_len),
-31 => wire__crate__api__novel__fetch_novel_page_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__novel__fetch_novel_ranking_page_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__novel__fetch_novel_series_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__illust__fetch_ranking_page_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__novel__fetch_recommended_novels_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__user__fetch_recommended_users_impl(port, ptr, rust_vec_len, data_len),
-37 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
-38 => wire__crate__api__discovery__fetch_spotlight_page_impl(port, ptr, rust_vec_len, data_len),
-39 => wire__crate__api__discovery__fetch_trending_tags_impl(port, ptr, rust_vec_len, data_len),
-40 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
-41 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
-42 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
-43 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
-46 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
-47 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
-48 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
-49 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
-50 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__novel__remove_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
-52 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
-54 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
-55 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
-56 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
-57 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
-58 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
-59 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
+6 => wire__crate__api__store__clear_searches_group_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__auth__complete_login_impl(port, ptr, rust_vec_len, data_len),
+8 => wire__crate__api__store__delete_browse_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__comment__delete_illust_comment_impl(port, ptr, rust_vec_len, data_len),
+10 => wire__crate__api__store__delete_search_impl(port, ptr, rust_vec_len, data_len),
+11 => wire__crate__api__illust__fetch_bookmarked_illusts_impl(port, ptr, rust_vec_len, data_len),
+12 => wire__crate__api__novel__fetch_bookmarked_novels_impl(port, ptr, rust_vec_len, data_len),
+13 => wire__crate__api__illust__fetch_follow_illusts_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__novel__fetch_follow_novels_impl(port, ptr, rust_vec_len, data_len),
+15 => wire__crate__api__user__fetch_follower_users_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__user__fetch_following_users_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__illust__fetch_home_page_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__illust__fetch_illust_page_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__illust__fetch_latest_page_impl(port, ptr, rust_vec_len, data_len),
+23 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
+24 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__illust__fetch_next_illust_page_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__novel__fetch_next_novel_page_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__novel__fetch_next_series_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__discovery__fetch_next_spotlight_page_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
+30 => wire__crate__api__illust__fetch_nice_friend_illusts_impl(port, ptr, rust_vec_len, data_len),
+31 => wire__crate__api__novel__fetch_novel_detail_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__novel__fetch_novel_page_impl(port, ptr, rust_vec_len, data_len),
+33 => wire__crate__api__novel__fetch_novel_ranking_page_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__novel__fetch_novel_series_impl(port, ptr, rust_vec_len, data_len),
+35 => wire__crate__api__illust__fetch_ranking_page_impl(port, ptr, rust_vec_len, data_len),
+36 => wire__crate__api__novel__fetch_recommended_novels_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__user__fetch_recommended_users_impl(port, ptr, rust_vec_len, data_len),
+38 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
+39 => wire__crate__api__search__fetch_search_options_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__search__fetch_search_suggestions_impl(port, ptr, rust_vec_len, data_len),
+41 => wire__crate__api__discovery__fetch_spotlight_page_impl(port, ptr, rust_vec_len, data_len),
+42 => wire__crate__api__discovery__fetch_trending_tags_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+47 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
+48 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
+49 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
+50 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
+52 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
+54 => wire__crate__api__novel__remove_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
+55 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
+56 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
+57 => wire__crate__api__user__search_users_impl(port, ptr, rust_vec_len, data_len),
+58 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
+59 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
+60 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
+61 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
+62 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
+63 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
                 }
@@ -1110,6 +1194,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::illust::IllustPage> for crate
                     [
                     self.id.into_into_dart().into_dart(),
 self.title.into_into_dart().into_dart(),
+self.x_restrict.into_into_dart().into_dart(),
+self.ai_type.into_into_dart().into_dart(),
 self.author_id.into_into_dart().into_dart(),
 self.author_name.into_into_dart().into_dart(),
 self.page_count.into_into_dart().into_dart(),
@@ -1182,6 +1268,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::novel::NovelSeries> for crate
                     [
                     self.id.into_into_dart().into_dart(),
 self.title.into_into_dart().into_dart(),
+self.x_restrict.into_into_dart().into_dart(),
+self.ai_type.into_into_dart().into_dart(),
 self.caption.into_into_dart().into_dart(),
 self.create_date.into_into_dart().into_dart(),
 self.text_length.into_into_dart().into_dart(),
@@ -1204,6 +1292,38 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::novel::NovelSummary> for crat
             }
         }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::search::SearchOption {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.value.into_into_dart().into_dart(),
+self.label.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::search::SearchOption {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::search::SearchOption> for crate::api::search::SearchOption {
+            fn into_into_dart(self) -> crate::api::search::SearchOption {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::search::SearchOptions {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.tools.into_into_dart().into_dart(),
+self.illust_languages.into_into_dart().into_dart(),
+self.novel_languages.into_into_dart().into_dart(),
+self.genres.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::search::SearchOptions {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::search::SearchOptions> for crate::api::search::SearchOptions {
+            fn into_into_dart(self) -> crate::api::search::SearchOptions {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
             impl flutter_rust_bridge::IntoDart for crate::api::store::SearchRecord {
                 fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
                     [
@@ -1218,6 +1338,21 @@ self.pinned.into_into_dart().into_dart()
             impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::store::SearchRecord {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::store::SearchRecord> for crate::api::store::SearchRecord {
             fn into_into_dart(self) -> crate::api::store::SearchRecord {
+                self
+            }
+        }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+            impl flutter_rust_bridge::IntoDart for crate::api::search::SearchSuggestion {
+                fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+                    [
+                    self.tag.into_into_dart().into_dart(),
+self.translated_name.into_into_dart().into_dart()
+                ].into_dart()
+                }
+            }
+            impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::search::SearchSuggestion {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::search::SearchSuggestion> for crate::api::search::SearchSuggestion {
+            fn into_into_dart(self) -> crate::api::search::SearchSuggestion {
                 self
             }
         }
@@ -1401,6 +1536,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.title, serializer);
+<i64>::sse_encode(self.x_restrict, serializer);
+<i64>::sse_encode(self.ai_type, serializer);
 <i64>::sse_encode(self.author_id, serializer);
 <String>::sse_encode(self.author_name, serializer);
 <i64>::sse_encode(self.page_count, serializer);
@@ -1446,10 +1583,22 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
         for item in self { <u8>::sse_encode(item, serializer); }}
                 }
                 
+                impl SseEncode for Vec<crate::api::search::SearchOption> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <crate::api::search::SearchOption>::sse_encode(item, serializer); }}
+                }
+                
                 impl SseEncode for Vec<crate::api::store::SearchRecord> {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
         for item in self { <crate::api::store::SearchRecord>::sse_encode(item, serializer); }}
+                }
+                
+                impl SseEncode for Vec<crate::api::search::SearchSuggestion> {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i32>::sse_encode(self.len() as _, serializer);
+        for item in self { <crate::api::search::SearchSuggestion>::sse_encode(item, serializer); }}
                 }
                 
                 impl SseEncode for Vec<crate::api::discovery::SpotlightArticle> {
@@ -1497,6 +1646,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
 <String>::sse_encode(self.title, serializer);
+<i64>::sse_encode(self.x_restrict, serializer);
+<i64>::sse_encode(self.ai_type, serializer);
 <String>::sse_encode(self.caption, serializer);
 <String>::sse_encode(self.create_date, serializer);
 <i64>::sse_encode(self.text_length, serializer);
@@ -1519,6 +1670,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
                 }}
                 }
                 
+                impl SseEncode for crate::api::search::SearchOption {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.value, serializer);
+<String>::sse_encode(self.label, serializer);}
+                }
+                
+                impl SseEncode for crate::api::search::SearchOptions {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<Vec<String>>::sse_encode(self.tools, serializer);
+<Vec<crate::api::search::SearchOption>>::sse_encode(self.illust_languages, serializer);
+<Vec<crate::api::search::SearchOption>>::sse_encode(self.novel_languages, serializer);
+<Vec<crate::api::search::SearchOption>>::sse_encode(self.genres, serializer);}
+                }
+                
                 impl SseEncode for crate::api::store::SearchRecord {
                     // Codec=Sse (Serialization based), see doc to use other codecs
                     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<i64>::sse_encode(self.id, serializer);
@@ -1526,6 +1691,12 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
 <i64>::sse_encode(self.search_time, serializer);
 <i64>::sse_encode(self.search_type, serializer);
 <bool>::sse_encode(self.pinned, serializer);}
+                }
+                
+                impl SseEncode for crate::api::search::SearchSuggestion {
+                    // Codec=Sse (Serialization based), see doc to use other codecs
+                    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {<String>::sse_encode(self.tag, serializer);
+<String>::sse_encode(self.translated_name, serializer);}
                 }
                 
                 impl SseEncode for crate::api::discovery::SpotlightArticle {
