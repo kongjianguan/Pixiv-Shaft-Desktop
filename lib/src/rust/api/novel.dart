@@ -37,9 +37,13 @@ Future<NovelPage> fetchNextNovelPage({required String nextUrl}) =>
 Future<NovelPage> fetchNovelPage({required String path}) =>
     RustLib.instance.api.crateApiNovelFetchNovelPage(path: path);
 
-/// 自己收藏的小说。
-Future<List<NovelSummary>> fetchBookmarkedNovels() =>
+/// 自己收藏的小说，保留后续分页地址。
+Future<NovelPage> fetchBookmarkedNovels() =>
     RustLib.instance.api.crateApiNovelFetchBookmarkedNovels();
+
+/// 取回某个用户发表的小说。
+Future<NovelPage> fetchUserNovels({required PlatformInt64 userId}) =>
+    RustLib.instance.api.crateApiNovelFetchUserNovels(userId: userId);
 
 /// 取回系列及其章节。
 Future<NovelSeries> fetchNovelSeries({required PlatformInt64 seriesId}) =>

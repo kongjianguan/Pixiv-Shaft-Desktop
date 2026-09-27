@@ -22,8 +22,8 @@ Future<IllustPage> fetchLatestPage() =>
 Future<List<IllustSummary>> searchIllusts({required String word}) =>
     RustLib.instance.api.crateApiIllustSearchIllusts(word: word);
 
-/// 取回自己收藏的插画。
-Future<List<IllustSummary>> fetchBookmarkedIllusts() =>
+/// 取回自己收藏的插画，保留后续分页地址。
+Future<IllustPage> fetchBookmarkedIllusts() =>
     RustLib.instance.api.crateApiIllustFetchBookmarkedIllusts();
 
 /// 按模式与日期取回插画排行，保留后续分页地址。
@@ -52,14 +52,18 @@ Future<IllustPage> fetchNextIllustPage({required String nextUrl}) =>
 Future<IllustPage> fetchIllustPage({required String path}) =>
     RustLib.instance.api.crateApiIllustFetchIllustPage(path: path);
 
-/// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
-Future<List<IllustSummary>> fetchUserIllusts({
+/// 取回某个用户的作品，保留后续分页地址。`illust_type` 取 `illust` 或 `manga`。
+Future<IllustPage> fetchUserIllusts({
   required PlatformInt64 userId,
   required String illustType,
 }) => RustLib.instance.api.crateApiIllustFetchUserIllusts(
   userId: userId,
   illustType: illustType,
 );
+
+/// 取回某个用户的公开插画收藏。
+Future<IllustPage> fetchUserBookmarks({required PlatformInt64 userId}) =>
+    RustLib.instance.api.crateApiIllustFetchUserBookmarks(userId: userId);
 
 /// 取回单个作品的详情。
 Future<IllustDetail> fetchIllustDetail({required PlatformInt64 illustId}) =>
