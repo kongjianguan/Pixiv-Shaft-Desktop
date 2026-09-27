@@ -8,6 +8,7 @@
 
 import 'api/auth.dart';
 import 'api/comment.dart';
+import 'api/discovery.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
 import 'api/novel.dart';
@@ -81,6 +82,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SearchRecord> dco_decode_list_search_record(dynamic raw);
 
   @protected
+  List<SpotlightArticle> dco_decode_list_spotlight_article(dynamic raw);
+
+  @protected
+  List<TrendingTag> dco_decode_list_trending_tag(dynamic raw);
+
+  @protected
   List<UserPreview> dco_decode_list_user_preview(dynamic raw);
 
   @protected
@@ -96,7 +103,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NovelSummary dco_decode_novel_summary(dynamic raw);
 
   @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
   SearchRecord dco_decode_search_record(dynamic raw);
+
+  @protected
+  SpotlightArticle dco_decode_spotlight_article(dynamic raw);
+
+  @protected
+  SpotlightPage dco_decode_spotlight_page(dynamic raw);
+
+  @protected
+  TrendingTag dco_decode_trending_tag(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -175,6 +194,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<SpotlightArticle> sse_decode_list_spotlight_article(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<TrendingTag> sse_decode_list_trending_tag(SseDeserializer deserializer);
+
+  @protected
   List<UserPreview> sse_decode_list_user_preview(SseDeserializer deserializer);
 
   @protected
@@ -190,7 +217,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NovelSummary sse_decode_novel_summary(SseDeserializer deserializer);
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
   SearchRecord sse_decode_search_record(SseDeserializer deserializer);
+
+  @protected
+  SpotlightArticle sse_decode_spotlight_article(SseDeserializer deserializer);
+
+  @protected
+  SpotlightPage sse_decode_spotlight_page(SseDeserializer deserializer);
+
+  @protected
+  TrendingTag sse_decode_trending_tag(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -280,6 +319,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_spotlight_article(
+    List<SpotlightArticle> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_trending_tag(
+    List<TrendingTag> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_user_preview(
     List<UserPreview> self,
     SseSerializer serializer,
@@ -298,7 +349,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_novel_summary(NovelSummary self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_search_record(SearchRecord self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_spotlight_article(
+    SpotlightArticle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_spotlight_page(SpotlightPage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_trending_tag(TrendingTag self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

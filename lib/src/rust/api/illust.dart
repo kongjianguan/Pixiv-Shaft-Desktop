@@ -26,9 +26,9 @@ Future<List<IllustSummary>> searchIllusts({required String word}) =>
 Future<List<IllustSummary>> fetchBookmarkedIllusts() =>
     RustLib.instance.api.crateApiIllustFetchBookmarkedIllusts();
 
-/// 取回排行。`mode` 取现有版本的取值，例如 `day`、`week`、`month`、`day_manga`。
-Future<List<IllustSummary>> fetchRanking({required String mode}) =>
-    RustLib.instance.api.crateApiIllustFetchRanking(mode: mode);
+/// 按模式与日期取回插画排行，保留后续分页地址。
+Future<IllustPage> fetchRankingPage({required String mode, String? date}) =>
+    RustLib.instance.api.crateApiIllustFetchRankingPage(mode: mode, date: date);
 
 /// 取回相关作品。
 Future<List<IllustSummary>> fetchRelatedIllusts({

@@ -5,6 +5,7 @@
 
 import 'api/auth.dart';
 import 'api/comment.dart';
+import 'api/discovery.dart';
 import 'api/illust.dart';
 import 'api/image.dart';
 import 'api/novel.dart';
@@ -75,7 +76,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -296728218;
+  int get rustContentHash => 1572092504;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -174,6 +175,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<NovelSeries> crateApiNovelFetchNextSeries({required String nextUrl});
 
+  Future<SpotlightPage> crateApiDiscoveryFetchNextSpotlightPage({
+    required String nextUrl,
+  });
+
   Future<UserListPage> crateApiUserFetchNextUsers({required String nextUrl});
 
   Future<IllustPage> crateApiIllustFetchNiceFriendIllusts();
@@ -184,12 +189,18 @@ abstract class RustLibApi extends BaseApi {
 
   Future<NovelPage> crateApiNovelFetchNovelPage({required String path});
 
+  Future<NovelPage> crateApiNovelFetchNovelRankingPage({
+    required String mode,
+    String? date,
+  });
+
   Future<NovelSeries> crateApiNovelFetchNovelSeries({
     required PlatformInt64 seriesId,
   });
 
-  Future<List<IllustSummary>> crateApiIllustFetchRanking({
+  Future<IllustPage> crateApiIllustFetchRankingPage({
     required String mode,
+    String? date,
   });
 
   Future<List<NovelSummary>> crateApiNovelFetchRecommendedNovels();
@@ -199,6 +210,12 @@ abstract class RustLibApi extends BaseApi {
   Future<List<IllustSummary>> crateApiIllustFetchRelatedIllusts({
     required PlatformInt64 illustId,
   });
+
+  Future<SpotlightPage> crateApiDiscoveryFetchSpotlightPage({
+    required String category,
+  });
+
+  Future<List<TrendingTag>> crateApiDiscoveryFetchTrendingTags();
 
   Future<UserProfile> crateApiUserFetchUserDetail({
     required PlatformInt64 userId,
@@ -1097,7 +1114,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<UserListPage> crateApiUserFetchNextUsers({required String nextUrl}) {
+  Future<SpotlightPage> crateApiDiscoveryFetchNextSpotlightPage({
+    required String nextUrl,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1107,6 +1126,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_spotlight_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDiscoveryFetchNextSpotlightPageConstMeta,
+        argValues: [nextUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDiscoveryFetchNextSpotlightPageConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_next_spotlight_page",
+        argNames: ["nextUrl"],
+      );
+
+  @override
+  Future<UserListPage> crateApiUserFetchNextUsers({required String nextUrl}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(nextUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1133,7 +1183,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1163,7 +1213,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1194,7 +1244,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1213,6 +1263,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_novel_page", argNames: ["path"]);
 
   @override
+  Future<NovelPage> crateApiNovelFetchNovelRankingPage({
+    required String mode,
+    String? date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(mode, serializer);
+          sse_encode_opt_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_novel_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiNovelFetchNovelRankingPageConstMeta,
+        argValues: [mode, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNovelFetchNovelRankingPageConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_novel_ranking_page",
+        argNames: ["mode", "date"],
+      );
+
+  @override
   Future<NovelSeries> crateApiNovelFetchNovelSeries({
     required PlatformInt64 seriesId,
   }) {
@@ -1224,7 +1309,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1246,34 +1331,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<IllustSummary>> crateApiIllustFetchRanking({
+  Future<IllustPage> crateApiIllustFetchRankingPage({
     required String mode,
+    String? date,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(mode, serializer);
+          sse_encode_opt_String(date, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 34,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_illust_summary,
+          decodeSuccessData: sse_decode_illust_page,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiIllustFetchRankingConstMeta,
-        argValues: [mode],
+        constMeta: kCrateApiIllustFetchRankingPageConstMeta,
+        argValues: [mode, date],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiIllustFetchRankingConstMeta =>
-      const TaskConstMeta(debugName: "fetch_ranking", argNames: ["mode"]);
+  TaskConstMeta get kCrateApiIllustFetchRankingPageConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_ranking_page",
+        argNames: ["mode", "date"],
+      );
 
   @override
   Future<List<NovelSummary>> crateApiNovelFetchRecommendedNovels() {
@@ -1284,7 +1374,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1311,7 +1401,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1341,7 +1431,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1363,6 +1453,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SpotlightPage> crateApiDiscoveryFetchSpotlightPage({
+    required String category,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(category, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_spotlight_page,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDiscoveryFetchSpotlightPageConstMeta,
+        argValues: [category],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDiscoveryFetchSpotlightPageConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_spotlight_page",
+        argNames: ["category"],
+      );
+
+  @override
+  Future<List<TrendingTag>> crateApiDiscoveryFetchTrendingTags() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_trending_tag,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDiscoveryFetchTrendingTagsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDiscoveryFetchTrendingTagsConstMeta =>
+      const TaskConstMeta(debugName: "fetch_trending_tags", argNames: []);
+
+  @override
   Future<UserProfile> crateApiUserFetchUserDetail({
     required PlatformInt64 userId,
   }) {
@@ -1374,7 +1524,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1406,7 +1556,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1441,7 +1591,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1470,7 +1620,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1497,7 +1647,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1531,7 +1681,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1563,7 +1713,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1592,7 +1742,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1626,7 +1776,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1660,7 +1810,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1690,7 +1840,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1720,7 +1870,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 51,
             port: port_,
           );
         },
@@ -1751,7 +1901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 52,
             port: port_,
           );
         },
@@ -1781,7 +1931,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 53,
             port: port_,
           );
         },
@@ -1808,7 +1958,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 54,
             port: port_,
           );
         },
@@ -1840,7 +1990,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 55,
             port: port_,
           );
         },
@@ -1875,7 +2025,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 56,
             port: port_,
           );
         },
@@ -1903,7 +2053,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 57,
             port: port_,
           );
         },
@@ -1930,7 +2080,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 58,
             port: port_,
           );
         },
@@ -1958,7 +2108,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 59,
             port: port_,
           );
         },
@@ -2146,6 +2296,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SpotlightArticle> dco_decode_list_spotlight_article(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_spotlight_article).toList();
+  }
+
+  @protected
+  List<TrendingTag> dco_decode_list_trending_tag(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_trending_tag).toList();
+  }
+
+  @protected
   List<UserPreview> dco_decode_list_user_preview(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_user_preview).toList();
@@ -2217,6 +2379,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  String? dco_decode_opt_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
   SearchRecord dco_decode_search_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2228,6 +2396,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       searchTime: dco_decode_i_64(arr[2]),
       searchType: dco_decode_i_64(arr[3]),
       pinned: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  SpotlightArticle dco_decode_spotlight_article(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return SpotlightArticle(
+      id: dco_decode_i_64(arr[0]),
+      title: dco_decode_String(arr[1]),
+      thumbnailUrl: dco_decode_String(arr[2]),
+      articleUrl: dco_decode_String(arr[3]),
+      publishDate: dco_decode_String(arr[4]),
+      subcategoryLabel: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  SpotlightPage dco_decode_spotlight_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SpotlightPage(
+      articles: dco_decode_list_spotlight_article(arr[0]),
+      nextUrl: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  TrendingTag dco_decode_trending_tag(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return TrendingTag(
+      tag: dco_decode_String(arr[0]),
+      translatedName: dco_decode_String(arr[1]),
+      thumbnailUrl: dco_decode_String(arr[2]),
     );
   }
 
@@ -2517,6 +2726,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SpotlightArticle> sse_decode_list_spotlight_article(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SpotlightArticle>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_spotlight_article(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<TrendingTag> sse_decode_list_trending_tag(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <TrendingTag>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_trending_tag(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<UserPreview> sse_decode_list_user_preview(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2601,6 +2836,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   SearchRecord sse_decode_search_record(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_i_64(deserializer);
@@ -2614,6 +2860,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       searchTime: var_searchTime,
       searchType: var_searchType,
       pinned: var_pinned,
+    );
+  }
+
+  @protected
+  SpotlightArticle sse_decode_spotlight_article(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_thumbnailUrl = sse_decode_String(deserializer);
+    var var_articleUrl = sse_decode_String(deserializer);
+    var var_publishDate = sse_decode_String(deserializer);
+    var var_subcategoryLabel = sse_decode_String(deserializer);
+    return SpotlightArticle(
+      id: var_id,
+      title: var_title,
+      thumbnailUrl: var_thumbnailUrl,
+      articleUrl: var_articleUrl,
+      publishDate: var_publishDate,
+      subcategoryLabel: var_subcategoryLabel,
+    );
+  }
+
+  @protected
+  SpotlightPage sse_decode_spotlight_page(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_articles = sse_decode_list_spotlight_article(deserializer);
+    var var_nextUrl = sse_decode_String(deserializer);
+    return SpotlightPage(articles: var_articles, nextUrl: var_nextUrl);
+  }
+
+  @protected
+  TrendingTag sse_decode_trending_tag(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_tag = sse_decode_String(deserializer);
+    var var_translatedName = sse_decode_String(deserializer);
+    var var_thumbnailUrl = sse_decode_String(deserializer);
+    return TrendingTag(
+      tag: var_tag,
+      translatedName: var_translatedName,
+      thumbnailUrl: var_thumbnailUrl,
     );
   }
 
@@ -2858,6 +3144,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_spotlight_article(
+    List<SpotlightArticle> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_spotlight_article(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_trending_tag(
+    List<TrendingTag> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_trending_tag(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_user_preview(
     List<UserPreview> self,
     SseSerializer serializer,
@@ -2915,6 +3225,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_search_record(SearchRecord self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.id, serializer);
@@ -2922,6 +3242,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.searchTime, serializer);
     sse_encode_i_64(self.searchType, serializer);
     sse_encode_bool(self.pinned, serializer);
+  }
+
+  @protected
+  void sse_encode_spotlight_article(
+    SpotlightArticle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.thumbnailUrl, serializer);
+    sse_encode_String(self.articleUrl, serializer);
+    sse_encode_String(self.publishDate, serializer);
+    sse_encode_String(self.subcategoryLabel, serializer);
+  }
+
+  @protected
+  void sse_encode_spotlight_page(SpotlightPage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_spotlight_article(self.articles, serializer);
+    sse_encode_String(self.nextUrl, serializer);
+  }
+
+  @protected
+  void sse_encode_trending_tag(TrendingTag self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.tag, serializer);
+    sse_encode_String(self.translatedName, serializer);
+    sse_encode_String(self.thumbnailUrl, serializer);
   }
 
   @protected

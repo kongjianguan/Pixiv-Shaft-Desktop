@@ -8,7 +8,7 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `convert`, `fetch_list`, `fetch_series`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `NovelListResponse`, `NovelSeriesResponse`, `RawImageUrls`, `RawNovel`, `RawSeriesDetail`, `RawSeries`, `SingleNovelResponse`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `NovelListResponse`, `NovelSeriesResponse`, `RawNovel`, `RawSeriesDetail`, `RawSeries`, `SingleNovelResponse`
 
 /// 取回单篇小说的详情。
 Future<NovelSummary> fetchNovelDetail({required PlatformInt64 novelId}) =>
@@ -17,6 +17,13 @@ Future<NovelSummary> fetchNovelDetail({required PlatformInt64 novelId}) =>
 /// 推荐小说。
 Future<List<NovelSummary>> fetchRecommendedNovels() =>
     RustLib.instance.api.crateApiNovelFetchRecommendedNovels();
+
+/// 按模式与日期取回小说排行，保留后续分页地址。
+Future<NovelPage> fetchNovelRankingPage({required String mode, String? date}) =>
+    RustLib.instance.api.crateApiNovelFetchNovelRankingPage(
+      mode: mode,
+      date: date,
+    );
 
 /// 关注动态里的小说。
 Future<NovelPage> fetchFollowNovels({required String restrict}) =>
