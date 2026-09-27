@@ -259,7 +259,9 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
       _suggestions = const [];
       _options = null;
       _optionsError = null;
-      _visited.add(_tab);
+      _visited
+        ..clear()
+        ..add(_tab);
       _refreshTicks[_tab]++;
     });
     _loadOptions(normalized);

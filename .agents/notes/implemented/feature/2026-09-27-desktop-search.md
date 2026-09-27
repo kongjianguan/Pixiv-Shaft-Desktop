@@ -10,7 +10,7 @@ The Flutter search entry exposes illustration keyword results and recent history
 
 ## Decision
 
-The Flutter search page keeps illustration, novel, and user result tabs. Illustration and novel requests use the existing Rust paged-list entry points with query strings built by Dart's `Uri` library. Rust provides autocomplete, account-specific filter choices, and user search through the same authenticated Pixiv client. Each result tab keeps its own loaded page while the user changes tabs. Search conditions follow the Compose API parameters; R18 and AI choices are also applied to the returned items. Numeric identifiers open a choice of work, novel, user, or keyword search. Pixiv links open the matching in-app detail page. Search history retains pinned entries and can remove individual entries or clear either group.
+The Flutter search page keeps illustration, novel, and user result tabs. Illustration and novel requests use the existing Rust paged-list entry points with query strings built by Dart's `Uri` library. Rust provides autocomplete, account-specific filter choices, and user search through the same authenticated Pixiv client. Each result tab keeps its own loaded page while the user changes tabs. Search conditions follow the Compose API parameters; R18 and AI choices are also applied to the returned items. Numeric identifiers open a choice of work, novel, user, or keyword search. Pixiv links open the matching in-app detail page. Search history retains pinned entries and can remove individual entries or clear either group. Search and browsing history timestamps use epoch milliseconds, matching the existing Compose records.
 
 ## Alternatives considered
 
@@ -24,4 +24,4 @@ The Rust bridge exposes search suggestions, filter choices, user search, and gro
 
 ## Verification
 
-The authenticated search probe requests autocomplete, filter choices, and all three result types and writes their counts to a repeatable local artifact. The macOS build compiles the search page and generated Rust bridge.
+The authenticated search probe requests autocomplete, filter choices, and all three result types and writes their counts to a repeatable local artifact. An isolated real SQLite probe verifies timestamp ordering, repeat searches, pinned history, and grouped deletion. The macOS build compiles the search page and generated Rust bridge.

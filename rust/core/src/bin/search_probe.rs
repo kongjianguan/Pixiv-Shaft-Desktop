@@ -12,10 +12,12 @@ async fn main() {
     let suggestions = pixiv_core::api::search::fetch_search_suggestions(word.into())
         .await
         .expect("读取搜索建议");
+    assert!(!suggestions.is_empty(), "搜索建议为空");
     let options =
         pixiv_core::api::search::fetch_search_options(word.into(), "partial_match_for_tags".into())
             .await
             .expect("读取搜索选项");
+    assert!(!options.illust_languages.is_empty(), "插画语言选项为空");
     let illusts = pixiv_core::api::illust::fetch_illust_page(&format!(
         "/v1/search/illust?word={keyword}&sort=date_desc&search_target=partial_match_for_tags&merge_plain_keyword_results=true&include_translated_tag_results=true&search_ai_type=0"
     ))
@@ -31,6 +33,7 @@ async fn main() {
     let users = pixiv_core::api::user::search_users(word.into())
         .await
         .expect("搜索用户");
+    assert!(!users.users.is_empty(), "用户搜索没有返回用户");
 
     let report = format!(
         "关键词 {word}\n搜索建议 {} 条\n语言选项 插画 {} 条，小说 {} 条\n制图工具 {} 条，小说类型 {} 条\n插画 {} 条，小说 {} 条，用户 {} 条\n",
