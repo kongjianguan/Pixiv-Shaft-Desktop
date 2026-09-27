@@ -5,11 +5,10 @@ import 'package:pixiv_shaft/src/ui/browse_history_page.dart';
 import 'package:pixiv_shaft/src/ui/discover_page.dart';
 import 'package:pixiv_shaft/src/ui/dynamic_page.dart';
 import 'package:pixiv_shaft/src/ui/feed_pages.dart';
-import 'package:pixiv_shaft/src/ui/login_screen.dart';
+import 'package:pixiv_shaft/src/ui/profile_page.dart';
 import 'package:pixiv_shaft/src/ui/pixivision_page.dart';
 import 'package:pixiv_shaft/src/ui/r18_page.dart';
 import 'package:pixiv_shaft/src/ui/search_page.dart';
-import 'package:pixiv_shaft/src/ui/search_profile_pages.dart';
 import 'package:pixiv_shaft/src/ui/settings_page.dart';
 
 /// 作品流使用完整窗口；主要页面从 macOS 系统菜单切换。
@@ -207,13 +206,8 @@ class _HomeShellState extends State<HomeShell> {
       case 3:
         return const DynamicPage();
       default:
-        return ProfilePage(onLoggedOut: _afterLogout);
+        return const ProfilePage();
     }
   }
 
-  void _afterLogout() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-    );
-  }
 }

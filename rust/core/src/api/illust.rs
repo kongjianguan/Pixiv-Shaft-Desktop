@@ -132,13 +132,10 @@ pub async fn search_illusts(word: String) -> Result<Vec<IllustSummary>, String> 
     .await
 }
 
-/// 取回自己收藏的插画。
-pub async fn fetch_bookmarked_illusts() -> Result<Vec<IllustSummary>, String> {
+/// 取回自己收藏的插画，保留后续分页地址。
+pub async fn fetch_bookmarked_illusts() -> Result<IllustPage, String> {
     let user_id = crate::api::user::self_user_id().await?;
-    fetch_illusts(&format!(
-        "/v1/user/bookmarks/illust?filter=for_ios&restrict=public&user_id={user_id}"
-    ))
-    .await
+    fetch_user_bookmarks(user_id).await
 }
 
 /// 按模式与日期取回插画排行，保留后续分页地址。
@@ -195,14 +192,22 @@ pub async fn fetch_illust_page(path: &str) -> Result<IllustPage, String> {
     })
 }
 
-/// 取回某个用户的作品。`illust_type` 取 `illust` 或 `manga`。
+/// 取回某个用户的作品，保留后续分页地址。`illust_type` 取 `illust` 或 `manga`。
 pub async fn fetch_user_illusts(
     user_id: i64,
     illust_type: String,
-) -> Result<Vec<IllustSummary>, String> {
-    fetch_illusts(&format!(
+) -> Result<IllustPage, String> {
+    fetch_illust_page(&format!(
         "/v1/user/illusts?filter=for_ios&user_id={user_id}&type={}",
         encode_query(&illust_type)
+    ))
+    .await
+}
+
+/// 取回某个用户的公开插画收藏。
+pub async fn fetch_user_bookmarks(user_id: i64) -> Result<IllustPage, String> {
+    fetch_illust_page(&format!(
+        "/v1/user/bookmarks/illust?filter=for_ios&restrict=public&user_id={user_id}"
     ))
     .await
 }

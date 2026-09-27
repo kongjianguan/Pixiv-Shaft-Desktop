@@ -25,12 +25,29 @@ async fn main() {
     let novels = pixiv_core::api::novel::fetch_bookmarked_novels()
         .await
         .expect("读取小说收藏");
+    let created_illusts = pixiv_core::api::illust::fetch_user_illusts(user_id, "illust".into())
+        .await
+        .expect("读取我的插画");
+    let created_novels = pixiv_core::api::novel::fetch_user_novels(user_id)
+        .await
+        .expect("读取我的小说");
+    let public_bookmarks = pixiv_core::api::illust::fetch_user_bookmarks(user_id)
+        .await
+        .expect("读取作者公开收藏");
+    assert_eq!(
+        illusts.illusts.len(),
+        public_bookmarks.illusts.len(),
+        "个人收藏与作者公开收藏数量不一致"
+    );
 
     let report = format!(
-        "用户编号 {user_id}\n个人头像 {} 字节\n插画收藏 {}\n小说收藏 {}\n",
+        "用户编号 {user_id}\n个人头像 {} 字节\n插画收藏 {}\n小说收藏 {}\n我的插画 {}\n我的小说 {}\n作者公开收藏 {}\n",
         avatar.len(),
-        illusts.len(),
-        novels.len()
+        illusts.illusts.len(),
+        novels.novels.len(),
+        created_illusts.illusts.len(),
+        created_novels.novels.len(),
+        public_bookmarks.illusts.len(),
     );
     print!("{report}");
     std::fs::write("rust/core/target/profile-flow-probe.txt", report)

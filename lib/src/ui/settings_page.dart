@@ -1,6 +1,8 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
+import 'package:pixiv_shaft/src/ui/login_screen.dart';
 
 /// 设置页。改动即时写回数据库并生效。
 class SettingsPage extends StatefulWidget {
@@ -12,6 +14,15 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final AppSettings _settings = AppSettings.instance;
+
+  Future<void> _logout() async {
+    await logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           _Section(
-            title: '内容',
+            title: '历史记录',
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -67,12 +78,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: const Text('关闭后不再写入浏览记录'),
                 value: _settings.saveBrowseHistory,
                 onChanged: _settings.setSaveBrowseHistory,
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('显示 R18 内容'),
-                value: _settings.showR18,
-                onChanged: _settings.setShowR18,
               ),
             ],
           ),
@@ -183,6 +188,26 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: '小说文件名模板',
                 value: _settings.novelFileNameTemplate,
                 onSubmitted: _settings.setNovelFileNameTemplate,
+              ),
+            ],
+          ),
+          _Section(
+            title: '账号',
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('显示 R18 内容'),
+                value: _settings.showR18,
+                onChanged: _settings.setShowR18,
+              ),
+              const Text('退出后需要重新通过 Pixiv 授权登录。'),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton(
+                  onPressed: _logout,
+                  child: const Text('退出登录'),
+                ),
               ),
             ],
           ),

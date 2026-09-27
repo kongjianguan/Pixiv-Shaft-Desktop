@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/rust/api/user.dart';
+import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
 import 'package:pixiv_shaft/src/ui/user_list_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
+import 'package:pixiv_shaft/src/ui/widgets/paged_grid.dart';
 import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
 
 /// 作者页面：资料、作品列表与关注操作。
@@ -17,19 +19,17 @@ class UserPage extends StatefulWidget {
   State<UserPage> createState() => _UserPageState();
 }
 
-class _UserPageState extends State<UserPage> {
-  late Future<UserProfile> _profile = fetchUserDetail(userId: widget.userId);
-  late Future<List<IllustSummary>> _illusts =
-      fetchUserIllusts(userId: widget.userId, illustType: 'illust');
+class _UserPageState extends State<UserPage> with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late Future<UserProfile> _profile = _fetchProfile();
+  int _refresh = 0;
   bool _following = false;
   bool _working = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _profile.then((profile) {
-      if (mounted) setState(() => _following = profile.isFollowed);
-    });
+  Future<UserProfile> _fetchProfile() async {
+    final profile = await fetchUserDetail(userId: widget.userId);
+    if (mounted) setState(() => _following = profile.isFollowed);
+    return profile;
   }
 
   Future<void> _toggleFollow() async {
@@ -54,9 +54,41 @@ class _UserPageState extends State<UserPage> {
 
   void _reload() {
     setState(() {
-      _profile = fetchUserDetail(userId: widget.userId);
-      _illusts = fetchUserIllusts(userId: widget.userId, illustType: 'illust');
+      _profile = _fetchProfile();
+      _refresh++;
     });
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Widget _feed(Future<IllustPage> Function() loadFirst, String emptyLabel) {
+    return PagedGrid<IllustSummary>(
+      masonry: true,
+      padding: const EdgeInsets.all(4),
+      emptyLabel: emptyLabel,
+      loadFirst: () async {
+        final page = await loadFirst();
+        return (items: page.illusts, nextUrl: page.nextUrl);
+      },
+      loadNext: (nextUrl) async {
+        final page = await fetchNextIllustPage(nextUrl: nextUrl);
+        return (items: page.illusts, nextUrl: page.nextUrl);
+      },
+      itemBuilder: (context, illust, index) => IllustCard(
+        illust: illust,
+        titleMaxLines: AppSettings.instance.workTitleMaxLines,
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => IllustDetailPage(
+            illustId: illust.id,
+            initialTitle: illust.title,
+          ),
+        )),
+      ),
+    );
   }
 
   @override
@@ -123,23 +155,29 @@ class _UserPageState extends State<UserPage> {
             ),
           ),
           const Divider(height: 1),
+          TabBar(
+            controller: _tabs,
+            tabs: const [Tab(text: '作品'), Tab(text: '收藏')],
+          ),
           Expanded(
-            child: AsyncSection<List<IllustSummary>>(
-              future: _illusts,
-              onRetry: _reload,
-              errorLabel: '加载作品失败',
-              builder: (context, illusts) => IllustGrid(
-                illusts: illusts,
-                emptyLabel: '该作者没有公开作品',
-                onOpen: (illust) => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => IllustDetailPage(
-                      illustId: illust.id,
-                      initialTitle: illust.title,
-                    ),
+            child: TabBarView(
+              controller: _tabs,
+              children: [
+                KeyedSubtree(
+                  key: ValueKey('works-$_refresh'),
+                  child: _feed(
+                    () => fetchUserIllusts(userId: widget.userId, illustType: 'illust'),
+                    '该作者没有公开作品',
                   ),
                 ),
-              ),
+                KeyedSubtree(
+                  key: ValueKey('bookmarks-$_refresh'),
+                  child: _feed(
+                    () => fetchUserBookmarks(userId: widget.userId),
+                    '该作者没有公开收藏',
+                  ),
+                ),
+              ],
             ),
           ),
         ],
