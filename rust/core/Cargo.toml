@@ -10,7 +10,7 @@ crate-type = ["cdylib", "staticlib", "lib"]
 flutter_rust_bridge = "=2.13.0"
 rustls = { version = "0.23", default-features = false, features = ["ring", "aws_lc_rs", "std", "tls12"] }
 webpki-root-certs = "1.0"
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "charset", "gzip", "form", "query", "json"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "charset", "gzip", "form", "query", "json", "system-proxy"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 base64 = "0.22"
 chrono = "0.4"

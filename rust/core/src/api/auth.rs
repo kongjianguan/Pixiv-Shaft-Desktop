@@ -35,23 +35,24 @@ pub async fn complete_login(pasted: String, code_verifier: String) -> Result<Log
         .ok_or_else(|| "token 交换未返回 access_token".to_string())?;
 
     let user = response.user.unwrap_or(auth::TokenUser {
-        id: 0,
+        id: auth::TokenUserId::Number(0),
         name: None,
         account: None,
     });
+    let user_id = user.id.as_i64()?;
     let user_name = user.name.clone().or(user.account.clone()).unwrap_or_default();
 
     session::set(session::Session {
         access_token,
         refresh_token: response.refresh_token.clone().unwrap_or_default(),
-        user_id: user.id,
+        user_id,
         user_name: user_name.clone(),
     })
     .await;
     session::persist().await?;
 
     Ok(LoginResult {
-        user_id: user.id,
+        user_id,
         user_name,
     })
 }

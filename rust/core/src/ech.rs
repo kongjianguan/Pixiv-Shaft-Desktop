@@ -60,6 +60,7 @@ async fn invalidate_client() {
 
 async fn lookup_ech_config() -> Result<Vec<u8>, String> {
     let response = reqwest::Client::builder()
+        .no_proxy()
         .connect_timeout(Duration::from_secs(8))
         .build()
         .map_err(|e| format!("构建解析用客户端失败：{e}"))?
@@ -116,6 +117,7 @@ async fn build_client(ech_config: &[u8]) -> Result<reqwest::Client, String> {
     .with_no_client_auth();
 
     let mut builder = reqwest::Client::builder()
+        .no_proxy()
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(20))
         .tls_backend_preconfigured(tls);

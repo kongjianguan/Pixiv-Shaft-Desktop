@@ -156,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       : _novelFeed(() async {
                           final userId = await selfUserId();
                           return fetchUserNovels(userId: userId);
-                        }, '暂无已发布小说'),
+                        }, '没有可显示的已发布小说'),
                 ),
               ),
           ]),
@@ -250,11 +250,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         child: TabBarView(controller: _tabs, children: [
           KeyedSubtree(
             key: ValueKey('bookmarked-illust-$_refresh'),
-            child: _illustFeed(fetchBookmarkedIllusts, '暂无插画收藏'),
+            child: _illustFeed(fetchBookmarkedIllusts, '没有可显示的插画收藏'),
           ),
           KeyedSubtree(
             key: ValueKey('bookmarked-novel-$_refresh'),
-            child: _novelFeed(fetchBookmarkedNovels, '暂无小说收藏'),
+            child: _novelFeed(fetchBookmarkedNovels, '没有可显示的小说收藏'),
           ),
           _works(),
           const BrowseHistoryView(),

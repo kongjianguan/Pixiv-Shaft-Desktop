@@ -76,15 +76,14 @@ pub async fn get_with_auth(path: &str, access_token: &str) -> Result<String, Str
     let (status, body) = request("GET", path, Some(access_token), None).await?;
 
     if !(200..300).contains(&status) && is_token_error(&body) {
-        if let Some(refreshed) = crate::session::refresh_access_token(access_token).await {
-            let (retry_status, retry_body) = request("GET", path, Some(&refreshed), None).await?;
-            if !(200..300).contains(&retry_status) {
-                return Err(format!(
-                    "刷新令牌后重试仍失败：{retry_status} {retry_body}"
-                ));
-            }
-            return Ok(retry_body);
+        let refreshed = crate::session::refresh_access_token(access_token)
+            .await
+            .map_err(|error| format!("请求 {path} 的访问令牌刷新失败：{error}"))?;
+        let (retry_status, retry_body) = request("GET", path, Some(&refreshed), None).await?;
+        if !(200..300).contains(&retry_status) {
+            return Err(format!("刷新令牌后重试仍失败：{retry_status} {retry_body}"));
         }
+        return Ok(retry_body);
     }
 
     if !(200..300).contains(&status) {
@@ -128,14 +127,15 @@ pub async fn post_with_auth(path: &str, fields: &[(&str, &str)]) -> Result<Strin
     .await?;
 
     if !(200..300).contains(&status) && is_token_error(&response) {
-        if let Some(refreshed) = crate::session::refresh_access_token(&session.access_token).await {
-            let (retry_status, retry_body) =
-                request("POST", path, Some(&refreshed), Some(body)).await?;
-            if !(200..300).contains(&retry_status) {
-                return Err(format!("刷新令牌后重试仍失败：{retry_status} {retry_body}"));
-            }
-            return Ok(retry_body);
+        let refreshed = crate::session::refresh_access_token(&session.access_token)
+            .await
+            .map_err(|error| format!("请求 {path} 的访问令牌刷新失败：{error}"))?;
+        let (retry_status, retry_body) =
+            request("POST", path, Some(&refreshed), Some(body)).await?;
+        if !(200..300).contains(&retry_status) {
+            return Err(format!("刷新令牌后重试仍失败：{retry_status} {retry_body}"));
         }
+        return Ok(retry_body);
     }
 
     if !(200..300).contains(&status) {

@@ -47,6 +47,7 @@ pub fn image_client(enable_sni: bool) -> reqwest::Client {
     headers.insert(USER_AGENT, HeaderValue::from_static(PIXIV_USER_AGENT));
 
     reqwest::Client::builder()
+        .no_proxy()
         .use_preconfigured_tls((*crate::tls::client_config(enable_sni)).clone())
         .default_headers(headers)
         .http1_only()

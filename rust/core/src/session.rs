@@ -78,21 +78,21 @@ pub async fn logout() -> Result<(), String> {
 ///
 /// 多个请求同时遇到令牌失效时，只有第一个真正去刷新，其余在拿到锁之后发现
 /// 令牌已经换过就直接复用，避免重复刷新互相覆盖。
-pub async fn refresh_access_token(stale_token: &str) -> Option<String> {
+pub async fn refresh_access_token(stale_token: &str) -> Result<String, String> {
     let _guard = refresh_lock().lock().await;
 
-    let current = get().await?;
+    let current = get().await.ok_or_else(|| "当前没有登录状态".to_string())?;
     if current.access_token != stale_token {
-        return Some(current.access_token);
+        return Ok(current.access_token);
     }
     if current.refresh_token.is_empty() {
-        return None;
+        return Err("当前登录状态缺少刷新令牌".to_string());
     }
 
-    let response = crate::auth::refresh_token(&current.refresh_token)
-        .await
-        .ok()?;
-    let access_token = response.access_token.clone()?;
+    let response = crate::auth::refresh_token(&current.refresh_token).await?;
+    let access_token = response
+        .access_token
+        .ok_or_else(|| "令牌刷新响应缺少访问令牌".to_string())?;
     let refresh_token = response
         .refresh_token
         .clone()
@@ -107,9 +107,7 @@ pub async fn refresh_access_token(stale_token: &str) -> Option<String> {
     .await;
 
     // 刷新后的令牌要写回钥匙串，否则下次启动仍用旧的访问令牌。
-    if let Err(error) = persist().await {
-        eprintln!("刷新后的令牌写回钥匙串失败：{error}");
-    }
+    persist().await?;
 
-    Some(access_token)
+    Ok(access_token)
 }

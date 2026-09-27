@@ -4,8 +4,10 @@
 //! 跳回 `redirect_uri` 并在地址里带上 `code`，用户把地址或 `code` 粘回应用，
 //! 应用用 `code` 加 `code_verifier` 换 token。
 
-use base64::Engine;
+use std::time::Duration;
+
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
 use rand::RngCore;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -72,9 +74,27 @@ fn url_encode(value: &str) -> String {
 
 #[derive(Debug, Deserialize)]
 pub struct TokenUser {
-    pub id: i64,
+    pub id: TokenUserId,
     pub name: Option<String>,
     pub account: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum TokenUserId {
+    Number(i64),
+    Text(String),
+}
+
+impl TokenUserId {
+    pub fn as_i64(&self) -> Result<i64, String> {
+        match self {
+            Self::Number(id) => Ok(*id),
+            Self::Text(id) => id
+                .parse()
+                .map_err(|error| format!("授权响应的用户编号无效：{error}")),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,7 +132,11 @@ async fn post_token(extra: &[(&str, &str)]) -> Result<TokenResponse, String> {
     ];
     body.extend_from_slice(extra);
 
-    let response = reqwest::Client::new()
+    let response = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .expect("构建授权客户端")
         .post(TOKEN_ENDPOINT)
         .form(&body)
         .send()

@@ -34,6 +34,14 @@ async fn main() {
     let public_bookmarks = pixiv_core::api::illust::fetch_user_bookmarks(user_id)
         .await
         .expect("读取作者公开收藏");
+    let raw_novel_bookmarks = pixiv_core::api_client::get_authed(&format!(
+        "/v1/user/bookmarks/novel?filter=for_ios&restrict=public&user_id={user_id}"
+    ))
+    .await
+    .expect("读取小说收藏原始响应");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&raw_novel_bookmarks).expect("解析小说收藏原始响应");
+    let raw_novels = parsed["novels"].as_array().expect("原始响应缺少小说列表");
     assert_eq!(
         illusts.illusts.len(),
         public_bookmarks.illusts.len(),
@@ -41,10 +49,11 @@ async fn main() {
     );
 
     let report = format!(
-        "用户编号 {user_id}\n个人头像 {} 字节\n插画收藏 {}\n小说收藏 {}\n我的插画 {}\n我的小说 {}\n作者公开收藏 {}\n",
+        "用户编号 {user_id}\n个人头像 {} 字节\n插画收藏 {}\n小说收藏 {}（原始 {}）\n我的插画 {}\n我的小说 {}\n作者公开收藏 {}\n",
         avatar.len(),
         illusts.illusts.len(),
         novels.novels.len(),
+        raw_novels.len(),
         created_illusts.illusts.len(),
         created_novels.novels.len(),
         public_bookmarks.illusts.len(),
