@@ -19,6 +19,7 @@ struct SingleIllustResponse {
 #[derive(Deserialize)]
 struct RawIllust {
     id: i64,
+    x_restrict: Option<i64>,
     title: Option<String>,
     caption: Option<String>,
     page_count: Option<i64>,
@@ -179,8 +180,14 @@ pub async fn fetch_illust_page(path: &str) -> Result<IllustPage, String> {
     let text = crate::api_client::get_authed(path).await?;
     let parsed: IllustListResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析作品列表失败：{e}"))?;
+    let show_r18 = crate::settings::get_bool("isShowR18", false)?;
     Ok(IllustPage {
-        illusts: parsed.illusts.into_iter().map(summarize).collect(),
+        illusts: parsed
+            .illusts
+            .into_iter()
+            .filter(|illust| show_r18 || illust.x_restrict.unwrap_or(0) <= 0)
+            .map(summarize)
+            .collect(),
         next_url: parsed.next_url.unwrap_or_default(),
     })
 }
@@ -310,7 +317,13 @@ async fn fetch_illusts(path: &str) -> Result<Vec<IllustSummary>, String> {
     let parsed: IllustListResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析作品列表失败：{e}"))?;
 
-    Ok(parsed.illusts.into_iter().map(summarize).collect())
+    let show_r18 = crate::settings::get_bool("isShowR18", false)?;
+    Ok(parsed
+        .illusts
+        .into_iter()
+        .filter(|illust| show_r18 || illust.x_restrict.unwrap_or(0) <= 0)
+        .map(summarize)
+        .collect())
 }
 
 fn summarize(raw: RawIllust) -> IllustSummary {

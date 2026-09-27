@@ -99,16 +99,26 @@ class PagedGridState<T> extends State<PagedGrid<T>> {
       _checkLoadMoreAfterLayout();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _loadingMore = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载更多失败：$error')),
-      );
+      setState(() {
+        _loadingMore = false;
+        if (_items.isEmpty) _error = '$error';
+      });
+      if (_items.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载更多失败：$error')),
+        );
+      }
     }
   }
 
   void _checkLoadMoreAfterLayout() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients) return;
+      if (!mounted) return;
+      if (_items.isEmpty && _nextUrl.isNotEmpty) {
+        _loadMore();
+        return;
+      }
+      if (!_scroll.hasClients) return;
       if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
         _loadMore();
       }

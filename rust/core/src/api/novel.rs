@@ -35,6 +35,8 @@ struct RawSeriesDetail {
 #[derive(Deserialize)]
 struct RawNovel {
     id: i64,
+    visible: Option<bool>,
+    x_restrict: Option<i64>,
     title: Option<String>,
     caption: Option<String>,
     create_date: Option<String>,
@@ -161,11 +163,13 @@ pub async fn fetch_novel_page(path: &str) -> Result<NovelPage, String> {
     let text = crate::api_client::get_authed(path).await?;
     let parsed: NovelListResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析小说列表失败：{e}"))?;
+    let show_r18 = crate::settings::get_bool("isShowR18", false)?;
     Ok(NovelPage {
         novels: parsed
             .novels
             .unwrap_or_default()
             .into_iter()
+            .filter(|novel| visible_novel(novel, show_r18))
             .map(convert)
             .collect(),
         next_url: parsed.next_url.unwrap_or_default(),
@@ -213,10 +217,12 @@ async fn fetch_list(path: &str) -> Result<Vec<NovelSummary>, String> {
     let text = crate::api_client::get_authed(path).await?;
     let parsed: NovelListResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析小说列表失败：{e}"))?;
+    let show_r18 = crate::settings::get_bool("isShowR18", false)?;
     Ok(parsed
         .novels
         .unwrap_or_default()
         .into_iter()
+        .filter(|novel| visible_novel(novel, show_r18))
         .map(convert)
         .collect())
 }
@@ -226,6 +232,7 @@ async fn fetch_series(path: &str) -> Result<NovelSeries, String> {
     let parsed: NovelSeriesResponse =
         serde_json::from_str(&text).map_err(|e| format!("解析小说系列失败：{e}"))?;
     let detail = parsed.novel_series_detail;
+    let show_r18 = crate::settings::get_bool("isShowR18", false)?;
 
     Ok(NovelSeries {
         id: detail.as_ref().and_then(|d| d.id).unwrap_or(0),
@@ -246,10 +253,15 @@ async fn fetch_series(path: &str) -> Result<NovelSeries, String> {
             .novels
             .unwrap_or_default()
             .into_iter()
+            .filter(|novel| visible_novel(novel, show_r18))
             .map(convert)
             .collect(),
         next_url: parsed.next_url.unwrap_or_default(),
     })
+}
+
+fn visible_novel(novel: &RawNovel, show_r18: bool) -> bool {
+    novel.visible != Some(false) && (show_r18 || novel.x_restrict.unwrap_or(0) <= 0)
 }
 
 fn convert(raw: RawNovel) -> NovelSummary {

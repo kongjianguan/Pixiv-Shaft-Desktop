@@ -23,6 +23,31 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   final Set<int> _visited = {0};
   final List<int> _refreshTicks = List.filled(5, 0);
+  late bool _lastR18;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastR18 = AppSettings.instance.showR18;
+    AppSettings.instance.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    AppSettings.instance.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    final showR18 = AppSettings.instance.showR18;
+    if (showR18 == _lastR18) return;
+    _lastR18 = showR18;
+    setState(() {
+      for (final index in _visited) {
+        _refreshTicks[index]++;
+      }
+    });
+  }
 
   void _selectPage(int index) {
     Navigator.of(context).popUntil((route) => route.isFirst);

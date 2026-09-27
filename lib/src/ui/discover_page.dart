@@ -266,6 +266,7 @@ class _RankingPanel extends StatelessWidget {
     if (!novel) {
       return PagedGrid<IllustSummary>(
         masonry: true,
+        emptyLabel: '没有可显示的作品',
         padding: const EdgeInsets.all(4),
         loadFirst: () async {
           final page = await fetchRankingPage(mode: mode, date: dateValue);
@@ -291,6 +292,7 @@ class _RankingPanel extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) => PagedGrid<NovelSummary>(
+        emptyLabel: '没有可显示的小说',
         delegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: responsiveColumns(
             constraints.maxWidth,
