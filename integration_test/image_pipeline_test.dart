@@ -26,7 +26,8 @@ void main() {
 
     final loaded = await tester.runAsync(() async {
       final context = tester.element(find.byType(RustImage));
-      await precacheImage(const RustImageProvider(imageUrl), context);
+      await precacheImage(const RustImageProvider(imageUrl), context)
+          .timeout(const Duration(seconds: 45));
       return true;
     });
 

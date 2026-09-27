@@ -3,7 +3,6 @@ import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
-import 'package:pixiv_shaft/src/ui/widgets/layout.dart';
 import 'package:pixiv_shaft/src/ui/widgets/paged_grid.dart';
 
 const _modes = <(String, String)>[
@@ -79,16 +78,8 @@ class _RankingFeed extends StatelessWidget {
       animation: settings,
       builder: (context, _) => PagedGrid<IllustSummary>(
         key: ValueKey(mode),
-        delegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: gridColumns(
-            context,
-            settings.workMaxColumnWidth,
-            settings.workMaxColumns,
-          ),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.68,
-        ),
+        masonry: true,
+        padding: const EdgeInsets.all(4),
         loadFirst: () async {
           final page = await fetchNextIllustPage(
             nextUrl: '/v1/illust/ranking?mode=$mode&filter=for_ios',

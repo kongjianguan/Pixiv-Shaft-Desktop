@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
+import 'package:pixiv_shaft/src/ui/browse_history_page.dart';
 import 'package:pixiv_shaft/src/ui/dynamic_page.dart';
 import 'package:pixiv_shaft/src/ui/feed_pages.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
@@ -45,6 +46,12 @@ class _HomeShellState extends State<HomeShell> {
   void _openR18() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const R18Page()),
+    );
+  }
+
+  void _openHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const BrowseHistoryPage()),
     );
   }
 
@@ -103,6 +110,13 @@ class _HomeShellState extends State<HomeShell> {
                 shortcut: const SingleActivator(LogicalKeyboardKey.digit5, meta: true),
                 onSelected: () => _selectPage(3),
               ),
+              PlatformMenuItemGroup(members: [
+                PlatformMenuItem(
+                  label: '浏览历史',
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyY, meta: true),
+                  onSelected: _openHistory,
+                ),
+              ]),
               if (AppSettings.instance.showR18)
                 PlatformMenuItem(label: 'R18 排行', onSelected: _openR18),
             ],

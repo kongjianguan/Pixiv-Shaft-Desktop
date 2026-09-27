@@ -3,10 +3,13 @@ import 'package:pixiv_shaft/src/rust/api/auth.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/rust/api/novel.dart';
 import 'package:pixiv_shaft/src/rust/api/store.dart';
+import 'package:pixiv_shaft/src/rust/api/user.dart';
+import 'package:pixiv_shaft/src/ui/browse_history_page.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
 import 'package:pixiv_shaft/src/ui/novel_pages.dart';
 import 'package:pixiv_shaft/src/ui/settings_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
+import 'package:pixiv_shaft/src/ui/widgets/rust_image.dart';
 
 /// 搜索：关键词搜索插画，未输入时展示搜索记录。
 class SearchPage extends StatefulWidget {
@@ -137,7 +140,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-/// 我的：收藏插画与退出登录。
+/// 我的：资料、收藏、创作与浏览历史。
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, required this.onLoggedOut});
 
@@ -149,9 +152,22 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 4, vsync: this);
+  late Future<UserProfile> _profile = _loadProfile();
   late Future<List<IllustSummary>> _bookmarks = fetchBookmarkedIllusts();
   late Future<List<NovelSummary>> _novels = fetchBookmarkedNovels();
+  late Future<List<IllustSummary>> _works = _loadWorks();
+
+  Future<UserProfile> _loadProfile() async {
+    final userId = await selfUserId();
+    if (userId <= 0) throw StateError('无法读取当前用户');
+    return fetchUserDetail(userId: userId);
+  }
+
+  Future<List<IllustSummary>> _loadWorks() async {
+    final profile = await _profile;
+    return fetchUserIllusts(userId: profile.id, illustType: 'illust');
+  }
 
   @override
   void dispose() {
@@ -161,8 +177,10 @@ class _ProfilePageState extends State<ProfilePage>
 
   void _reload() {
     setState(() {
+      _profile = _loadProfile();
       _bookmarks = fetchBookmarkedIllusts();
       _novels = fetchBookmarkedNovels();
+      _works = _loadWorks();
     });
   }
 
@@ -176,26 +194,63 @@ class _ProfilePageState extends State<ProfilePage>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text('我的收藏', style: Theme.of(context).textTheme.titleLarge),
-              ),
-              TabBar(
-                controller: _tabs,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: const [Tab(text: '插画'), Tab(text: '小说')],
-              ),
-              IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-                ),
-                icon: const Icon(Icons.settings_outlined),
-                tooltip: '设置',
-              ),
-              TextButton(onPressed: _logout, child: const Text('退出登录')),
+          padding: const EdgeInsets.all(16),
+          child: FutureBuilder<UserProfile>(
+            future: _profile,
+            builder: (context, snapshot) {
+              final profile = snapshot.data;
+              return Row(
+                children: [
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: ClipOval(
+                      child: profile == null
+                          ? const Icon(Icons.person_outline, size: 48)
+                          : RustImage(url: profile.avatarUrl, errorLabel: ''),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          profile?.name ?? '我的',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        if (profile != null) ...[
+                          Text('@${profile.account}'),
+                          Text('插画 ${profile.totalIllusts} · 漫画 ${profile.totalManga} · 小说 ${profile.totalNovels}'),
+                        ],
+                        if (snapshot.hasError)
+                          TextButton(onPressed: _reload, child: const Text('资料加载失败，重试')),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+                    ),
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: '设置',
+                  ),
+                  TextButton(onPressed: _logout, child: const Text('退出登录')),
+                ],
+              );
+            },
+          ),
+        ),
+        Center(
+          child: TabBar(
+            controller: _tabs,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: const [
+              Tab(text: '插画收藏'),
+              Tab(text: '小说收藏'),
+              Tab(text: '我的作品'),
+              Tab(text: '历史'),
             ],
           ),
         ),
@@ -237,6 +292,24 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                 ),
               ),
+              AsyncSection<List<IllustSummary>>(
+                future: _works,
+                onRetry: _reload,
+                errorLabel: '加载我的作品失败',
+                builder: (context, illusts) => IllustGrid(
+                  illusts: illusts,
+                  emptyLabel: '还没有公开作品',
+                  onOpen: (illust) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => IllustDetailPage(
+                        illustId: illust.id,
+                        initialTitle: illust.title,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const BrowseHistoryView(),
             ],
           ),
         ),

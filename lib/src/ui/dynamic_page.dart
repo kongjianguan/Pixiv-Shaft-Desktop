@@ -149,16 +149,8 @@ class _FollowFeedState extends State<_FollowFeed> {
                 )
               : PagedGrid<IllustSummary>(
                   key: ValueKey('illust-$_restrict'),
-                  delegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: gridColumns(
-                      context,
-                      settings.workMaxColumnWidth,
-                      settings.workMaxColumns,
-                    ),
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.68,
-                  ),
+                  masonry: true,
+                  padding: const EdgeInsets.all(4),
                   loadFirst: () async {
                     final page = await fetchFollowIllusts(restrict: _restrict);
                     return (items: page.illusts, nextUrl: page.nextUrl);
@@ -195,16 +187,8 @@ class _NiceFriendFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = AppSettings.instance;
     return PagedGrid<IllustSummary>(
-      delegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridColumns(
-          context,
-          settings.workMaxColumnWidth,
-          settings.workMaxColumns,
-        ),
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.68,
-      ),
+      masonry: true,
+      padding: const EdgeInsets.all(4),
       loadFirst: () async {
         final page = await fetchNiceFriendIllusts();
         return (items: page.illusts, nextUrl: page.nextUrl);

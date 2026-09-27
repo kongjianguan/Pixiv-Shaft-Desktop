@@ -29,6 +29,6 @@ async fn main() {
         verified.push(format!("{id} {bytes}"));
     }
     verified.sort();
-    std::fs::write("target/image-flow-probe.txt", verified.join("\n"))
+    std::fs::write("target/image-flow-probe.txt", format!("{}\n", verified.join("\n")))
         .expect("写入图片链路验证记录");
 }
