@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/rust/api/store.dart';
@@ -35,7 +37,7 @@ class _IllustDetailPageState extends State<IllustDetailPage> {
       await recordBrowse(
         contentType: 'illust',
         targetId: detail.id,
-        payloadJson: '{"id":${detail.id},"title":${_jsonString(detail.title)}}',
+        payloadJson: jsonEncode({'id': detail.id, 'title': detail.title}),
       );
     }
     return detail;
@@ -272,14 +274,6 @@ String _stripHtml(String html) {
       .replaceAll('&#39;', "'")
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
-}
-
-String _jsonString(String value) {
-  final escaped = value
-      .replaceAll(r'\', r'\\')
-      .replaceAll('"', r'\"')
-      .replaceAll('\n', r'\n');
-  return '"$escaped"';
 }
 
 class _Meta extends StatelessWidget {
