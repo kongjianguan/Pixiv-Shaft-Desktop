@@ -37,6 +37,7 @@ struct RawNovel {
     id: i64,
     visible: Option<bool>,
     x_restrict: Option<i64>,
+    novel_ai_type: Option<i64>,
     title: Option<String>,
     caption: Option<String>,
     create_date: Option<String>,
@@ -86,6 +87,8 @@ pub struct NovelPage {
 pub struct NovelSummary {
     pub id: i64,
     pub title: String,
+    pub x_restrict: i64,
+    pub ai_type: i64,
     pub caption: String,
     pub create_date: String,
     pub text_length: i64,
@@ -268,6 +271,8 @@ fn convert(raw: RawNovel) -> NovelSummary {
     NovelSummary {
         id: raw.id,
         title: raw.title.unwrap_or_default(),
+        x_restrict: raw.x_restrict.unwrap_or(0),
+        ai_type: raw.novel_ai_type.unwrap_or(0),
         caption: raw.caption.unwrap_or_default(),
         create_date: raw.create_date.unwrap_or_default(),
         text_length: raw.text_length.unwrap_or(0),

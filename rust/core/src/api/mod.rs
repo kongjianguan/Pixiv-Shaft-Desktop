@@ -4,6 +4,7 @@ pub mod discovery;
 pub mod illust;
 pub mod image;
 pub mod novel;
+pub mod search;
 pub mod store;
 pub mod user;
 

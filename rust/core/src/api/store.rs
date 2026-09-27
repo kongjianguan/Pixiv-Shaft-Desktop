@@ -94,3 +94,7 @@ pub fn delete_search(id: i64) -> Result<(), String> {
 pub fn clear_searches() -> Result<(), String> {
     history::clear_searches()
 }
+
+pub fn clear_searches_group(pinned: bool) -> Result<(), String> {
+    history::clear_searches_group(pinned)
+}

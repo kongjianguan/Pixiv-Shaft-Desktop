@@ -20,6 +20,7 @@ struct SingleIllustResponse {
 struct RawIllust {
     id: i64,
     x_restrict: Option<i64>,
+    illust_ai_type: Option<i64>,
     title: Option<String>,
     caption: Option<String>,
     page_count: Option<i64>,
@@ -76,6 +77,8 @@ pub struct IllustPage {
 pub struct IllustSummary {
     pub id: i64,
     pub title: String,
+    pub x_restrict: i64,
+    pub ai_type: i64,
     pub author_id: i64,
     pub author_name: String,
     pub page_count: i64,
@@ -335,6 +338,8 @@ fn summarize(raw: RawIllust) -> IllustSummary {
     IllustSummary {
         id: raw.id,
         title: raw.title.unwrap_or_default(),
+        x_restrict: raw.x_restrict.unwrap_or(0),
+        ai_type: raw.illust_ai_type.unwrap_or(0),
         author_id: raw.user.as_ref().map(|u| u.id).unwrap_or(0),
         author_name: author_name(&raw.user),
         page_count: raw.page_count.unwrap_or(1),

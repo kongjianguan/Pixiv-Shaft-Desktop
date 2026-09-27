@@ -8,6 +8,7 @@ import 'package:pixiv_shaft/src/ui/feed_pages.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
 import 'package:pixiv_shaft/src/ui/pixivision_page.dart';
 import 'package:pixiv_shaft/src/ui/r18_page.dart';
+import 'package:pixiv_shaft/src/ui/search_page.dart';
 import 'package:pixiv_shaft/src/ui/search_profile_pages.dart';
 import 'package:pixiv_shaft/src/ui/settings_page.dart';
 

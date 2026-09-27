@@ -210,6 +210,15 @@ pub async fn fetch_recommended_users() -> Result<UserListPage, String> {
     fetch_user_list("/v1/user/recommended?filter=for_ios").await
 }
 
+/// 按关键词搜索用户。
+pub async fn search_users(word: String) -> Result<UserListPage, String> {
+    fetch_user_list(&format!(
+        "/v1/search/user?filter=for_ios&word={}",
+        crate::api_client::encode_component(&word)
+    ))
+    .await
+}
+
 /// 按游标取下一页用户列表。
 pub async fn fetch_next_users(next_url: String) -> Result<UserListPage, String> {
     fetch_user_list(&crate::api::comment::path_of(&next_url)).await

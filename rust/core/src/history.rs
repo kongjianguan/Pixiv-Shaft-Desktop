@@ -5,6 +5,8 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use rusqlite::OptionalExtension;
+
 use crate::db;
 
 /// 内容类型，与现有版本一致。
@@ -99,6 +101,23 @@ pub fn clear_browse() -> Result<(), String> {
 /// 记录一次搜索。同一关键词的旧条目先删掉，避免重复。
 pub fn record_search(keyword: &str, search_type: i64) -> Result<(), String> {
     db::with_connection(|connection| {
+        let pinned = connection
+            .query_row(
+                "SELECT id FROM search_table WHERE keyword = ?1 AND pinned = 1 LIMIT 1",
+                rusqlite::params![keyword],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()
+            .map_err(|e| format!("读取置顶搜索记录失败：{e}"))?;
+        if let Some(id) = pinned {
+            connection
+                .execute(
+                    "UPDATE search_table SET searchTime = ?1 WHERE id = ?2",
+                    rusqlite::params![now(), id],
+                )
+                .map_err(|e| format!("更新置顶搜索记录失败：{e}"))?;
+            return Ok(());
+        }
         connection
             .execute(
                 "DELETE FROM search_table WHERE keyword = ?1",
@@ -172,6 +191,18 @@ pub fn clear_searches() -> Result<(), String> {
         connection
             .execute("DELETE FROM search_table", [])
             .map_err(|e| format!("清空搜索记录失败：{e}"))?;
+        Ok(())
+    })
+}
+
+pub fn clear_searches_group(pinned: bool) -> Result<(), String> {
+    db::with_connection(|connection| {
+        connection
+            .execute(
+                "DELETE FROM search_table WHERE pinned = ?1",
+                rusqlite::params![if pinned { 1 } else { 0 }],
+            )
+            .map_err(|e| format!("清空搜索记录分组失败：{e}"))?;
         Ok(())
     })
 }
