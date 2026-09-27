@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
                     default_rust_auto_opaque = RustAutoOpaqueMoi,
                 );
                 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -216749104;
+                pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -296728218;
             
 
 // Section: executor
@@ -190,6 +190,15 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
                          let output_ok = crate::api::user::fetch_following_users(api_user_id, api_restrict).await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
+            }fn wire__crate__api__illust__fetch_home_page_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_home_page", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_illust_type = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::illust::fetch_home_page(api_illust_type).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
             }fn wire__crate__api__comment__fetch_illust_comments_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
                 FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_illust_comments", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
             let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
@@ -224,6 +233,15 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
             let api_url = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::image::fetch_image(api_url).await?;   std::result::Result::Ok(output_ok)
+                    })().await)
+                } })
+            }fn wire__crate__api__illust__fetch_latest_page_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
+                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_latest_page", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end(); move |context| async move {
+                    transform_result_sse::<_, String>((move || async move {
+                         let output_ok = crate::api::illust::fetch_latest_page().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__user__fetch_mypixiv_users_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -323,15 +341,6 @@ let api_restrict = <String>::sse_decode(&mut deserializer);deserializer.end(); m
             let api_mode = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context| async move {
                     transform_result_sse::<_, String>((move || async move {
                          let output_ok = crate::api::illust::fetch_ranking(api_mode).await?;   std::result::Result::Ok(output_ok)
-                    })().await)
-                } })
-            }fn wire__crate__api__illust__fetch_recommended_illusts_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
-                FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "fetch_recommended_illusts", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end(); move |context| async move {
-                    transform_result_sse::<_, String>((move || async move {
-                         let output_ok = crate::api::illust::fetch_recommended_illusts().await?;   std::result::Result::Ok(output_ok)
                     })().await)
                 } })
             }fn wire__crate__api__novel__fetch_recommended_novels_impl(port_: flutter_rust_bridge::for_generated::MessagePort,ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,rust_vec_len_: i32,data_len_: i32)  {
@@ -638,8 +647,11 @@ let mut var_title = <String>::sse_decode(deserializer);
 let mut var_authorId = <i64>::sse_decode(deserializer);
 let mut var_authorName = <String>::sse_decode(deserializer);
 let mut var_pageCount = <i64>::sse_decode(deserializer);
+let mut var_width = <i64>::sse_decode(deserializer);
+let mut var_height = <i64>::sse_decode(deserializer);
+let mut var_totalBookmarks = <i64>::sse_decode(deserializer);
 let mut var_imageUrl = <String>::sse_decode(deserializer);
-return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id: var_authorId, author_name: var_authorName, page_count: var_pageCount, image_url: var_imageUrl};}
+return crate::api::illust::IllustSummary{id: var_id, title: var_title, author_id: var_authorId, author_name: var_authorName, page_count: var_pageCount, width: var_width, height: var_height, total_bookmarks: var_totalBookmarks, image_url: var_imageUrl};}
                 }
                 
                 impl SseDecode for Vec<String> {
@@ -831,45 +843,46 @@ return crate::api::user::UserProfile{id: var_id, name: var_name, account: var_ac
 13 => wire__crate__api__novel__fetch_follow_novels_impl(port, ptr, rust_vec_len, data_len),
 14 => wire__crate__api__user__fetch_follower_users_impl(port, ptr, rust_vec_len, data_len),
 15 => wire__crate__api__user__fetch_following_users_impl(port, ptr, rust_vec_len, data_len),
-16 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__illust__fetch_illust_page_impl(port, ptr, rust_vec_len, data_len),
-19 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
-21 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
-22 => wire__crate__api__illust__fetch_next_illust_page_impl(port, ptr, rust_vec_len, data_len),
-23 => wire__crate__api__novel__fetch_next_novel_page_impl(port, ptr, rust_vec_len, data_len),
-24 => wire__crate__api__novel__fetch_next_series_impl(port, ptr, rust_vec_len, data_len),
-25 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
-26 => wire__crate__api__illust__fetch_nice_friend_illusts_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__novel__fetch_novel_detail_impl(port, ptr, rust_vec_len, data_len),
-28 => wire__crate__api__novel__fetch_novel_page_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__novel__fetch_novel_series_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__illust__fetch_ranking_impl(port, ptr, rust_vec_len, data_len),
-31 => wire__crate__api__illust__fetch_recommended_illusts_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__novel__fetch_recommended_novels_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__user__fetch_recommended_users_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
-37 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
-38 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-39 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
-40 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
-41 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
-42 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
-43 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
-46 => wire__crate__api__novel__remove_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
-47 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
-48 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
-49 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
-50 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
-52 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
-54 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__illust__fetch_home_page_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__comment__fetch_illust_comments_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__illust__fetch_illust_detail_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__illust__fetch_illust_page_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__image__fetch_image_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__illust__fetch_latest_page_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__user__fetch_mypixiv_users_impl(port, ptr, rust_vec_len, data_len),
+23 => wire__crate__api__comment__fetch_next_comments_impl(port, ptr, rust_vec_len, data_len),
+24 => wire__crate__api__illust__fetch_next_illust_page_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__novel__fetch_next_novel_page_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__novel__fetch_next_series_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__user__fetch_next_users_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__illust__fetch_nice_friend_illusts_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__novel__fetch_novel_detail_impl(port, ptr, rust_vec_len, data_len),
+30 => wire__crate__api__novel__fetch_novel_page_impl(port, ptr, rust_vec_len, data_len),
+31 => wire__crate__api__novel__fetch_novel_series_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__illust__fetch_ranking_impl(port, ptr, rust_vec_len, data_len),
+33 => wire__crate__api__novel__fetch_recommended_novels_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__user__fetch_recommended_users_impl(port, ptr, rust_vec_len, data_len),
+35 => wire__crate__api__illust__fetch_related_illusts_impl(port, ptr, rust_vec_len, data_len),
+36 => wire__crate__api__user__fetch_user_detail_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__illust__fetch_user_illusts_impl(port, ptr, rust_vec_len, data_len),
+38 => wire__crate__api__user__follow_user_impl(port, ptr, rust_vec_len, data_len),
+39 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__auth__is_logged_in_impl(port, ptr, rust_vec_len, data_len),
+41 => wire__crate__api__store__list_browse_impl(port, ptr, rust_vec_len, data_len),
+42 => wire__crate__api__store__list_searches_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__auth__logout_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__store__record_browse_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__store__record_search_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__illust__remove_bookmark_impl(port, ptr, rust_vec_len, data_len),
+47 => wire__crate__api__novel__remove_novel_bookmark_impl(port, ptr, rust_vec_len, data_len),
+48 => wire__crate__api__store__reset_setting_impl(port, ptr, rust_vec_len, data_len),
+49 => wire__crate__api__illust__search_illusts_impl(port, ptr, rust_vec_len, data_len),
+50 => wire__crate__api__user__self_user_id_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__store__set_search_pinned_impl(port, ptr, rust_vec_len, data_len),
+52 => wire__crate__api__store__set_setting_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__store__setting_impl(port, ptr, rust_vec_len, data_len),
+54 => wire__crate__api__auth__start_login_impl(port, ptr, rust_vec_len, data_len),
+55 => wire__crate__api__user__unfollow_user_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
                 }
@@ -1007,6 +1020,9 @@ self.title.into_into_dart().into_dart(),
 self.author_id.into_into_dart().into_dart(),
 self.author_name.into_into_dart().into_dart(),
 self.page_count.into_into_dart().into_dart(),
+self.width.into_into_dart().into_dart(),
+self.height.into_into_dart().into_dart(),
+self.total_bookmarks.into_into_dart().into_dart(),
 self.image_url.into_into_dart().into_dart()
                 ].into_dart()
                 }
@@ -1245,6 +1261,9 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::user::UserProfile> for crate:
 <i64>::sse_encode(self.author_id, serializer);
 <String>::sse_encode(self.author_name, serializer);
 <i64>::sse_encode(self.page_count, serializer);
+<i64>::sse_encode(self.width, serializer);
+<i64>::sse_encode(self.height, serializer);
+<i64>::sse_encode(self.total_bookmarks, serializer);
 <String>::sse_encode(self.image_url, serializer);}
                 }
                 

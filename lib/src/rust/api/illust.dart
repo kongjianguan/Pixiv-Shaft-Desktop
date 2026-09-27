@@ -10,9 +10,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // These functions are ignored because they are not marked as `pub`: `author_name`, `encode_query`, `fetch_illusts`, `page_urls`, `pick_original`, `summarize`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `IllustListResponse`, `ImageUrls`, `RawIllust`, `RawMetaPage`, `RawMetaSinglePage`, `RawTag`, `SingleIllustResponse`
 
-/// 取回推荐插画。
-Future<List<IllustSummary>> fetchRecommendedIllusts() =>
-    RustLib.instance.api.crateApiIllustFetchRecommendedIllusts();
+/// 推荐页的插画或漫画作品流，保留后续分页地址。
+Future<IllustPage> fetchHomePage({required String illustType}) =>
+    RustLib.instance.api.crateApiIllustFetchHomePage(illustType: illustType);
+
+/// 推荐页的最新作品流。
+Future<IllustPage> fetchLatestPage() =>
+    RustLib.instance.api.crateApiIllustFetchLatestPage();
 
 /// 按关键词搜索插画。排序与匹配方式取现有版本的默认值。
 Future<List<IllustSummary>> searchIllusts({required String word}) =>
@@ -172,6 +176,9 @@ class IllustSummary {
   final PlatformInt64 authorId;
   final String authorName;
   final PlatformInt64 pageCount;
+  final PlatformInt64 width;
+  final PlatformInt64 height;
+  final PlatformInt64 totalBookmarks;
   final String imageUrl;
 
   const IllustSummary({
@@ -180,6 +187,9 @@ class IllustSummary {
     required this.authorId,
     required this.authorName,
     required this.pageCount,
+    required this.width,
+    required this.height,
+    required this.totalBookmarks,
     required this.imageUrl,
   });
 
@@ -190,6 +200,9 @@ class IllustSummary {
       authorId.hashCode ^
       authorName.hashCode ^
       pageCount.hashCode ^
+      width.hashCode ^
+      height.hashCode ^
+      totalBookmarks.hashCode ^
       imageUrl.hashCode;
 
   @override
@@ -202,5 +215,8 @@ class IllustSummary {
           authorId == other.authorId &&
           authorName == other.authorName &&
           pageCount == other.pageCount &&
+          width == other.width &&
+          height == other.height &&
+          totalBookmarks == other.totalBookmarks &&
           imageUrl == other.imageUrl;
 }
