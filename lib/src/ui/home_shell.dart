@@ -23,6 +23,7 @@ class _HomeShellState extends State<HomeShell> {
   final List<int> _refreshTicks = List.filled(5, 0);
 
   void _selectPage(int index) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     if (_index == index) {
       _refresh();
       return;
@@ -34,22 +35,26 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _refresh() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     setState(() => _refreshTicks[_index]++);
   }
 
   void _openSettings() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
     );
   }
 
   void _openR18() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const R18Page()),
     );
   }
 
   void _openHistory() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const BrowseHistoryPage()),
     );
