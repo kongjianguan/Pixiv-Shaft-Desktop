@@ -137,13 +137,17 @@ pub async fn fetch_bookmarked_illusts() -> Result<Vec<IllustSummary>, String> {
     .await
 }
 
-/// 取回排行。`mode` 取现有版本的取值，例如 `day`、`week`、`month`、`day_manga`。
-pub async fn fetch_ranking(mode: String) -> Result<Vec<IllustSummary>, String> {
-    let mode = encode_query(&mode);
-    fetch_illusts(&format!(
-        "/v1/illust/ranking?mode={mode}&filter=for_ios"
-    ))
-    .await
+/// 按模式与日期取回插画排行，保留后续分页地址。
+pub async fn fetch_ranking_page(mode: String, date: Option<String>) -> Result<IllustPage, String> {
+    let mut path = format!(
+        "/v1/illust/ranking?mode={}&filter=for_ios",
+        encode_query(&mode)
+    );
+    if let Some(date) = date {
+        path.push_str("&date=");
+        path.push_str(&encode_query(&date));
+    }
+    fetch_illust_page(&path).await
 }
 
 /// 取回相关作品。

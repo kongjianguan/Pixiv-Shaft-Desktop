@@ -33,6 +33,6 @@ async fn main() {
         novels.len()
     );
     print!("{report}");
-    std::fs::write("target/profile-flow-probe.txt", report)
+    std::fs::write("rust/core/target/profile-flow-probe.txt", report)
         .expect("写入个人页面验证记录");
 }

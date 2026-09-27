@@ -5,7 +5,6 @@ import 'package:pixiv_shaft/src/rust/api/illust.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/illust_detail_page.dart';
 import 'package:pixiv_shaft/src/ui/novel_pages.dart';
-import 'package:pixiv_shaft/src/ui/r18_page.dart';
 import 'package:pixiv_shaft/src/ui/widgets/illust_card.dart';
 import 'package:pixiv_shaft/src/ui/widgets/paged_grid.dart';
 
@@ -135,130 +134,6 @@ class _RecommendedPageState extends State<RecommendedPage>
       MaterialPageRoute<void>(
         builder: (_) => IllustDetailPage(illustId: illust.id, initialTitle: illust.title),
       ),
-    );
-  }
-}
-
-/// 发现：按模式取排行。
-class RankingPage extends StatefulWidget {
-  const RankingPage({super.key});
-
-  @override
-  State<RankingPage> createState() => _RankingPageState();
-}
-
-class _RankingPageState extends State<RankingPage> {
-  static const _modes = <String, String>{
-    'day': '今日',
-    'week': '本周',
-    'month': '本月',
-    'day_manga': '今日漫画',
-  };
-
-  String _mode = 'day';
-  late Future<List<IllustSummary>> _illusts = fetchRanking(mode: _mode);
-
-  void _select(String mode) {
-    setState(() {
-      _mode = mode;
-      _illusts = fetchRanking(mode: mode);
-    });
-  }
-
-  void _reload() {
-    setState(() => _illusts = fetchRanking(mode: _mode));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: AppSettings.instance,
-      builder: (context, _) => _FeedScaffold(
-        title: '发现',
-        onReload: _reload,
-        action: AppSettings.instance.showR18
-            ? IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const R18Page()),
-                ),
-                icon: const Icon(Icons.explicit),
-                tooltip: 'R18 排行',
-              )
-            : null,
-        header: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              for (final entry in _modes.entries) ...[
-                ChoiceChip(
-                  label: Text(entry.value),
-                  selected: _mode == entry.key,
-                  onSelected: (_) => _select(entry.key),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-        child: AsyncSection<List<IllustSummary>>(
-          future: _illusts,
-          onRetry: _reload,
-          errorLabel: '加载排行失败',
-          builder: (context, illusts) => IllustGrid(
-            illusts: illusts,
-            emptyLabel: '该模式下没有内容',
-            onOpen: (illust) => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => IllustDetailPage(illustId: illust.id, initialTitle: illust.title),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 顶部标题栏加刷新按钮，可选一行头部内容。
-class _FeedScaffold extends StatelessWidget {
-  const _FeedScaffold({
-    required this.title,
-    required this.child,
-    required this.onReload,
-    this.header,
-    this.action,
-  });
-
-  final String title;
-  final Widget child;
-  final VoidCallback onReload;
-  final Widget? header;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(title, style: Theme.of(context).textTheme.titleLarge),
-              ),
-              if (action != null) action!,
-              IconButton(
-                onPressed: onReload,
-                icon: const Icon(Icons.refresh),
-                tooltip: '重新加载',
-              ),
-            ],
-          ),
-        ),
-        if (header != null) ...[header!, const SizedBox(height: 8)],
-        Expanded(child: child),
-      ],
     );
   }
 }

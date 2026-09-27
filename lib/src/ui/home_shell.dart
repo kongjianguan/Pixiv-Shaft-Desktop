@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pixiv_shaft/src/settings/app_settings.dart';
 import 'package:pixiv_shaft/src/ui/browse_history_page.dart';
+import 'package:pixiv_shaft/src/ui/discover_page.dart';
 import 'package:pixiv_shaft/src/ui/dynamic_page.dart';
 import 'package:pixiv_shaft/src/ui/feed_pages.dart';
 import 'package:pixiv_shaft/src/ui/login_screen.dart';
+import 'package:pixiv_shaft/src/ui/pixivision_page.dart';
 import 'package:pixiv_shaft/src/ui/r18_page.dart';
 import 'package:pixiv_shaft/src/ui/search_profile_pages.dart';
 import 'package:pixiv_shaft/src/ui/settings_page.dart';
@@ -57,6 +59,13 @@ class _HomeShellState extends State<HomeShell> {
     Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const BrowseHistoryPage()),
+    );
+  }
+
+  void _openPixivision() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const PixivisionPage()),
     );
   }
 
@@ -124,6 +133,9 @@ class _HomeShellState extends State<HomeShell> {
               ]),
               if (AppSettings.instance.showR18)
                 PlatformMenuItem(label: 'R18 排行', onSelected: _openR18),
+              PlatformMenuItemGroup(members: [
+                PlatformMenuItem(label: 'Pixivision', onSelected: _openPixivision),
+              ]),
             ],
           ),
           PlatformMenu(
@@ -163,7 +175,7 @@ class _HomeShellState extends State<HomeShell> {
       case 0:
         return const RecommendedPage();
       case 1:
-        return const RankingPage();
+        return const DiscoverPage();
       case 2:
         return const SearchPage();
       case 3:

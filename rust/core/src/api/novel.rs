@@ -126,6 +126,22 @@ pub async fn fetch_recommended_novels() -> Result<Vec<NovelSummary>, String> {
     fetch_list("/v1/novel/recommended?include_privacy_policy=true&filter=for_ios").await
 }
 
+/// 按模式与日期取回小说排行，保留后续分页地址。
+pub async fn fetch_novel_ranking_page(
+    mode: String,
+    date: Option<String>,
+) -> Result<NovelPage, String> {
+    let mut path = format!(
+        "/v1/novel/ranking?mode={}&filter=for_ios",
+        crate::api_client::encode_component(&mode)
+    );
+    if let Some(date) = date {
+        path.push_str("&date=");
+        path.push_str(&crate::api_client::encode_component(&date));
+    }
+    fetch_novel_page(&path).await
+}
+
 /// 关注动态里的小说。
 pub async fn fetch_follow_novels(restrict: String) -> Result<NovelPage, String> {
     fetch_novel_page(&format!(
