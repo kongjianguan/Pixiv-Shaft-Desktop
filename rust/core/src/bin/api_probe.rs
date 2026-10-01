@@ -91,7 +91,13 @@ async fn main() {
     // QUIC 是 ECH 之外的另一条通路，必须单独验证：只验证 ECH 的话，
     // QUIC 即使完全不工作也看不出来。用同一个接口，判据与上面一致。
     let path = "/v1/illust/recommended?include_ranking_illusts=false&filter=for_ios";
-    match pixiv_core::quic::get(path, pixiv_core::api_client::api_headers(None)).await {
+    match pixiv_core::quic::get(
+        pixiv_core::transport::APP_API_HOST,
+        path,
+        pixiv_core::api_client::api_headers(None),
+    )
+    .await
+    {
         Ok((status, body)) => {
             let snippet: String = body.chars().take(120).collect();
             println!("状态码 {status}");

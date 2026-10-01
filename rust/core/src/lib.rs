@@ -16,5 +16,6 @@ pub mod quic;
 pub mod session;
 pub mod settings;
 pub mod tls;
+pub mod transport;
 
 mod frb_generated;

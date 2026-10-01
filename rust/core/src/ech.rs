@@ -134,23 +134,19 @@ async fn build_client(ech_config: &[u8]) -> Result<reqwest::Client, String> {
         .map_err(|e| format!("构建 ECH 客户端失败：{e}"))
 }
 
-/// 发起一次 GET。
-pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
-    request("GET", path, headers, None).await
-}
-
 /// 发起一次请求。
 ///
 /// ECH 被服务端拒绝属于正常情况：配置会轮换，缓存的配置在服务端滚动之后就失效。
 /// 因此先试 ECH；被拒时丢掉缓存、重新取一份配置再试；仍然被拒就交给调用方
 /// 换别的通路。
 pub async fn request(
+    host: &str,
     method: &str,
     path: &str,
     headers: HeaderMap,
     body: Option<String>,
 ) -> Result<(u16, String), String> {
-    let url = format!("https://app-api.pixiv.net{path}");
+    let url = format!("https://{host}{path}");
 
     let first = client().await?;
     match send(&first, method, &url, headers.clone(), body.clone()).await {

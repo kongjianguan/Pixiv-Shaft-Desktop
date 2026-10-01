@@ -25,3 +25,7 @@ OAuth refresh follows macOS proxy settings when process variables do not define 
 ## Verification
 
 On a Mac with an active system proxy, the authenticated profile probe restores the Keychain session and completes a real token refresh with proxy environment variables removed. The probe then fetches the profile, avatar, bookmark lists, published works, and author bookmarks. Rust compilation and the macOS build verify the client configuration.
+
+## Related
+
+[2026-10-02-oauth-token-transport](2026-10-02-oauth-token-transport.md) replaces the system-proxy route with the anti-blocking transports that API requests use.

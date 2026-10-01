@@ -12,9 +12,8 @@ use bytes::Buf;
 use quinn::crypto::rustls::QuicClientConfig;
 use reqwest::header::HeaderMap;
 
-/// app-api 的 Cloudflare 地址，与现有版本 `PixivHosts.CF_IPS` 一致。
+/// Cloudflare 地址，与现有版本 `PixivHosts.CF_IPS` 一致。
 const CF_IPS: [&str; 2] = ["104.18.42.239", "172.64.145.17"];
-const AUTHORITY: &str = "app-api.pixiv.net";
 
 fn client_config() -> Result<quinn::ClientConfig, String> {
     let mut roots = rustls::RootCertStore::empty();
@@ -45,12 +44,13 @@ fn client_config() -> Result<quinn::ClientConfig, String> {
 }
 
 /// 经 QUIC 发起一次 GET。
-pub async fn get(path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
-    request("GET", path, headers, None).await
+pub async fn get(host: &str, path: &str, headers: HeaderMap) -> Result<(u16, String), String> {
+    request(host, "GET", path, headers, None).await
 }
 
 /// 经 QUIC 发起一次请求。两个任播地址依次尝试。
 pub async fn request(
+    host: &str,
     method: &str,
     path: &str,
     headers: HeaderMap,
@@ -58,7 +58,7 @@ pub async fn request(
 ) -> Result<(u16, String), String> {
     let mut last_error = String::from("QUIC 地址列表为空");
     for ip in CF_IPS {
-        match request_via(ip, method, path, headers.clone(), body.clone()).await {
+        match request_via(host, ip, method, path, headers.clone(), body.clone()).await {
             Ok(result) => return Ok(result),
             Err(error) => last_error = format!("{ip}：{error}"),
         }
@@ -67,6 +67,7 @@ pub async fn request(
 }
 
 async fn request_via(
+    host: &str,
     ip: &str,
     method: &str,
     path: &str,
@@ -84,7 +85,7 @@ async fn request_via(
     endpoint.set_default_client_config(client_config()?);
 
     let connecting = endpoint
-        .connect(remote, AUTHORITY)
+        .connect(remote, host)
         .map_err(|e| format!("发起连接失败：{e}"))?;
     let connection = tokio::time::timeout(Duration::from_secs(20), connecting)
         .await
@@ -101,7 +102,7 @@ async fn request_via(
             std::future::poll_fn(|cx| driver.poll_close(cx)).await;
     });
 
-    let result = send(method, path, &headers, body, &mut send_request).await;
+    let result = send(host, method, path, &headers, body, &mut send_request).await;
 
     drive.abort();
     endpoint.wait_idle().await;
@@ -109,6 +110,7 @@ async fn request_via(
 }
 
 async fn send(
+    host: &str,
     method: &str,
     path: &str,
     headers: &HeaderMap,
@@ -117,8 +119,8 @@ async fn send(
 ) -> Result<(u16, String), String> {
     let mut builder = http::Request::builder()
         .method(method)
-        .uri(format!("https://{AUTHORITY}{path}"))
-        .header("host", AUTHORITY);
+        .uri(format!("https://{host}{path}"))
+        .header("host", host);
     for (name, value) in headers {
         // 这些头由 QUIC 这一层自己决定。
         let lower = name.as_str().to_ascii_lowercase();

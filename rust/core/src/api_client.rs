@@ -9,7 +9,6 @@ use chrono::Local;
 use md5::{Digest, Md5};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, AUTHORIZATION, USER_AGENT};
 
-pub const APP_API_HOST: &str = "https://app-api.pixiv.net";
 pub const APP_VERSION: &str = "8.6.10";
 pub const APP_OS_VERSION: &str = "26.5";
 pub const DEVICE_MODEL: &str = "iPhone16,2";
@@ -144,7 +143,8 @@ pub async fn post_with_auth(path: &str, fields: &[(&str, &str)]) -> Result<Strin
     Ok(response)
 }
 
-fn form_body(fields: &[(&str, &str)]) -> String {
+/// 把字段拼成 `application/x-www-form-urlencoded` 请求体。
+pub(crate) fn form_body(fields: &[(&str, &str)]) -> String {
     fields
         .iter()
         .map(|(key, value)| format!("{}={}", encode_component(key), encode_component(value)))
@@ -167,10 +167,7 @@ pub fn encode_component(value: &str) -> String {
     out
 }
 
-/// 接口请求先走 ECH，失败再走 QUIC。
-///
-/// 两条通路的顺序与现有版本一致：ECH 是加密 SNI 的 TCP 直连，QUIC 走 UDP。
-/// 两条都不通时把各自的失败原因一并报出，便于判断是哪一层的问题。
+/// 接口请求走反墙通路（先 ECH，再 QUIC）。
 async fn request(
     method: &str,
     path: &str,
@@ -184,10 +181,12 @@ async fn request(
             reqwest::header::HeaderValue::from_static("application/x-www-form-urlencoded"),
         );
     }
-    match crate::ech::request(method, path, headers.clone(), body.clone()).await {
-        Ok(result) => Ok(result),
-        Err(ech_error) => crate::quic::request(method, path, headers, body)
-            .await
-            .map_err(|quic_error| format!("{ech_error}；QUIC 同样失败：{quic_error}")),
-    }
+    crate::transport::request(
+        crate::transport::APP_API_HOST,
+        method,
+        path,
+        headers,
+        body,
+    )
+    .await
 }

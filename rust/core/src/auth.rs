@@ -3,12 +3,13 @@
 //! 流程沿用现有版本的真实做法：打开系统浏览器到 Pixiv 授权页，用户登录后浏览器
 //! 跳回 `redirect_uri` 并在地址里带上 `code`，用户把地址或 `code` 粘回应用，
 //! 应用用 `code` 加 `code_verifier` 换 token。
-
-use std::time::Duration;
+//!
+//! 令牌端点在国内网络下无法直连，请求走 `transport` 里的反墙通路。
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use rand::RngCore;
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -16,7 +17,7 @@ pub const CLIENT_ID: &str = "MOBrBDS8blbauoSck0ZfDbtuzpyT";
 pub const CLIENT_SECRET: &str = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 pub const REDIRECT_URI: &str = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback";
 pub const LOGIN_URL: &str = "https://app-api.pixiv.net/web/v1/login";
-pub const TOKEN_ENDPOINT: &str = "https://oauth.secure.pixiv.net/auth/token";
+pub const TOKEN_PATH: &str = "/auth/token";
 pub const CLIENT_PARAM: &str = "pixiv-android";
 
 /// 一次授权会话所需的 PKCE 对。
@@ -125,30 +126,30 @@ pub async fn refresh_token(refresh_token: &str) -> Result<TokenResponse, String>
 }
 
 async fn post_token(extra: &[(&str, &str)]) -> Result<TokenResponse, String> {
-    let mut body: Vec<(&str, &str)> = vec![
+    let mut fields: Vec<(&str, &str)> = vec![
         ("client_id", CLIENT_ID),
         ("client_secret", CLIENT_SECRET),
         ("include_policy", "true"),
     ];
-    body.extend_from_slice(extra);
+    fields.extend_from_slice(extra);
 
-    let response = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(10))
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("构建授权客户端")
-        .post(TOKEN_ENDPOINT)
-        .form(&body)
-        .send()
-        .await
-        .map_err(|e| format!("请求 token 端点失败：{e}"))?;
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("application/x-www-form-urlencoded"),
+    );
 
-    let status = response.status();
-    let text = response
-        .text()
-        .await
-        .map_err(|e| format!("读取 token 响应失败：{e}"))?;
-    if !status.is_success() {
+    let (status, text) = crate::transport::request(
+        crate::transport::OAUTH_HOST,
+        "POST",
+        TOKEN_PATH,
+        headers,
+        Some(crate::api_client::form_body(&fields)),
+    )
+    .await
+    .map_err(|e| format!("请求 token 端点失败：{e}"))?;
+
+    if !(200..300).contains(&status) {
         return Err(format!("token 交换失败：{status} {text}"));
     }
     serde_json::from_str(&text).map_err(|e| format!("解析 token 响应失败：{e}"))
